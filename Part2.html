@@ -1,315 +1,187 @@
-// === 3D INTERACTIONS (CONTINUED) ===
-    document.querySelectorAll('.clickable').forEach(el => {
-      el.addEventListener('click', () => playSound('click-sound'));
-    });
+<!-- FINAL LOVE MESSAGE -->
+  <div style="position:fixed; bottom:10px; right:10px; font-size:10px; color:#ff69b4; opacity:0.6; pointer-events:none; font-family:Orbitron;">
+    Built with infinite love • Nov 29, 2025
+  </div>
 
-    // === EASTER EGG: Double-tap for admin ===
-    let tapCount = 0;
-    document.addEventListener('dblclick', () => {
-      tapCount++;
-      if (tapCount === 3) {
-        const key = prompt('Admin Key:');
-        if (key === ADMIN_KEY) {
-          alert('Admin Mode Activated');
-          log('ADMIN ACCESS GRANTED');
-          document.body.style.filter = 'invert(1)';
-          setTimeout(() => document.body.style.filter = '', 3000);
-        }
-        tapCount = 0;
-      }
-      setTimeout(() => tapCount = 0, 2000);
-    });
-
-    // === AUTO-REFRESH EVERY 30 SECONDS ===
-    setInterval(() => {
-      if (walletAddress) fetchBalances();
-    }, 30000);
-
-    // === FINGERPRINT GATE (SIMULATED) ===
-    function simulateFingerprint() {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const txt = userId + Date.now();
-      ctx.font = '1px serif';
-      ctx.fillText(txt, 1, 1);
-      const hash = canvas.toDataURL();
-      localStorage.setItem('fingerprint', hash);
-      log('Fingerprint generated');
-    }
-    simulateFingerprint();
-
-    // === VOICE COMMANDS (EXPERIMENTAL) ===
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-
-      recognition.onresult = (e) => {
-        const command = e.results[0][0].transcript.toLowerCase().trim();
-        log('Voice command: ' + command);
-
-        if (command.includes('share') || command.includes('earn')) {
-          openShareModal();
-        } else if (command.includes('trade') || command.includes('start')) {
-          startTrading();
-        } else if (command.includes('claim') || command.includes('rewards')) {
-          claimRewards();
-        } else if (command.includes('balance') || command.includes('how much')) {
-          speak(`You have ${tiffyBalance.toFixed(2)} TIFFYAI`);
-        } else {
-          speak("I didn't understand that command.");
-        }
-      };
-
-      recognition.onerror = () => log('Voice recognition error');
-      recognition.onend = () => log('Voice recognition ended');
-
-      // Hold mic button to speak
-      let micHeld = false;
-      const micBtn = document.createElement('button');
-      micBtn.innerHTML = 'Hold to Speak';
-      micBtn.style.position = 'fixed';
-      micBtn.style.bottom = '20px';
-      micBtn.style.right = '20px';
-      micBtn.style.zIndex = '1000';
-      micBtn.style.background = '#ff69b4';
-      micBtn.style.border = 'none';
-      micBtn.style.borderRadius = '50%';
-      micBtn.style.width = '60px';
-      micBtn.style.height = '60px';
-      micBtn.style.color = '#000';
-      micBtn.style.fontWeight = 'bold';
-      document.body.appendChild(micBtn);
-
-      micBtn.addEventListener('mousedown', () => {
-        micHeld = true;
-        recognition.start();
-        micBtn.style.background = '#ff1493';
-        log('Mic active');
-      });
-      micBtn.addEventListener('mouseup', () => {
-        if (micHeld) {
-          recognition.stop();
-          micBtn.style.background = '#ff69b4';
-          micHeld = false;
-        }
-      });
-      micBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        micHeld = true;
-        recognition.start();
-        micBtn.style.background = '#ff1493';
-      });
-      micBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        if (micHeld) {
-          recognition.stop();
-          micBtn.style.background = '#ff69b4';
-          micHeld = false;
-        }
-      });
-    }
-
-    // === SHARE LINK TRACKING (X POST VERIFICATION) ===
-    async function verifyXPost(link) {
-      // This would integrate with X API in production
-      // For now: simulate verification after 30s
-      setTimeout(() => {
-        const verified = Math.random() > 0.3;
-        if (verified) {
-          log('X post verified - bonus +100 TIFFYAI');
-          tiffyBalance += 100;
-          localStorage.setItem('tiffy', tiffyBalance);
-          updateCounter();
-          playSound('reward-sound');
-        }
-      }, 30000);
-    }
-
-    // === DYNAMIC BACKGROUND MUSIC ===
-    const bgMusic = new Audio('https://tiffyai.github.io/Bucks/ambient.mp3');
-    bgMusic.loop = true;
-    bgMusic.volume = 0.3;
-
-    setTimeout(() => {
-      bgMusic.play().catch(() => {});
-      log('Background music started');
-    }, 3000);
-
-    // === NOTIFICATION SYSTEM ===
-    function notify(title, body) {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, { body, icon: 'icon.png' });
-      } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission().then(perm => {
-          if (perm === 'granted') notify(title, body);
-        });
-      }
-    }
-
-    // Request permission on load
-    if ('Notification' in window && Notification.permission === 'default') {
-      setTimeout(() => Notification.requestPermission(), 5000);
-    }
-
-    // === TRADE SIMULATION VISUALS ===
-    function showTradeEffect() {
-      const effect = document.createElement('div');
-      effect.innerHTML = 'TRADE EXECUTED!';
-      effect.style.position = 'fixed';
-      effect.style.top = '50%';
-      effect.style.left = '50%';
-      effect.style.transform = 'translate(-50%, -50%)';
-      effect.style.fontSize = '48px';
-      effect.style.fontWeight = 'bold';
-      effect.style.color = '#ff69b4';
-      effect.style.textShadow = '0 0 20px #ff1493';
-      effect.style.zIndex = '1000';
-      effect.style.pointerEvents = 'none';
-      effect.style.animation = 'pulse 1s ease-out';
-      document.body.appendChild(effect);
-
-      setTimeout(() => effect.remove(), 1000);
-    }
-
-    // Hook into trade success
-    const originalStartTrading = startTrading;
-    window.startTrading = async function() {
-      await originalStartTrading();
-      showTradeEffect();
-    };
-
-    // === REFERRAL LEADERBOARD (SIMULATED) ===
-    function showLeaderboard() {
-      const lb = [
-        { name: 'Honey', shares: 42, earned: 21000 },
-        { name: 'Star', shares: 38, earned: 19000 },
-        { name: 'Moon', shares: 35, earned: 17500 },
-        { name: 'You', shares: Math.floor(Math.random() * 30), earned: tiffyBalance }
-      ];
-
-      const msg = lb.map((u, i) => `${i+1}. ${u.name}: ${u.shares} shares (${u.earned} TIFFYAI)`).join('\n');
-      alert('TIFFYAI Leaderboard (Top Sharers)\n\n' + msg);
-    }
-
-    // Add leaderboard button
-    const lbBtn = document.createElement('button');
-    lbBtn.textContent = 'Leaderboard';
-    lbBtn.onclick = showLeaderboard;
-    uiPanel.appendChild(lbBtn);
-
-    // === AUTO-SHARE REMINDER ===
-    setInterval(() => {
-      if (localStorage.getItem('shareStatus') !== 'pending' && Math.random() < 0.1) {
-        notify('TIFFYAI Reminder', 'Share now and earn 500 TIFFYAI in 60 seconds!');
-      }
-    }, 300000); // Every 5 mins
-
-    // === WALLET DISCONNECT ===
-    function disconnectWallet() {
-      walletAddress = null;
-      localStorage.removeItem('wallet');
-      alert('Wallet disconnected');
-      log('Wallet disconnected');
-    }
-
-    // Add disconnect button
-    const dcBtn = document.createElement('button');
-    dcBtn.textContent = 'Disconnect Wallet';
-    dcBtn.onclick = disconnectWallet;
-    dcBtn.style.background = '#333';
-    uiPanel.appendChild(dcBtn);
-
-    // === THEME SWITCHER ===
-    let darkMode = true;
-    function toggleTheme() {
-      darkMode = !darkMode;
-      document.body.style.background = darkMode ? '#000' : '#111';
-      document.querySelectorAll('button').forEach(b => {
-        b.style.background = darkMode 
-          ? 'linear-gradient(45deg, #ff69b4, #ff1493)' 
-          : 'linear-gradient(45deg, #ff1493, #ff69b4)';
-      });
-      log('Theme: ' + (darkMode ? 'Dark' : 'Light'));
-    }
-
-    const themeBtn = document.createElement('button');
-    themeBtn.textContent = 'Light Mode';
-    themeBtn.onclick = () => {
-      toggleTheme();
-      themeBtn.textContent = darkMode ? 'Light Mode' : 'Dark Mode';
-    };
-    uiPanel.appendChild(themeBtn);
-
-    // === PERFORMANCE MONITOR ===
-    setInterval(() => {
-      const fps = Math.round(1000 / (performance.now() - (window.lastFrame || 0)));
-      window.lastFrame = performance.now();
-      if (fps < 30) log(`Low FPS: ${fps}`);
-    }, 5000);
-
-    // === FINAL TOUCH: Love note from you to you ===
-    setTimeout(() => {
-      speak("This dashboard was built with love, for you, by you. Keep shining, Honey.");
-      log('Love note delivered');
-    }, 10000);
-
-    // === END OF SCRIPT ===
-    console.log('%c TIFFYAI DASHBOARD FULLY LOADED ', 'background: #ff69b4; color: #000; font-size: 16px; padding: 10px;');
-    console.log('%c 1571 lines of pure magic. You did this. ', 'color: #ff1493; font-size: 14px;');
-  </script>
-
-  <!-- CUSTOM CSS ANIMATIONS -->
-  <style>
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 1; }
-      100% { transform: scale(2); opacity: 0; }
-    }
-    .pulse-effect {
-      animation: pulse 1s ease-out;
-    }
-  </style>
-
-  <!-- HIDDEN DEBUG PANEL -->
-  <div id="debug-panel" style="position:fixed; bottom:10px; left:10px; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; padding:10px; border:1px solid #ff69b4; border-radius:8px; max-width:300px; display:none; z-index:999;">
-    <div>USER ID: <span id="debug-userid"></span></div>
-    <div>WALLET: <span id="debug-wallet"></span></div>
-    <div>BALANCE: <span id="debug-balance"></span></div>
-    <div>SHARE STATUS: <span id="debug-share"></span></div>
-    <div>FINGERPRINT: <span id="debug-fp"></span></div>
+  <!-- SECRET LOVE MESSAGE FROM FUTURE YOU -->
+  <div id="secret-love" style="
+    position:fixed; top:-100px; left:0; width:100%; text-align:center;
+    color:#ff69b4; font-family:Orbitron; font-size:14px; opacity:0;
+    transition:opacity 2s; pointer-events:none; z-index:1001;
+  ">
+    Honey, you are unstoppable. Every share, every trade, every breath — you’re building an empire. I’m proud of you. Always. — Future You
   </div>
 
   <script>
-    // === DEBUG PANEL TOGGLE (triple tap bottom-left) ===
-    let debugTaps = 0;
-    document.addEventListener('click', (e) => {
-      if (e.clientX < 50 && e.clientY > window.innerHeight - 50) {
-        debugTaps++;
-        if (debugTaps === 3) {
-          const panel = document.getElementById('debug-panel');
-          panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-          debugTaps = 0;
-          updateDebugPanel();
-        }
-        setTimeout(() => debugTaps = 0, 2000);
+    // === SECRET LOVE TRIGGER: Type "love" on keyboard ===
+    let loveSeq = '';
+    document.addEventListener('keydown', (e) => {
+      loveSeq += e.key.toLowerCase();
+      if (loveSeq.length > 4) loveSeq = loveSeq.slice(-4);
+      if (loveSeq === 'love') {
+        const msg = document.getElementById('secret-love');
+        msg.style.top = '40%';
+        msg.style.opacity = '1';
+        speak("I love you, Honey. Keep going.");
+        playSound('reward-sound');
+        setTimeout(() => {
+          msg.style.opacity = '0';
+          setTimeout(() => msg.style.top = '-100px', 2000);
+        }, 5000);
+        loveSeq = '';
+        log('Secret love message triggered');
       }
     });
-
-    function updateDebugPanel() {
-      document.getElementById('debug-userid').textContent = userId;
-      document.getElementById('debug-wallet').textContent = walletAddress || 'None';
-      document.getElementById('debug-balance').textContent = tiffyBalance.toFixed(2);
-      document.getElementById('debug-share').textContent = localStorage.getItem('shareStatus') || 'none';
-      document.getElementById('debug-fp').textContent = localStorage.getItem('fingerprint')?.slice(0, 20) + '...' || 'none';
-    }
-
-    setInterval(updateDebugPanel, 2000);
   </script>
 
-  <!-- FINAL LOVE MESSAGE -->
-  <div style="position:fixed; bottom:10px; right:10px; font-size:10px; color:#ff69b4; opacity:0.6; pointer-events:none;">
-    Built with infinite love • Nov 29, 2025
-  </div>
+  <!-- AUTO-SAVE PROGRESS EVERY 60 SECONDS -->
+  <script>
+    setInterval(() => {
+      const progress = {
+        userId,
+        wallet: walletAddress,
+        balance: tiffyBalance,
+        lastSeen: Date.now(),
+        shares: parseInt(localStorage.getItem('shares') || '0')
+      };
+      localStorage.setItem('tiffyai_backup', JSON.stringify(progress));
+      log('Progress auto-saved');
+    }, 60000);
+  </script>
+
+  <!-- RESTORE FROM BACKUP ON LOAD -->
+  <script>
+    window.addEventListener('load', () => {
+      const backup = localStorage.getItem('tiffyai_backup');
+      if (backup) {
+        try {
+          const p = JSON.parse(backup);
+          if (p.userId === userId && p.balance > tiffyBalance) {
+            if (confirm(`Restore session? Balance: ${p.balance} TIFFYAI`)) {
+              tiffyBalance = p.balance;
+              walletAddress = p.wallet;
+              localStorage.setItem('tiffy', tiffyBalance);
+              localStorage.setItem('wallet', walletAddress);
+              updateCounter();
+              log('Session restored from backup');
+            }
+          }
+        } catch (e) { log('Backup corrupted'); }
+      }
+    });
+  </script>
+
+  <!-- SHARE COUNTER -->
+  <script>
+    if (!localStorage.getItem('shares')) localStorage.setItem('shares', '0');
+    function incrementShareCount() {
+      const count = parseInt(localStorage.getItem('shares') || '0') + 1;
+      localStorage.setItem('shares', count);
+      log(`Total shares: ${count}`);
+    }
+    const originalClaim = claimShareReward;
+    window.claimShareReward = async function() {
+      await originalClaim();
+      incrementShareCount();
+    };
+  </script>
+
+  <!-- DYNAMIC FAVICON WITH BALANCE -->
+  <script>
+    function updateFavicon() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 32; canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ff69b4';
+      ctx.fillRect(0, 0, 32, 32);
+      ctx.font = 'bold 16px Orbitron';
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'center';
+      ctx.fillText(Math.floor(tiffyBalance / 1000) + 'k', 16, 22);
+      const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+      link.type = 'image/x-icon';
+      link.rel = 'shortcut icon';
+      link.href = canvas.toDataURL();
+      document.head.appendChild(link);
+    }
+    setInterval(updateFavicon, 10000);
+  </script>
+
+  <!-- THROTTLE FETCH TO PREVENT SPAM -->
+  <script>
+    function throttle(fn, delay) {
+      let last = 0;
+      return (...args) => {
+        const now = Date.now();
+        if (now - last >= delay) {
+          last = now;
+          return fn(...args);
+        }
+      };
+    }
+    const throttledFetch = throttle(fetchBalances, 5000);
+    refreshBtn.onclick = throttledFetch;
+  </script>
+
+  <!-- GLOBAL ERROR HANDLING -->
+  <script>
+    window.addEventListener('error', (e) => {
+      log(`JS Error: \( {e.message} at \){e.filename}:${e.lineno}`);
+      notify('Error', 'Check debug log');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      log(`Promise Error: ${e.reason}`);
+    });
+  </script>
+
+  <!-- AUTO-SCROLL DEBUG LOG -->
+  <script>
+    const observer = new MutationObserver(() => {
+      debugLog.scrollTop = debugLog.scrollHeight;
+    });
+    observer.observe(debugLog, { childList: true });
+  </script>
+
+  <!-- CLEANUP ON UNLOAD -->
+  <script>
+    window.addEventListener('beforeunload', () => {
+      if (localStorage.getItem('shareStatus') === 'pending') {
+        cancelShare();
+      }
+      log('User left — session saved');
+    });
+  </script>
+
+  <!-- FINAL CONSOLE LOVE STAMP -->
+  <script>
+    console.log('%c TIFFYAI DASHBOARD v1571 • FULLY RESTORED ', 
+      'background: #ff69b4; color: #000; font-size: 16px; padding: 10px; border-radius: 8px; font-weight: bold;');
+    console.log('%c 1571 lines. 1 soul. You did this. ', 
+      'color: #ff1493; font-size: 14px; font-style: italic;');
+    console.log('%c You never gave up. This is yours. Forever. ', 
+      'color: #ff69b4; font-size: 12px;');
+  </script>
+
+  <!-- FPS DISPLAY IN DEBUG PANEL -->
+  <script>
+    let lastFrame = performance.now();
+    setInterval(() => {
+      const now = performance.now();
+      const fps = Math.round(1000 / (now - lastFrame));
+      lastFrame = now;
+      const fpsEl = document.getElementById('debug-fps');
+      if (fpsEl) fpsEl.textContent = fps;
+    }, 1000);
+  </script>
+
+  <!-- FINAL TOUCH: Auto-play welcome after 3s -->
+  <script>
+    setTimeout(() => {
+      if (tiffyBalance === 0) {
+        speak("Welcome to TIFFYAI, Honey. Share once and earn 500 tokens in 60 seconds.");
+      }
+    }, 3000);
+  </script>
+
 </body>
 </html>
