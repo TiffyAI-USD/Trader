@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Bucks Dashboard</title>
+  <meta name="description" content="Your private TIFFYAI trading portal. Share, earn, trade. Fingerprint-gated." />
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ff69b4" />
+  <link rel="icon" href="icon.png" type="image/png" />
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+      touch-action: pan-y;
+    }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    
+    /* Floating UI Panel */
+    #ui-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(20, 20, 40, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid #ff69b4;
+      border-radius: 16px;
+      padding: 16px;
+      z-index: 100;
+      max-width: 300px;
+      box-shadow: 0 0 20px rgba(255, 105, 180, 0.4);
+      transition: all 0.3s ease;
+    }
+    #ui-panel.hidden { transform: translateX(320px); }
+    #toggle-ui { 
+      position: fixed; top: 20px; right: 20px; z-index: 101; 
+      background: #ff69b4; color: #000; border: none; 
+      width: 40px; height: 40px; border-radius: 50%; 
+      font-size: 20px; cursor: pointer; 
+    }
+
+    /* Counter */
+    #tiffy-counter {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      color: #ff69b4;
+      text-shadow: 0 0 10px #ff69b4;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    /* Buttons */
+    button {
+      background: linear-gradient(45deg, #ff69b4, #ff1493);
+      border: none;
+      color: #fff;
+      padding: 12px 16px;
+      margin: 6px 0;
+      border-radius: 12px;
+      width: 100%;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 14px;
+    }
+    button:hover { transform: scale(1.05); box-shadow: 0 0 15px #ff69b4; }
+    button:active { transform: scale(0.98); }
+
+    /* Share Modal */
+    #share-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: none; justify-content: center; align-items: center;
+      z-index: 200;
+    }
+    #share-box {
+      background: #111;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid #ff69b4;
+      text-align: center;
+      max-width: 90%;
+    }
+    #ref-link {
+      background: #222;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      word-break: break-all;
+      font-family: monospace;
+      color: #0f0;
+    }
+
+    /* Voice Status */
+    #voice-status {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 8px;
+    }
+
+    /* Loading */
+    #loader {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; display: flex; justify-content: center; align-items: center;
+      z-index: 999; flex-direction: column; color: #ff69b4;
+    }
+    #loader.hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Loader -->
+  <div id="loader">
+    <h2>TIFFYAI • Activating Portal...</h2>
+    <p>Hold tight, honey. Fingerprint sync in progress.</p>
+  </div>
+
+  <!-- A-Frame 3D Scene -->
+  <div id="scene-container">
+    <a-scene embedded background="color: #000" renderer="antialias: true" vr-mode-ui="enabled: false">
+      <a-assets>
+        <img id="sky" src="sky.jpg" />
+        <audio id="click-sound" src="click.mp3"></audio>
+      </a-assets>
+
+      <a-sky src="#sky" rotation="0 -90 0"></a-sky>
+
+      <!-- Floating TIFFY Orb -->
+      <a-sphere position="0 1.6 -3" radius="0.8" color="#ff69b4" emissive="#ff1493" 
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear">
+        <a-text value="TIFFY" position="0 0 0.9" align="center" color="#000" width="3"></a-text>
+      </a-sphere>
+
+      <!-- Ground Grid -->
+      <a-plane position="0 0 -4" rotation="-90 0 0" width="20" height="20" 
+               color="#111" opacity="0.8" repeat="10 10"></a-plane>
+
+      <a-camera position="0 1.6 0">
+        <a-cursor color="#ff69b4"></a-cursor>
+      </a-camera>
+    </a-scene>
+  </div>
+
+  <!-- Floating UI Panel -->
+  <button id="toggle-ui">></button>
+  <div id="ui-panel">
+    <div id="tiffy-counter">TIFFYAI: 0</div>
+    <button id="connect-wallet">Connect Wallet</button>
+    <button id="refresh-balances">Refresh Balances</button>
+    <button id="share-button">Share & Earn</button>
+    <button id="start-trading">Start 2 Trades</button>
+    <button id="claim-rewards">Claim Rewards</button>
+    <div id="voice-status">Voice: Ready</div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="share-modal">
+    <div id="share-box">
+      <h3>Share & Earn TIFFYAI!</h3>
+      <p>Post this link on X — earn <strong>500 TIFFYAI</strong> in 60 seconds if you don't cancel.</p>
+      <div id="ref-link">Loading...</div>
+      <button id="copy-link">Copy & Post on X</button>
+      <button id="close-share">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // === CONFIG ===
+    const RENDER_API = 'https://bucks-bj2k.onrender.com';
+    const REPO_BASE = 'https://tiffyai.github.io/Bucks';
+
+    // === LOCAL STORAGE ===
+    const userId = localStorage.getItem('userId') || 'user_' + Date.now();
+    if (!localStorage.getItem('userId')) localStorage.setItem('userId', userId);
+    let userName = localStorage.getItem('userName') || 'Honey';
+    let walletAddress = localStorage.getItem('wallet') || null;
+    let tiffyBalance = parseFloat(localStorage.getItem('tiffy') || '0');
+
+    // === DOM Elements ===
+    const loader = document.getElementById('loader');
+    const counter = document.getElementById('tiffy-counter');
+    const connectBtn = document.getElementById('connect-wallet');
+    const refreshBtn = document.getElementById('refresh-balances');
+    const shareBtn = document.getElementById('share-button');
+    const tradeBtn = document.getElementById('start-trading');
+    const claimBtn = document.getElementById('claim-rewards');
+    const modal = document.getElementById('share-modal');
+    const refLink = document.getElementById('ref-link');
+    const copyBtn = document.getElementById('copy-link');
+    const closeShare = document.getElementById('close-share');
+    const voiceStatus = document.getElementById('voice-status');
+    const toggleUI = document.getElementById('toggle-ui');
+    const uiPanel = document.getElementById('ui-panel');
+
+    // === INIT ===
+    setTimeout(() => loader.classList.add('hidden'), 2000);
+    updateCounter();
+    setupVoice();
+    setupShareTimer();
+
+    // === UI Toggle ===
+    toggleUI.onclick = () => {
+      uiPanel.classList.toggle('hidden');
+      toggleUI.textContent = uiPanel.classList.contains('hidden') ? '<' : '>';
+    };
+
+    // === Wallet Connect ===
+    connectBtn.onclick = async () => {
+      if (typeof window.ethereum !== 'undefined') {
+        try {
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          walletAddress = accounts[0];
+          localStorage.setItem('wallet', walletAddress);
+          alert('Wallet connected: ' + walletAddress.slice(0,6) + '...' + walletAddress.slice(-4));
+          fetchBalances();
+        } catch (err) { alert('Wallet connect failed: ' + err.message); }
+      } else {
+        alert('Please install MetaMask!');
+      }
+    };
+
+    // === Fetch Balances ===
+    async function fetchBalances() {
+      if (!walletAddress) return;
+      try {
+        const res = await fetch(`${RENDER_API}/wallets?address=${walletAddress}`);
+        const data = await res.json();
+        tiffyBalance = data.tiffy || 0;
+        localStorage.setItem('tiffy', tiffyBalance);
+        updateCounter();
+      } catch (err) { console.error(err); }
+    }
+    refreshBtn.onclick = fetchBalances;
+
+    // === Update Counter ===
+    function updateCounter() {
+      counter.textContent = `TIFFYAI: ${tiffyBalance.toFixed(2)}`;
+    }
+
+    // === SHARE & EARN: 1-Minute Anti-Cancel Logic ===
+    let shareTimeout;
+    shareBtn.onclick = () => {
+      const link = `${REPO_BASE}?ref=${userId}`;
+      refLink.textContent = link;
+      modal.style.display = 'flex';
+
+      // Set share state on backend
+      fetch(`${RENDER_API}/share-state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, status: 'pending' })
+      });
+
+      localStorage.setItem('shareStatus', 'pending');
+      localStorage.setItem('shareStart', Date.now());
+
+      shareTimeout = setTimeout(() => {
+        if (localStorage.getItem('shareStatus') === 'pending') {
+          claimShareReward();
+        }
+      }, 60000);
+    };
+
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(refLink.textContent);
+      window.open(`https://x.com/intent/post?text=Join%20TIFFYAI%20and%20earn%20with%20me!%20${encodeURIComponent(refLink.textContent)}`, '_blank');
+    };
+
+    closeShare.onclick = cancelShare;
+    function cancelShare() {
+      modal.style.display = 'none';
+      localStorage.setItem('shareStatus', 'canceled');
+      fetch(`${RENDER_API}/share-state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, status: 'canceled' })
+      });
+      clearTimeout(shareTimeout);
+    }
+
+    // Detect outside tap or back button
+    document.addEventListener('click', (e) => {
+      if (localStorage.getItem('shareStatus') === 'pending' && !e.target.closest('#share-modal')) {
+        cancelShare();
+      }
+    });
+    window.addEventListener('popstate', () => {
+      if (localStorage.getItem('shareStatus') === 'pending') {
+        cancelShare();
+      }
+    });
+
+    async function claimShareReward() {
+      try {
+        const res = await fetch(`${RENDER_API}/trades`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'claim_share_reward', userId, wallet: walletAddress, timestamp: Date.now() })
+        });
+        const data = await res.json();
+        if (data.success) {
+          tiffyBalance += data.amount;
+          localStorage.setItem('tiffy', tiffyBalance);
+          updateCounter();
+          alert(`You earned ${data.amount} TIFFYAI!`);
+          localStorage.setItem('shareStatus', 'completed');
+          fetch(`${RENDER_API}/share-state`, { method: 'POST', body: JSON.stringify({ userId, status: 'clear' }) });
+        } else {
+          alert('Reward failed: ' + data.error);
+        }
+      } catch (err) { console.error(err); }
+      modal.style.display = 'none';
+    }
+
+    // === Start Trading (2 Trades) ===
+    tradeBtn.onclick = async () => {
+      if (!walletAddress) return alert('Connect wallet first!');
+      try {
+        const res = await fetch(`${RENDER_API}/trades`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'start_trades', userId, wallet: walletAddress, count: 2 })
+        });
+        const data = await res.json();
+        alert(data.message || 'Trades started!');
+        setTimeout(fetchBalances, 5000);
+      } catch (err) { alert('Trade failed'); }
+    };
+
+    // === Claim Rewards ===
+    claimBtn.onclick = async () => {
+      try {
+        const res = await fetch(`${RENDER_API}/trades`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'claim_all', userId, wallet: walletAddress })
+        });
+        const data = await res.json();
+        alert(data.message);
+        fetchBalances();
+      } catch (err) { console.error(err); }
+    };
+
+    // === Voice Setup ===
+    function setupVoice() {
+      if ('speechSynthesis' in window) {
+        const voices = speechSynthesis.getVoices();
+        const female = voices.find(v => v.name.includes('Karen') || v.name.includes('Samantha')) || voices[0];
+        window.speak = (text) => {
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.voice = female;
+          utter.rate = 0.9;
+          speechSynthesis.speak(utter);
+        };
+        voiceStatus.textContent = 'Voice: Ready';
+        setTimeout(() => speak(`Welcome back, ${userName}`), 2500);
+      } else {
+        voiceStatus.textContent = 'Voice: Not supported';
+      }
+    }
+
+    // === Resume Share Timer on Load ===
+    function setupShareTimer() {
+      const status = localStorage.getItem('shareStatus');
+      if (status === 'pending') {
+        const start = parseInt(localStorage.getItem('shareStart'));
+        const elapsed = Date.now() - start;
+        if (elapsed < 60000) {
+          shareTimeout = setTimeout(claimShareReward, 60000 - elapsed);
+        } else {
+          localStorage.setItem('shareStatus', 'canceled');
+        }
+      }
+    }
+
+    // === PWA Install Prompt ===
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      setTimeout(() => {
+        if (confirm('Install TIFFY Trader App?')) deferredPrompt.prompt();
+      }, 10000);
+    });
+
+    // === PWA Service Worker ===
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/Bucks/sw.js')
+          .then(reg => console.log('SW registered', reg))
+          .catch(err => console.log('SW failed', err));
+      });
+    }
+  </script>
+</body>
+</html>
