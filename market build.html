@@ -187,8 +187,13 @@
 
     function log(msg) {
       debugLog.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+      debugLog.scrollTop = debugLog.scrollHeight;
     }
 
+    // Existing functionality
+    function startTrading() { log('Trades initiated.'); }
+    function claimRewards() { log('Claiming rewards...'); syncBank(); }
+    
     window.onload = () => {
       setTimeout(() => document.getElementById('loader').classList.add('hidden'), 1000);
       syncBank();
@@ -196,14 +201,25 @@
 
     document.getElementById('refresh-balances').onclick = syncBank;
     document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('hidden');
+    document.getElementById('start-trading').onclick = startTrading;
+    document.getElementById('claim-rewards').onclick = claimRewards;
     
-    // Feature Hooks
+    // Feature Hooks (Added Functionality)
     document.getElementById('chat-btn').onclick = () => {
       const client = matrixcs.createClient({ baseUrl: "https://matrix.org" });
       log('Matrix Initialized');
     };
+    
     document.getElementById('prod-upload').onchange = (e) => {
-      if(e.target.files.length > 0) log('Marketplace: ' + e.target.files[0].name);
+      if(e.target.files.length > 0) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          localStorage.setItem('stored_website', event.target.result);
+          log('Marketplace: ' + file.name + ' uploaded and stored.');
+        };
+        reader.readAsText(file);
+      }
     };
   </script>
 </body>
