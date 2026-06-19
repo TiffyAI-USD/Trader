@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Dashboard</title>
+  <meta name="theme-color" content="#007BFF" />
+  
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    
+    /* UI Panel - Electric Blue & Shocking Pink Theme */
+    #ui-panel {
+      position: fixed; top: 20px; right: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      border: 2px solid #007BFF;
+      border-radius: 16px;
+      padding: 16px;
+      z-index: 100;
+      box-shadow: 0 0 20px rgba(0, 123, 255, 0.4);
+    }
+    
+    #tiffy-counter {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      color: #FF007F; /* Shocking Pink */
+      text-shadow: 0 0 10px #FF007F;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    button {
+      background: linear-gradient(45deg, #007BFF, #FF007F);
+      border: none;
+      color: #fff;
+      padding: 12px;
+      margin: 6px 0;
+      border-radius: 8px;
+      width: 100%;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    button:hover { box-shadow: 0 0 15px #007BFF; }
+  </style>
+</head>
+<body>
+
+  <div id="scene-container">
+    <a-scene embedded background="color: #000" vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
+      <a-entity position="0 2 -4">
+        <a-sphere radius="0.8" color="#007BFF" emissive="#FF007F" emissive-intensity="0.5"
+                  animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear">
+        </a-sphere>
+      </a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div id="tiffy-counter">TIFFY: 0.00</div>
+    <button id="connect-wallet">Connect Wallet</button>
+    <button id="refresh-balances">Sync Balances</button>
+  </div>
+
+  <script>
+    // Sovereignty: Replace these with your own local endpoints
+    const LOCAL_API = window.location.origin; 
+    let tiffyBalance = parseFloat(localStorage.getItem('Tiffy_AI') || '0');
+
+    function updateCounter() {
+      document.getElementById('tiffy-counter').textContent = `TIFFY: ${tiffyBalance.toFixed(2)}`;
+    }
+
+    // Logic to sync with your local storage keys
+    document.getElementById('refresh-balances').onclick = () => {
+      // Direct access to your local storage keys
+      tiffyBalance = parseFloat(localStorage.getItem('Tiffy_AI') || '0');
+      updateCounter();
+      console.log('Balance synced from LocalStorage');
+    };
+
+    updateCounter();
+  </script>
+</body>
+</html>
