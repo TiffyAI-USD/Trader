@@ -271,8 +271,6 @@
 
   <script>
     const REPO_BASE = 'https://tiffyai.github.io/Trader';
-    // Matrix Client added
-    const matrixClient = matrixcs.createClient({ baseUrl: "https://matrix.org" });
     
     // UI ELEMENTS
     const tiffyCounter = document.getElementById('tiffy-counter');
@@ -294,12 +292,6 @@
     }
 
     document.getElementById('refresh-balances').onclick = syncBank;
-    document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('hidden');
-    
-    // Matrix and Marketplace hooks
-    document.getElementById('chat-btn').onclick = () => log('Matrix Chat active');
-    document.getElementById('prod-upload').onchange = (e) => log('Staging: ' + e.target.files[0].name);
-
     window.onload = () => {
       setTimeout(() => document.getElementById('loader').classList.add('hidden'), 1000);
       syncBank();
@@ -312,6 +304,16 @@
     document.getElementById('close-share').onclick = () => document.getElementById('share-modal').style.display = 'none';
     document.getElementById('start-trading').onclick = startTrading;
     document.getElementById('claim-rewards').onclick = claimRewards;
+    document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('hidden');
+
+    // Added Logic
+    document.getElementById('chat-btn').onclick = () => {
+      const client = matrixcs.createClient({ baseUrl: "https://matrix.org" });
+      log('Matrix Client Initialized');
+    };
+    document.getElementById('prod-upload').onchange = (e) => {
+      log('Marketplace: Staging ' + e.target.files[0].name);
+    };
   </script>
 </body>
 </html>
