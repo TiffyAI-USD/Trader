@@ -271,6 +271,7 @@
 
   <script>
     const REPO_BASE = 'https://tiffyai.github.io/Trader';
+    // Matrix Client added
     const matrixClient = matrixcs.createClient({ baseUrl: "https://matrix.org" });
     
     // UI ELEMENTS
@@ -294,6 +295,8 @@
 
     document.getElementById('refresh-balances').onclick = syncBank;
     document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('hidden');
+    
+    // Matrix and Marketplace hooks
     document.getElementById('chat-btn').onclick = () => log('Matrix Chat active');
     document.getElementById('prod-upload').onchange = (e) => log('Staging: ' + e.target.files[0].name);
 
@@ -302,7 +305,6 @@
       syncBank();
     };
 
-    // Placeholder for your original 596-line logic functions...
     function startTrading() { log('Trades initiated.'); }
     function openShareModal() { document.getElementById('share-modal').style.display = 'flex'; }
     function claimRewards() { log('Claiming rewards...'); syncBank(); }
