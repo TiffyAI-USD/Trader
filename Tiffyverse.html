@@ -1,87 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>TIFFY Trader • Tiffyverse Marketplace</title>
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <style>
-    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
-    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
-    #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.9); border: 1px solid var(--electric-blue); border-radius: 16px; padding: 16px; z-index: 100; max-width: 300px; }
-    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 12px; margin: 5px 0; border-radius: 12px; width: 100%; cursor: pointer; font-family: 'Orbitron'; font-size: 14px; }
-    input { width: 100%; background: #000; color: white; border: 1px solid var(--electric-blue); padding: 8px; margin-top: 5px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>TIFFYVERSE • Sovereign Engine</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+        body { margin: 0; background: #000; font-family: 'Poppins', sans-serif; overflow: hidden; }
+        
+        #ui-panel {
+            position: fixed; top: 20px; right: 20px; width: 320px;
+            background: rgba(0, 0, 0, 0.85); border: 2px solid var(--electric-blue);
+            border-radius: 20px; padding: 25px; z-index: 999; color: #fff;
+            box-shadow: 0 0 30px rgba(0, 123, 255, 0.3);
+        }
+        
+        .status-field {
+            width: 100%; background: #000; border: 1px solid var(--shocking-pink);
+            color: var(--shocking-pink); padding: 12px; margin: 8px 0; border-radius: 8px;
+            font-family: 'Orbitron'; font-size: 14px;
+        }
+
+        button {
+            width: 100%; padding: 15px; margin: 8px 0; background: linear-gradient(45deg, #007BFF, #FF007F);
+            border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        #debug-console { height: 80px; overflow-y: scroll; font-size: 10px; color: #666; margin-top: 15px; }
+    </style>
 </head>
 <body>
 
-  <a-scene embedded background="color: #000" vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
-    <a-sky src="sky.jpg"></a-sky>
-    <!-- Trading/Staking Hub -->
-    <a-entity position="0 1.2 -2.5" class="clickable" onclick="startTrading()">
-      <a-box depth="0.1" height="0.6" width="2" color="var(--shocking-pink)"></a-box>
-      <a-text value="TRADE/STAKE" align="center" position="0 0.5 0"></a-text>
-    </a-entity>
-    <a-camera position="0 1.6 0"></a-camera>
-  </a-scene>
+    <!-- A-Frame VR Environment -->
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
+        <a-assets>
+            <video id="bg-video" loop="true" src="environment.mp4" crossorigin="anonymous" autoplay="true" muted="true"></video>
+        </a-assets>
 
-  <div id="ui-panel">
-    <div id="tiffy-counter">TIFFYAI: 0.00</div>
-    <button id="start-trading">Start Trading</button>
-    <button id="claim-rewards">Claim Rewards</button>
-    
-    <hr style="margin:10px 0; border:0; border-top:1px solid #444;">
-    
-    <label style="font-size:10px;">LIVE STATUS FEED</label>
-    <input type="text" id="ownerStatus" placeholder="Owner Flash Status..." oninput="updateStatus('ownerStatus')">
-    <input type="text" id="clientStatus" placeholder="Client Inquiry..." oninput="updateStatus('clientStatus')">
-    
-    <hr style="margin:10px 0; border:0; border-top:1px solid #444;">
-    
-    <input type="file" id="prod-upload" style="display:none;">
-    <button onclick="document.getElementById('prod-upload').click()">UPLOAD WEBSITE</button>
-    <button onclick="publishStore()" style="background:var(--shocking-pink);">PUBLISH STORE</button>
-    <button onclick="visitStore()">VISIT WEBSITE</button>
-  </div>
+        <!-- Video Sky for Immersive background -->
+        <a-videosphere src="#bg-video" rotation="0 -90 0"></a-videosphere>
 
-  <script>
-    // Logic keys matching the Owner Dashboard
-    const getStore = () => localStorage.getItem("Current_Tiffy_Store") || "Sugarloaf";
+        <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
+        
+        <!-- Interactive Trading Hub -->
+        <a-entity id="trading-hub" position="0 1.5 -4">
+            <a-box color="var(--shocking-pink)" depth="0.2" height="0.8" width="2.5" onclick="startTrading()"></a-box>
+            <a-text value="TRADE / STAKE" position="0 0.7 0" align="center" font="kelsonsans"></a-text>
+        </a-entity>
+    </a-scene>
 
-    function publishStore() {
-        const store = getStore();
-        const content = localStorage.getItem('pending_store_upload');
-        if (!content) { alert('No file uploaded!'); return; }
-        localStorage.setItem(store + "_Webpage", content);
-        alert('Published to: ' + store);
-    }
+    <!-- UI Panel -->
+    <div id="ui-panel">
+        <h2 style="font-family:Orbitron; color:var(--electric-blue);">TIFFYVERSE</h2>
+        <div id="tiffy-counter" style="font-size:24px; color:var(--shocking-pink);">0.00 TIFFY</div>
+        
+        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
 
-    function visitStore() {
-        const store = getStore();
-        const html = localStorage.getItem(store + "_Webpage");
-        if (!html) { alert("No website found for " + store); return; }
-        const w = window.open();
-        w.document.write(html);
-        w.document.close();
-    }
+        <label style="font-size:10px;">LIVE FEED</label>
+        <input type="text" id="ownerStatus" class="status-field" placeholder="Owner Flash Status..." oninput="updateStatus('ownerStatus')">
+        <input type="text" id="clientStatus" class="status-field" style="border-color:var(--electric-blue); color:var(--electric-blue);" placeholder="Client Inquiry..." oninput="updateStatus('clientStatus')">
 
-    function updateStatus(field) {
-        const store = getStore();
-        localStorage.setItem(store + "_" + field, document.getElementById(field).value);
-    }
+        <button onclick="document.getElementById('prod-upload').click()">UPLOAD WEBSITE</button>
+        <input type="file" id="prod-upload" style="display:none;">
+        
+        <button onclick="publishStore()" style="background:var(--shocking-pink);">PUBLISH TO T-VERSE</button>
+        <button onclick="visitStore()">VISIT STORE</button>
 
-    document.getElementById('prod-upload').onchange = (e) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => localStorage.setItem('pending_store_upload', ev.target.result);
-        reader.readAsText(e.target.files[0]);
-    };
+        <div id="debug-console"></div>
+    </div>
 
-    // Load initial state
-    document.addEventListener('DOMContentLoaded', () => {
-        const store = getStore();
-        document.getElementById('ownerStatus').value = localStorage.getItem(store + "_ownerStatus") || "";
-        document.getElementById('clientStatus').value = localStorage.getItem(store + "_clientStatus") || "";
-    });
-  </script>
+    <script>
+        const getStore = () => localStorage.getItem("Current_Tiffy_Store") || "Sugarloaf";
+        const log = (m) => { document.getElementById('debug-console').innerHTML += `<div>> ${m}</div>`; };
+
+        // Core Functions
+        function publishStore() {
+            const content = localStorage.getItem('pending_store_upload');
+            if(!content) { log("Error: No file cached"); return; }
+            localStorage.setItem(getStore() + "_Webpage", content);
+            log("SUCCESS: Store deployed to " + getStore());
+        }
+
+        function visitStore() {
+            const html = localStorage.getItem(getStore() + "_Webpage");
+            if(!html) { log("Error: Store empty"); return; }
+            const w = window.open(); w.document.write(html); w.document.close();
+        }
+
+        function updateStatus(field) {
+            localStorage.setItem(getStore() + "_" + field, document.getElementById(field).value);
+        }
+
+        // File Handler
+        document.getElementById('prod-upload').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                localStorage.setItem('pending_store_upload', ev.target.result);
+                log("Package loaded: " + e.target.files[0].name);
+            };
+            reader.readAsText(e.target.files[0]);
+        };
+
+        // Sync Listener
+        window.addEventListener('storage', (e) => {
+            if(e.key.includes("Status")) {
+                document.getElementById('ownerStatus').value = localStorage.getItem(getStore() + "_ownerStatus") || "";
+                document.getElementById('clientStatus').value = localStorage.getItem(getStore() + "_clientStatus") || "";
+            }
+        });
+
+        // Initialize Feed
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('ownerStatus').value = localStorage.getItem(getStore() + "_ownerStatus") || "";
+            document.getElementById('clientStatus').value = localStorage.getItem(getStore() + "_clientStatus") || "";
+        });
+    </script>
 </body>
 </html>
