@@ -3,85 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>TIFFY Trader • Sovereign Marketplace</title>
+  <title>TIFFY Trader • Tiffyverse Marketplace</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
   <style>
     :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
-    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; margin: 0; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
     #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.9); border: 1px solid var(--electric-blue); border-radius: 16px; padding: 16px; z-index: 100; max-width: 300px; }
-    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 5px 0; border-radius: 8px; width: 100%; cursor: pointer; font-family: 'Orbitron'; }
-    input { width: 100%; background: #000; border: 1px solid var(--electric-blue); color: white; padding: 5px; margin-bottom: 5px; }
+    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 12px; margin: 5px 0; border-radius: 12px; width: 100%; cursor: pointer; font-family: 'Orbitron'; font-size: 14px; }
+    input { width: 100%; background: #000; color: white; border: 1px solid var(--electric-blue); padding: 8px; margin-top: 5px; }
   </style>
 </head>
 <body>
 
-  <!-- AR Scene -->
   <a-scene embedded background="color: #000" vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
-    <a-sky color="#050505"></a-sky>
-    <a-entity id="store-ring" position="0 1.6 -3"></a-entity>
+    <a-sky src="sky.jpg"></a-sky>
+    <!-- Trading/Staking Hub -->
+    <a-entity position="0 1.2 -2.5" class="clickable" onclick="startTrading()">
+      <a-box depth="0.1" height="0.6" width="2" color="var(--shocking-pink)"></a-box>
+      <a-text value="TRADE/STAKE" align="center" position="0 0.5 0"></a-text>
+    </a-entity>
     <a-camera position="0 1.6 0"></a-camera>
   </a-scene>
 
   <div id="ui-panel">
-    <div id="tiffy-counter" style="color:var(--shocking-pink);">TIFFYAI: 0.00</div>
-    <button onclick="publishStore()" style="background:var(--shocking-pink);">PUBLISH STORE</button>
-    <input type="file" id="prod-upload" style="display:none;">
-    <button onclick="document.getElementById('prod-upload').click()">UPLOAD WEBSITE</button>
+    <div id="tiffy-counter">TIFFYAI: 0.00</div>
+    <button id="start-trading">Start Trading</button>
+    <button id="claim-rewards">Claim Rewards</button>
     
-    <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+    <hr style="margin:10px 0; border:0; border-top:1px solid #444;">
     
+    <label style="font-size:10px;">LIVE STATUS FEED</label>
     <input type="text" id="ownerStatus" placeholder="Owner Flash Status..." oninput="updateStatus('ownerStatus')">
     <input type="text" id="clientStatus" placeholder="Client Inquiry..." oninput="updateStatus('clientStatus')">
     
-    <div id="debug-log" style="font-size:10px; color:#666; height:50px; overflow-y:auto;"></div>
+    <hr style="margin:10px 0; border:0; border-top:1px solid #444;">
+    
+    <input type="file" id="prod-upload" style="display:none;">
+    <button onclick="document.getElementById('prod-upload').click()">UPLOAD WEBSITE</button>
+    <button onclick="publishStore()" style="background:var(--shocking-pink);">PUBLISH STORE</button>
+    <button onclick="visitStore()">VISIT WEBSITE</button>
   </div>
 
   <script>
-    // --- Data Management ---
+    // Logic keys matching the Owner Dashboard
+    const getStore = () => localStorage.getItem("Current_Tiffy_Store") || "Sugarloaf";
+
     function publishStore() {
-      const fileData = localStorage.getItem('pending_store_upload');
-      const storeName = "Sugarloaf"; // Default for now
-      if (!fileData) { alert('No website file found! Upload first.'); return; }
-      localStorage.setItem(storeName + "_Webpage", fileData);
-      alert('Published ' + storeName + ' to Marketplace!');
+        const store = getStore();
+        const content = localStorage.getItem('pending_store_upload');
+        if (!content) { alert('No file uploaded!'); return; }
+        localStorage.setItem(store + "_Webpage", content);
+        alert('Published to: ' + store);
     }
 
-    function visitStore(name) {
-      const html = localStorage.getItem(name + "_Webpage");
-      if (!html) { alert("No content published for this store."); return; }
-      const win = window.open('', '_blank');
-      win.document.write(html);
-      win.document.close();
+    function visitStore() {
+        const store = getStore();
+        const html = localStorage.getItem(store + "_Webpage");
+        if (!html) { alert("No website found for " + store); return; }
+        const w = window.open();
+        w.document.write(html);
+        w.document.close();
     }
 
-    // --- Live Status Feed ---
     function updateStatus(field) {
-      const val = document.getElementById(field).value;
-      localStorage.setItem("Marketplace_" + field, val);
+        const store = getStore();
+        localStorage.setItem(store + "_" + field, document.getElementById(field).value);
     }
 
-    // --- File Upload ---
     document.getElementById('prod-upload').onchange = (e) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        localStorage.setItem('pending_store_upload', event.target.result);
-        alert('File cached. Click PUBLISH STORE.');
-      };
-      reader.readAsText(e.target.files[0]);
+        const reader = new FileReader();
+        reader.onload = (ev) => localStorage.setItem('pending_store_upload', ev.target.result);
+        reader.readAsText(e.target.files[0]);
     };
 
-    // --- AR Environment Setup ---
-    function initAR() {
-      const ring = document.getElementById('store-ring');
-      ring.innerHTML = `
-        <a-sphere radius="0.5" color="var(--shocking-pink)" onclick="visitStore('Sugarloaf')">
-          <a-text value="VISIT STORE" position="0 0.8 0" align="center"></a-text>
-        </a-sphere>
-      `;
-    }
-    
-    window.onload = initAR;
+    // Load initial state
+    document.addEventListener('DOMContentLoaded', () => {
+        const store = getStore();
+        document.getElementById('ownerStatus').value = localStorage.getItem(store + "_ownerStatus") || "";
+        document.getElementById('clientStatus').value = localStorage.getItem(store + "_clientStatus") || "";
+    });
   </script>
 </body>
 </html>
