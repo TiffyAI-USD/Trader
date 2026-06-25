@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Dashboard</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    
+    /* UI Panel - Restored to original behavior */
+    #ui-panel {
+      position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.9);
+      backdrop-filter: blur(12px); border: 1px solid var(--electric-blue);
+      border-radius: 16px; padding: 16px; z-index: 100; max-width: 300px;
+      max-height: 90vh; overflow-y: auto; transition: all 0.3s ease;
+    }
+    #ui-panel.hidden { transform: translateX(320px); }
+    
+    /* Original Toggle Button */
+    #toggle-ui { 
+      position: fixed; top: 20px; right: 20px; z-index: 101; 
+      background: var(--shocking-pink); color: #fff; border: none; 
+      width: 40px; height: 40px; border-radius: 50%; 
+      font-size: 20px; cursor: pointer; 
+    }
+
+    #projector-lens { width: 100%; height: 150px; background: #000; border: 1px solid #444; border-radius: 8px; margin: 10px 0; }
+    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 5px 0; border-radius: 10px; width: 100%; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <div id="scene-container">
+    <a-scene embedded background="color: #000" vr-mode-ui="enabled: false">
+      <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
+  </div>
+
+  <button id="toggle-ui">></button>
+  
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:10px;">TIFFYAI TERMINAL</div>
+    <div id="tiffy-counter">TIFFYAI: 0.00</div>
+    
+    <div style="font-size:10px; color:#aaa;">LIVE PREVIEW:</div>
+    <iframe id="projector-lens"></iframe>
+    
+    <input type="file" id="prod-upload" style="display:none;">
+    <button onclick="document.getElementById('prod-upload').click()">UPLOAD PRODUCT</button>
+    
+    <button id="upload-to-host" style="display:none; background:var(--electric-blue);">UPLOAD TO HOST</button>
+    
+    <div id="debug-log" style="font-size:9px; color:#666; margin-top:10px;"></div>
+  </div>
+
+  <script>
+    const projector = document.getElementById('projector-lens');
+    const uploadBtn = document.getElementById('upload-to-host');
+
+    // UI Toggle Logic
+    document.getElementById('toggle-ui').onclick = () => {
+        document.getElementById('ui-panel').classList.toggle('hidden');
+    };
+
+    window.onload = () => {
+        // KYC Gatekeeper
+        if (localStorage.getItem("KYC_Verified_Hash")) {
+            uploadBtn.style.display = 'block';
+        }
+
+        // Restore preview from last session
+        const liveSite = localStorage.getItem('sovereign_live_site');
+        if (liveSite) projector.srcdoc = liveSite;
+    };
+
+    // Upload & Project Logic
+    document.getElementById('prod-upload').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => localStorage.setItem('pending_store_upload', ev.target.result);
+        reader.readAsText(e.target.files[0]);
+    };
+
+    uploadBtn.onclick = () => {
+        const data = localStorage.getItem('pending_store_upload');
+        if(data) {
+            localStorage.setItem('sovereign_live_site', data);
+            projector.srcdoc = data; // Immediate visual update
+            alert("Website broadcast to Host.");
+        }
+    };
+  </script>
+</body>
+</html>
