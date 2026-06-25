@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Dashboard</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+    body { margin:0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
+    #ui-panel {
+      position: fixed; top: 10px; right: 10px; width: 300px; height: 95vh;
+      background: rgba(0,0,0,0.9); border: 1px solid var(--electric-blue);
+      padding: 15px; z-index: 9999; overflow-y: auto; border-radius: 12px;
+      transition: transform 0.3s;
+    }
+    #ui-panel.hidden { transform: translateX(330px); }
+    #projector-lens { width: 100%; height: 250px; background: #111; border: 1px solid #444; margin: 10px 0; }
+    button { background: #222; border: 1px solid var(--electric-blue); color: #fff; padding: 10px; margin: 3px 0; border-radius: 6px; width: 100%; cursor: pointer; }
+    #chat-container { height: 100px; overflow-y: auto; background: #111; border: 1px solid #444; padding: 5px; font-size: 11px; margin-top:5px; }
+  </style>
+</head>
+<body>
+
+<a-scene embedded background="color: #000" vr-mode-ui="enabled: false" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:1;">
+  <a-camera position="0 1.6 0"></a-camera>
+</a-scene>
+
+<button id="toggle-ui" style="position:fixed; top:10px; right:10px; z-index:10000; width:40px; height:40px; border-radius:50%; background:var(--shocking-pink); border:none;">></button>
+
+<div id="ui-panel">
+    <h4 style="text-align:center; color:var(--shocking-pink);">TIFFYAI TERMINAL</h4>
+    <div id="tiffy-counter" style="text-align:center; font-weight:bold;">TIFFYAI: 0.00</div>
+    <div id="tusd-counter" style="text-align:center; font-weight:bold;">TUSD Nitro: 0.00</div>
+    
+    <iframe id="projector-lens"></iframe>
+    
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html', '_blank')">EDIT/ADD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')" style="background:var(--electric-blue);">INTERNATIONAL BANK</button>
+    <button id="upload-to-host" style="display:none; color:var(--shocking-pink);">BROADCAST TO LEDGER</button>
+
+    <div style="margin-top:15px; font-size:10px; display:flex; justify-content:space-between;">
+        <span>BROADCAST CHAT:</span>
+        <button onclick="clearChat()" style="width:auto; padding:2px 5px;">CLEAR</button>
+    </div>
+    <div id="chat-container"></div>
+    <input type="text" id="chat-input" placeholder="Type here..." style="width:100%; background:#222; color:#fff; border:1px solid #666; padding:8px; margin-top:5px;">
+</div>
+
+<script>
+    const projector = document.getElementById('projector-lens');
+    const chatInput = document.getElementById('chat-input');
+    const chatContainer = document.getElementById('chat-container');
+
+    function syncBalances() {
+        const t = localStorage.getItem('Tiffy_Harvest_Pending') || '0.00';
+        const n = localStorage.getItem('TUSD_Nitro_Storage') || '0.00';
+        document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${t}`;
+        document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${n}`;
+    }
+
+    function clearChat() { localStorage.removeItem('terminal_chat_history'); chatContainer.innerHTML = ''; }
+
+    document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('hidden');
+
+    // Broadcast Fix
+    document.getElementById('upload-to-host').onclick = () => {
+        const data = localStorage.getItem('webstore_pro_draft');
+        if(data) {
+            localStorage.setItem('sovereign_live_site', data);
+            projector.srcdoc = data;
+            alert("Broadcast Successful.");
+        }
+    };
+
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && chatInput.value) {
+            const msg = `<div><b>You:</b> ${chatInput.value}</div>`;
+            const history = (localStorage.getItem('terminal_chat_history') || '') + msg;
+            localStorage.setItem('terminal_chat_history', history);
+            chatContainer.innerHTML = history;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            chatInput.value = '';
+        }
+    });
+
+    window.onload = () => {
+        syncBalances();
+        setInterval(syncBalances, 2000); // Poll for balance updates
+        if (localStorage.getItem("KYC_Verified_Hash")) document.getElementById('upload-to-host').style.display = 'block';
+        projector.srcdoc = localStorage.getItem('sovereign_live_site') || '';
+        chatContainer.innerHTML = localStorage.getItem('terminal_chat_history') || '';
+    };
+</script>
+</body>
+</html>
