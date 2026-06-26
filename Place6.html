@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TIFFY Trader • Sovereign Dashboard</title>
+    <style>
+        body, html { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
+        #projector-lens { width:100%; height:100vh; border:none; }
+    </style>
+</head>
+<body>
+    <iframe id="projector-lens"></iframe>
+    <script>
+        // Injecting the complete Webstore Pro logic as a string to maintain the handshake
+        const builderHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Webstore Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"><\/script>
+<style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#0a0a0a;color:#e6e6e6}
+    :root{--gold:#d4a373;--gold2:#f1b86b;--whatsapp:#25D366}
+    #floatingDownload{position:fixed;bottom:20px;left:20px;z-index:9999;background:#000;color:var(--gold);padding:12px 20px;border:2px solid var(--gold);border-radius:30px;font-family:'Bebas Neue';cursor:pointer;font-size:1rem;}
+    #scannerModal{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;align-items:center;justify-content:center;z-index:9999;flex-direction:column;}
+    #paymentLanding{background:#1a1a1a;padding:20px;border:2px solid var(--gold);border-radius:12px;text-align:center;width:90%;max-width:400px;}
+    header{min-height:80vh;background-size:cover;background-position:center;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;width:100%;}
+    h1{font-family:'Bebas Neue';font-size:4rem;color:var(--gold)}
+    .btn-cta{display:inline-block;background:linear-gradient(180deg,var(--gold),var(--gold2));color:#000;padding:12px 28px;border-radius:50px;font-family:'Bebas Neue';text-decoration:none;font-size:1.2rem;}
+    #menu{max-width:1200px;margin:auto;padding:4rem 5%}
+    .menu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem;}
+    .menu-item{background:#0f0f0f;border-radius:12px;border:1px solid #222;}
+    #editor{border-top:3px dashed var(--gold);padding:3rem 5%;background:#0a0a0a;}
+</style>
+</head>
+<body>
+<div id="floatingDownload" onclick="downloadHTML()">💾 DOWNLOAD</div>
+<div id="scannerModal"><div id="paymentLanding"><h2 id="amountDisplay" style="color:var(--gold);">Confirm Payment</h2><button onclick="confirmAndPay()">CONFIRM & PAY</button></div></div>
+<header id="header">
+  <img id="logo" class="logo">
+  <h1 id="cafeName">YOUR WEB STORE BUSINESS</h1>
+  <p id="tagline" class="tagline">With Live Preview</p>
+  <a href="#" id="ctaBtn" class="btn-cta">ORDER NOW</a>
+</header>
+<section id="menu"><div id="menuRender"></div></section>
+<div id="editor">
+    <label>Business Name</label><input id="editName" oninput="document.getElementById('cafeName').textContent=this.value;saveDraft()">
+</div>
+<script>
+    let menuSections = [{ title: "Products", items: [{ name: 'Item', price: 10, desc: "Desc", img: "", qr: "", qty: 0 }] }];
+    function saveDraft() {
+        const data = { name: document.getElementById('cafeName').textContent, menu: menuSections };
+        localStorage.setItem('webstore_pro_draft', JSON.stringify(data));
+    }
+    function loadDraft() {
+        const localDraft = JSON.parse(localStorage.getItem('webstore_pro_draft') || '{}');
+        if(localDraft.name) document.getElementById('cafeName').textContent = localDraft.name;
+        if(localDraft.menu) menuSections = localDraft.menu;
+    }
+    function downloadHTML() {
+        const currentData = { name: document.getElementById('cafeName').textContent, menu: menuSections };
+        const stateInjection = "<script>const INITIAL_STATE = " + JSON.stringify(currentData) + ";<\/script>";
+        const fullHtml = document.documentElement.outerHTML.replace('</head>', stateInjection + '</head>');
+        const blob = new Blob([fullHtml], {type: 'text/html'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'MyWebStore.html'; a.click();
+    }
+    document.addEventListener('DOMContentLoaded', loadDraft);
+<\/script>
+</body>
+</html>`;
+
+        const blob = new Blob([builderHTML], { type: 'text/html' });
+        document.getElementById('projector-lens').src = URL.createObjectURL(blob);
+    </script>
+</body>
+</html>
