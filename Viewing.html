@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TIFFYVERSE • Sovereign Engine</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+        body { margin: 0; background: #000; font-family: 'Poppins', sans-serif; overflow: hidden; }
+        #ui-panel { position: fixed; top: 20px; right: 20px; width: 320px; background: rgba(0, 0, 0, 0.85); border: 2px solid var(--electric-blue); border-radius: 20px; padding: 25px; z-index: 999; color: #fff; box-shadow: 0 0 30px rgba(0, 123, 255, 0.3); }
+        .status-field { width: 100%; background: #000; border: 1px solid var(--shocking-pink); color: var(--shocking-pink); padding: 12px; margin: 8px 0; border-radius: 8px; font-family: 'Orbitron'; font-size: 14px; }
+        button { width: 100%; padding: 15px; margin: 8px 0; background: linear-gradient(45deg, #007BFF, #FF007F); border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        #debug-console { height: 80px; overflow-y: scroll; font-size: 10px; color: #666; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+        <a-videosphere src="environment.mp4" rotation="0 -90 0"></a-videosphere>
+        <a-entity camera look-controls wasd-controls position="0 1.6 0"><a-cursor></a-cursor></a-entity>
+        <a-entity id="marketplace-root" position="0 0 0"></a-entity>
+    </a-scene>
+
+    <div id="ui-panel">
+        <h2 style="font-family:Orbitron; color:var(--electric-blue);">TIFFYVERSE</h2>
+        <button onclick="refreshMarketplace()">REFRESH MARKETPLACE</button>
+        <input type="text" id="bizName" class="status-field" placeholder="Business Name">
+        <button onclick="document.getElementById('prod-upload').click()">UPLOAD WEBSITE</button>
+        <input type="file" id="prod-upload" style="display:none;">
+        <button onclick="publishStore()" style="background:var(--shocking-pink);">PUBLISH TO T-VERSE</button>
+        <div id="debug-console"></div>
+    </div>
+
+    <script>
+        const TiffyRegistry = {
+            registerStore: (bizName, kycHash) => {
+                let dir = JSON.parse(localStorage.getItem("Tiffy_Marketplace_Directory") || "[]");
+                dir = dir.filter(e => e.hash !== kycHash);
+                dir.push({ name: bizName, hash: kycHash });
+                localStorage.setItem("Tiffy_Marketplace_Directory", JSON.stringify(dir));
+            },
+            renderStoreThumbnails: () => {
+                const root = document.getElementById('marketplace-root');
+                const stores = JSON.parse(localStorage.getItem("Tiffy_Marketplace_Directory") || "[]");
+                stores.forEach((store, i) => {
+                    const el = document.createElement('a-entity');
+                    const angle = (i / Math.max(stores.length, 1)) * 2 * Math.PI;
+                    el.setAttribute('position', `${3*Math.cos(angle)} 1.5 ${3*Math.sin(angle)}`);
+                    el.innerHTML = `<a-box class="clickable" color="#FF007F" depth="0.1" height="1" width="1"></a-box><a-text value="${store.name}" position="0 0.8 0" align="center"></a-text>`;
+                    el.addEventListener('click', () => {
+                        const html = localStorage.getItem(store.hash + "_Webpage");
+                        if(html) { const w = window.open(); w.document.write(html); } 
+                        else { alert("Store data not found."); }
+                    });
+                    root.appendChild(el);
+                });
+            }
+        };
+
+        function publishStore() {
+            const content = localStorage.getItem('pending_store_upload');
+            const bizName = document.getElementById('bizName').value || "Store";
+            const kycHash = localStorage.getItem("KYC_Verified_Hash");
+            if(!content || !kycHash) { alert("Missing Data (Upload file or perform KYC)"); return; }
+            localStorage.setItem(kycHash + "_Webpage", content);
+            TiffyRegistry.registerStore(bizName, kycHash);
+            alert("Published: " + bizName);
+        }
+
+        function refreshMarketplace() {
+            document.getElementById('marketplace-root').innerHTML = '';
+            TiffyRegistry.renderStoreThumbnails();
+        }
+
+        document.getElementById('prod-upload').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => localStorage.setItem('pending_store_upload', ev.target.result);
+            reader.readAsText(e.target.files[0]);
+        };
+
+        document.addEventListener('DOMContentLoaded', () => TiffyRegistry.renderStoreThumbnails());
+    </script>
+</body>
+</html>
