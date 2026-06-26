@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TIFFYVERSE • Sovereign Engine</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <style>
+        body { margin: 0; background: #000; font-family: sans-serif; overflow: hidden; }
+        #ui-panel { position: fixed; top: 20px; right: 20px; width: 340px; background: rgba(0,0,0,0.9); border: 2px solid #007BFF; border-radius: 15px; padding: 20px; color: #fff; z-index: 1000; }
+        #projector-lens { width: 100%; height: 300px; background: #fff; border: none; border-radius: 8px; margin: 10px 0; }
+        .stat-row { color: #FF007F; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+    <a-videosphere src="environment.mp4" rotation="0 -90 0"></a-videosphere>
+    <a-entity camera look-controls position="0 1.6 0"><a-cursor></a-cursor></a-entity>
+    <a-entity id="marketplace-root"></a-entity>
+</a-scene>
+
+<div id="ui-panel">
+    <h3>TIFFYVERSE ENGINE</h3>
+    <div class="stat-row" id="status-display">Compiling...</div>
+    <iframe id="projector-lens"></iframe>
+    <button onclick="publishToVerse()" style="width:100%; padding:10px; background:#FF007F; border:none; color:white; border-radius:5px;">PUBLISH TO T-VERSE</button>
+</div>
+
+<script>
+    /**
+     * THE COMPILER: Runs in the background.
+     * Takes your JSON (from webstore_pro_draft) and generates a finished HTML file.
+     */
+    function compileBackgroundHTML() {
+        const json = localStorage.getItem('webstore_pro_draft');
+        if (!json) return;
+
+        try {
+            const data = JSON.parse(json);
+            // The Template: This ensures the banner width (100.1%) matches the photos
+            const html = `
+                <html><head><style>
+                    body { margin:0; padding:0; }
+                    .banner { width: 100.1%; margin: 0 auto; display: block; }
+                    .photo-grid { width: 100%; display: flex; flex-wrap: wrap; }
+                </style></head>
+                <body>
+                    <img class="banner" src="banner.jpg">
+                    <h1>${data.name}</h1>
+                    <p>${data.tag}</p>
+                    <a href="https://wa.me/${data.phone}">ORDER NOW</a>
+                </body></html>`;
+            
+            localStorage.setItem('Prepped_HTML_Buffer', html);
+            document.getElementById('status-display').innerText = "Status: HTML Ready & Prepped";
+        } catch(e) {
+            console.error("Compilation failed");
+        }
+    }
+
+    // Publish the pre-compiled buffer
+    function publishToVerse() {
+        const html = localStorage.getItem('Prepped_HTML_Buffer');
+        const kyc = localStorage.getItem("KYC_Verified_Hash");
+        if(html && kyc) {
+            localStorage.setItem(kyc + "_Webpage", html);
+            alert("Store Published!");
+        }
+    }
+
+    // AR Scene interaction
+    function renderMarketplace() {
+        const root = document.getElementById('marketplace-root');
+        const kyc = localStorage.getItem("KYC_Verified_Hash");
+        if(!kyc) return;
+
+        const el = document.createElement('a-entity');
+        el.setAttribute('position', '0 1.5 -3');
+        el.innerHTML = `<a-box class="clickable" color="#007BFF" height="1" width="1"></a-box>`;
+        
+        el.addEventListener('click', () => {
+            // Instantly pull the prepped file
+            const prepped = localStorage.getItem(kyc + "_Webpage") || localStorage.getItem('Prepped_HTML_Buffer');
+            document.getElementById('projector-lens').srcdoc = prepped;
+        });
+        root.appendChild(el);
+    }
+
+    // Background Loop
+    window.onload = () => {
+        compileBackgroundHTML();
+        renderMarketplace();
+        // Keep checking for changes in the builder
+        setInterval(compileBackgroundHTML, 2000); 
+    };
+</script>
+</body>
+</html>
