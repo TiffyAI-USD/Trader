@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Webstore Pro - Sovereign Local Edition</title>
+    <style>
+        body { font-family: 'Bebas Neue', sans-serif; background: #25D366; color: #D4AF37; margin: 0; padding: 20px; }
+        #dashboard { display: flex; gap: 20px; }
+        #editor, #projector-lens { flex: 1; height: 80vh; border: 2px solid #D4AF37; padding: 10px; }
+        iframe { width: 100%; height: 100%; border: none; background: white; }
+    </style>
+</head>
+<body>
+
+    <div id="dashboard">
+        <div id="editor">
+            <h2>Editor</h2>
+            <textarea id="code-input" style="width:100%; height:90%;"></textarea>
+            <button onclick="updatePreview()">Update Preview</button>
+        </div>
+        <div id="projector-lens">
+            <h2>Live Preview</h2>
+            <iframe id="preview-frame"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // The core data state from your builder
+        // We use webstore_content as the source of truth
+        let webstore_content = document.getElementById('code-input').value;
+
+        // The bridge: Directly rendering the content provided by your builder
+        function renderPreview(data) {
+            const iframe = document.getElementById('preview-frame');
+            iframe.srcdoc = data;
+        }
+
+        // Triggered by your builder logic to push updates to the lens
+        function updatePreview() {
+            webstore_content = document.getElementById('code-input').value;
+            renderPreview(webstore_content);
+        }
+
+        // Initialize: Direct read. No localStorage. No Restored. No redirect.
+        window.onload = function() {
+            // This reads your existing builder state directly
+            if (typeof getBuilderState === 'function') {
+                renderPreview(getBuilderState());
+            }
+        };
+    </script>
+</body>
+</html>
