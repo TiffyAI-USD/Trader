@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Master Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; --gold: #d4a373; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    
+    #ui-panel {
+      position: fixed; top: 20px; right: 20px; width: 300px; max-height: 90vh;
+      background: rgba(10, 10, 30, 0.95); backdrop-filter: blur(12px);
+      border: 1px solid var(--electric-blue); border-radius: 16px; padding: 16px;
+      z-index: 100; overflow-y: auto; transition: transform 0.3s ease;
+    }
+    #ui-panel.hidden { transform: translateX(350px); }
+    
+    #projector-lens { width: 100%; height: 200px; background: #000; border: 1px solid #444; border-radius: 8px; margin: 10px 0; }
+    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 4px 0; border-radius: 10px; width: 100%; cursor: pointer; font-weight: bold; }
+    .nav-btn { display: flex; gap: 5px; }
+  </style>
+</head>
+<body>
+
+  <div id="scene-container">
+    <a-scene embedded background="color: #000" vr-mode-ui="enabled: false">
+      <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:10px;">TIFFYAI TERMINAL</div>
+    
+    <div style="font-size:10px; color:#aaa;">LIVE PREVIEW:</div>
+    <iframe id="projector-lens"></iframe>
+    
+    <button onclick="document.getElementById('prod-upload').click()">IMPORT WEBSTORE</button>
+    <input type="file" id="prod-upload" style="display:none;">
+    
+    <button id="upload-to-host" style="display:none; background:var(--gold); color:#000;">UPLOAD TO HOST</button>
+    
+    <div class="nav-btn">
+        <button onclick="location.reload()" style="background:#666;">HOME</button>
+        <button onclick="clearViewer()" style="background:#c00;">CLEAR</button>
+    </div>
+    
+    <div id="debug-log" style="font-size:9px; color:#666; margin-top:10px;"></div>
+  </div>
+
+  <script>
+    const projector = document.getElementById('projector-lens');
+    const uploadBtn = document.getElementById('upload-to-host');
+    const logEl = document.getElementById('debug-log');
+
+    function log(msg) { logEl.innerHTML += `<div>${new Date().toLocaleTimeString()} ${msg}</div>`; }
+
+    window.onload = () => {
+        // KYC Gatekeeper
+        if (localStorage.getItem("KYC_Verified_Hash")) {
+            uploadBtn.style.display = 'block';
+            log("Sovereign Identity Verified.");
+        }
+
+        // Restore preview from sovereign memory
+        const liveSite = localStorage.getItem('sovereign_live_site');
+        if (liveSite) projector.srcdoc = liveSite;
+    };
+
+    document.getElementById('prod-upload').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            localStorage.setItem('pending_store_upload', ev.target.result);
+            log("Storefront Draft Staged.");
+        };
+        reader.readAsText(e.target.files[0]);
+    };
+
+    uploadBtn.onclick = () => {
+        const data = localStorage.getItem('pending_store_upload');
+        if(data) {
+            localStorage.setItem('sovereign_live_site', data);
+            projector.srcdoc = data;
+            log("Broadcast Success: Site Live.");
+        }
+    };
+
+    function clearViewer() { 
+        localStorage.removeItem('sovereign_live_site'); 
+        projector.srcdoc = ""; 
+        log("Viewer Cleared.");
+    }
+  </script>
+</body>
+</html>
