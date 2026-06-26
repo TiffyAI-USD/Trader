@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script>
+        // This script clears the corrupted objects I forced into your storage 
+        // that your original 20 files cannot read.
+        
+        function restoreOriginalState() {
+            // 1. Remove the terminal hijackers entirely
+            localStorage.removeItem('sovereign_live_site');
+            localStorage.removeItem('pending_store_upload');
+            localStorage.removeItem('KYC_Verified_Hash');
+            localStorage.removeItem('master_file_state');
+
+            // 2. FORCE a reset of the specific data key your original files use
+            // If your original files were using a specific key (like 'project_data'), 
+            // this resets it to an empty state so it doesn't try to read the 
+            // corrupted "Master Terminal" object.
+            const originalDataKeys = ['project_data', 'webstore_data', 'data']; 
+            
+            originalDataKeys.forEach(key => {
+                if(localStorage.getItem(key)) {
+                    // Check if it's the broken object I created
+                    try {
+                        let data = localStorage.getItem(key);
+                        if(data.includes('sovereign') || data.includes('KYC')) {
+                            localStorage.removeItem(key);
+                            console.log('Removed corrupted data structure: ' + key);
+                        }
+                    } catch(e) {}
+                }
+            });
+
+            alert('Structural corruption cleared. Data keys reset to native format.');
+        }
+
+        restoreOriginalState();
+    </script>
+</body>
+</html>
