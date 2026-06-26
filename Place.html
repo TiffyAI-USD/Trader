@@ -66,9 +66,9 @@
         projector.src = document.getElementById('url-loader').value; 
     }
 
-    // PERSISTENCE FIX: Using srcdoc ensures the content stays loaded in the iframe
     function renderIframe(html) {
-        projector.srcdoc = html;
+        const blob = new Blob([html], { type: 'text/html' });
+        projector.src = URL.createObjectURL(blob);
     }
 
     document.getElementById('prod-upload').onchange = (e) => {
@@ -76,17 +76,14 @@
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            const html = ev.target.result;
-            // Persist to local storage so it survives refresh
-            localStorage.setItem('last_uploaded_html', html);
-            renderIframe(html);
+            renderIframe(ev.target.result);
+            localStorage.setItem('last_uploaded_html', ev.target.result);
         };
         reader.readAsText(file);
     };
 
     function clearViewer() { 
         localStorage.removeItem('last_uploaded_html');
-        projector.srcdoc = "";
         projector.src = "about:blank";
     }
 
@@ -100,11 +97,8 @@
             uploadBtn.style.display = 'block';
         }
         
-        // RE-RENDER on refresh from stored data
         const saved = localStorage.getItem('last_uploaded_html');
-        if (saved) {
-            renderIframe(saved);
-        }
+        if (saved) renderIframe(saved);
     };
   </script>
 </body>
