@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; color: #fff; font-family: sans-serif; }
+    #ui-panel { position: fixed; top: 20px; right: 20px; width: 300px; background: #111; padding: 16px; border-radius: 10px; z-index: 100; }
+    #projector-lens { width: 100%; height: 200px; background: #000; border: 1px solid #444; margin: 10px 0; }
+    button { background: #444; color: #fff; border: none; padding: 10px; margin: 4px 0; width: 100%; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <div id="ui-panel">
+    <div id="projector-lens"></div>
+    
+    <button onclick="document.getElementById('prod-upload').click()">IMPORT WEBSTORE</button>
+    <input type="file" id="prod-upload" style="display:none;">
+    
+    <button id="upload-to-host">UPLOAD TO HOST</button>
+  </div>
+
+  <script>
+    // This is the clean slate. No KYC, no hashing, no terminal locks.
+    // Replace this logic with your original functional code.
+    
+    document.getElementById('prod-upload').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            // This is where your original system picks up the file data
+            console.log("File loaded. Ready for host.");
+        };
+        reader.readAsText(e.target.files[0]);
+    };
+
+    document.getElementById('upload-to-host').onclick = () => {
+        // Place your original upload logic here.
+        alert("Upload button is now active. Insert your original host function here.");
+    };
+  </script>
+</body>
+</html>
