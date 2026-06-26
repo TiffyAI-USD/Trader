@@ -28,7 +28,7 @@
       font-size: 20px; cursor: pointer; 
     }
 
-    #projector-lens { width: 100%; height: 300px; background: #000; border: 1px solid #444; border-radius: 8px; margin: 10px 0; }
+    #projector-lens { width: 100%; height: 300px; background: transparent; border: 1px solid #444; border-radius: 8px; margin: 10px 0; }
     
     .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 8px 0; color: var(--shocking-pink); }
     button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 4px 0; border-radius: 10px; width: 100%; cursor: pointer; font-weight: bold; }
@@ -56,7 +56,7 @@
     <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
     
     <div style="display:flex; gap:5px; margin-bottom:10px;">
-        <input type="text" id="url-loader" placeholder="Enter URL..." style="flex:1; padding:5px; background:#111; color:#fff; border:1px solid #444; border-radius:4px;">
+        <input type="text" id="url-loader" placeholder="Enter Store URL..." style="flex:1; padding:5px; background:#111; color:#fff; border:1px solid #444; border-radius:4px;">
         <button onclick="testLoad()" style="width:auto; margin:0;">GO</button>
     </div>
 
@@ -72,6 +72,7 @@
     
     <button id="upload-to-host" style="display:none; background:#d4a373; color:#000;">UPLOAD TO HOST</button>
     
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html', '_blank')" style="background: #28a745;">EDIT/ADD TO STORE</button>
     <button onclick="window.open('https://tiffyai-usd.github.io/Banking-App/InternationalBank.html', '_blank')" style="background: #555;">INTERNATIONAL BANKING</button>
     
     <div style="margin-top:10px; font-size:10px; color:#aaa;">LIVE CHAT:</div>
@@ -82,36 +83,29 @@
   <script>
     const projector = document.getElementById('projector-lens');
     const uploadBtn = document.getElementById('upload-to-host');
+    const storeUrl = 'https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html';
 
-    // SURGICAL FIX: Only manipulate srcdoc for files, src for URLs
-    function renderContent(content, isUrl = false) {
-        if (isUrl) {
-            projector.srcdoc = "";
-            projector.src = content;
-        } else {
-            projector.src = "about:blank"; // Force clearing current URL
-            projector.srcdoc = content;
-        }
+    function loadHome() {
+        projector.srcdoc = "";
+        projector.src = storeUrl;
     }
 
     function testLoad() { 
-        renderContent(document.getElementById('url-loader').value, true); 
-    }
-
-    function loadHome() {
-        projector.src = "";
         projector.srcdoc = "";
+        projector.src = document.getElementById('url-loader').value; 
     }
 
     function clearViewer() { 
-        localStorage.removeItem('sovereign_live_site'); 
-        loadHome();
+        projector.src = ""; 
+        projector.srcdoc = ""; 
     }
 
     document.getElementById('prod-upload').onchange = (e) => {
         const reader = new FileReader();
         reader.onload = (ev) => {
-            renderContent(ev.target.result, false);
+            projector.src = "";
+            projector.srcdoc = ev.target.result;
+            localStorage.setItem('pending_store_upload', ev.target.result);
         };
         reader.readAsText(e.target.files[0]);
     };
@@ -125,6 +119,8 @@
         if (localStorage.getItem("KYC_Verified_Hash")) {
             uploadBtn.style.display = 'block';
         }
+        
+        loadHome();
     };
   </script>
 </body>
