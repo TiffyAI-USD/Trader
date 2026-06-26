@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script>
+        const keysToCheck = ['sovereign_live_site', 'pending_store_upload'];
+
+        keysToCheck.forEach(key => {
+            const data = localStorage.getItem(key);
+            if (data) {
+                // If it starts with 'JFIF' or 'Exif' or looks like binary, nuke it
+                if (data.includes('JFIF') || data.includes('Exif') || data.length > 50000) {
+                    localStorage.removeItem(key);
+                    console.log("Found and destroyed corrupt binary data in: " + key);
+                }
+            }
+        });
+
+        // Clear the iframe reference to ensure it isn't "remembering" the bad srcdoc
+        const projector = window.opener ? window.opener.document.getElementById('projector-lens') : null;
+        if (projector) {
+            projector.srcdoc = "";
+        }
+
+        alert("Binary corruption purged. You are clean.");
+        window.history.back();
+    </script>
+</body>
+</html>
