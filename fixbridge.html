@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <script>
+        // Force a valid, minimal structure into the key so the "Upload to Host" button works again
+        const testHTML = "<html><body><h1>Bridge Restored</h1></body></html>";
+        localStorage.setItem('pending_store_upload', testHTML);
+        
+        alert("Draft bucket restored. You can now use your 'UPLOAD TO HOST' button.");
+        window.history.back();
+    </script>
+</body>
+</html>
