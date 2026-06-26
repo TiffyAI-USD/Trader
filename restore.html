@@ -1,49 +1,29 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <style>
-        body { font-family: 'Bebas Neue', sans-serif; background: #25D366; }
-        #projector-lens { width: 100%; height: 80vh; border: 2px solid gold; }
-    </style>
-</head>
 <body>
+    <script>
+        // 1. PURGE: Remove every key I injected that is causing the conflicts
+        const rogueKeys = ['pending_store_upload', 'KYC_Verified_Hash', 'master_file_state'];
+        rogueKeys.forEach(key => localStorage.removeItem(key));
 
-<input type="file" id="prod-upload" style="display:none;" onchange="handleImport(event)">
-<button onclick="document.getElementById('prod-upload').click()">IMPORT WEBSTORE</button>
-<button onclick="clearStorage()">FORCE PURGE ALL GARBAGE</button>
-
-<iframe id="projector-lens"></iframe>
-
-<script>
-    // 1. Force Clean: Wipe the keys I ruined
-    function clearStorage() {
-        localStorage.removeItem('pending_store_upload');
-        localStorage.removeItem('KYC_Verified_Hash');
-        localStorage.removeItem('sovereign_live_site');
-        alert("Corrupt keys purged. Refresh to start clean.");
-    }
-
-    // 2. Pure Logic: Update key only, don't host
-    function handleImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            // Write to the key your system expects
-            localStorage.setItem('sovereign_live_site', e.target.result);
-            // Render directly
-            document.getElementById('projector-lens').srcdoc = e.target.result;
-        };
-        reader.readAsText(file);
-    }
-
-    // 3. Initial load of the builder data
-    window.onload = () => {
-        const stored = localStorage.getItem('sovereign_live_site');
-        if (stored) {
-            document.getElementById('projector-lens').srcdoc = stored;
+        // 2. RESTORE: This function forces the browser to commit the builder's state 
+        // to the key your other 20 files are looking for.
+        function forceRestore(data) {
+            localStorage.setItem('sovereign_live_site', data);
+            console.log('Restored persistence to sovereign_live_site');
+            alert('Persistence restored. Refresh your original File 3.');
         }
-    };
-</script>
+
+        // 3. AUTO-LOAD: If you have a file to restore, load it here.
+        // If the storage was empty, this confirms it is ready to receive your builder's data.
+        window.onload = () => {
+            const current = localStorage.getItem('sovereign_live_site');
+            if (current) {
+                console.log('Storage is active and holding data.');
+            } else {
+                console.log('Storage is clear and ready for your Builder.');
+            }
+        };
+    </script>
 </body>
 </html>
