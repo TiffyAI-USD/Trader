@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Surgical Purge</title>
+</head>
+<body>
+    <script>
+        // Surgical purge of conflict keys
+        localStorage.removeItem('sovereign_live_site');
+        localStorage.removeItem('pending_store_upload');
+        
+        // Reset the iframe srcdoc if you are on the same origin
+        const projector = document.getElementById('projector-lens');
+        if (projector) {
+            projector.srcdoc = "";
+        }
+        
+        console.log("Keys purged. Redirecting...");
+        
+        // Return to dashboard
+        window.history.back();
+    </script>
+</body>
+</html>
