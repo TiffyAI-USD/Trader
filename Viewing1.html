@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title>TIFFYVERSE • Sovereign Engine</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+        body { margin: 0; background: #000; font-family: 'Poppins', sans-serif; overflow: hidden; }
+        
+        #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--electric-blue); border-radius: 16px; padding: 16px; z-index: 100; width: 320px; max-height: 95vh; overflow-y: auto; transition: all 0.3s ease; }
+        #ui-panel.hidden { transform: translateX(350px); }
+        #toggle-ui { position: fixed; top: 20px; right: 20px; z-index: 101; background: var(--shocking-pink); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; }
+        
+        #projector-lens { width: 100%; height: 250px; background: #000; border: 1px solid #444; border-radius: 8px; margin: 10px 0; }
+        .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 8px 0; color: var(--shocking-pink); }
+        button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 4px 0; border-radius: 10px; width: 100%; cursor: pointer; font-weight: bold; }
+        
+        #chat-container { height: 100px; overflow-y: auto; background: #000; border: 1px solid #444; padding: 8px; font-size: 11px; margin-bottom: 5px; color: #fff; }
+        #chat-input { width: 100%; padding: 8px; background: #111; color: #fff; border: 1px solid #666; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+    <a-assets><video id="bg-video" loop="true" src="environment.mp4" crossorigin="anonymous" autoplay="true" muted="true"></video></a-assets>
+    <a-videosphere src="#bg-video" rotation="0 -90 0"></a-videosphere>
+    <a-entity camera look-controls wasd-controls position="0 1.6 0"><a-cursor></a-cursor></a-entity>
+    <a-entity id="marketplace-root"></a-entity>
+</a-scene>
+
+<button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">></button>
+
+<div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:10px;">TIFFYVERSE TERMINAL</div>
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+    
+    <iframe id="projector-lens"></iframe>
+    
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html', '_blank')" style="background: #28a745;">EDIT/ADD TO STORE</button>
+    <button onclick="publishStore()" style="background:var(--shocking-pink);">PUBLISH TO T-VERSE</button>
+    
+    <div id="chat-container"></div>
+    <input type="text" id="chat-input" placeholder="Chat..." onkeypress="handleChat(event)">
+</div>
+
+<script>
+    function publishStore() {
+        const content = localStorage.getItem('webstore_pro_draft'); // Pulling from your builder key
+        const kycHash = localStorage.getItem("KYC_Verified_Hash");
+        if(!content || !kycHash) { alert("Missing Builder Data or KYC"); return; }
+        
+        localStorage.setItem(kycHash + "_Webpage", content);
+        
+        let dir = JSON.parse(localStorage.getItem("Tiffy_Marketplace_Directory") || "[]");
+        dir = dir.filter(e => e.hash !== kycHash);
+        dir.push({ name: "My Store", hash: kycHash });
+        localStorage.setItem("Tiffy_Marketplace_Directory", JSON.stringify(dir));
+        
+        renderMarketplace();
+        alert("Published to T-Verse");
+    }
+
+    function renderMarketplace() {
+        const root = document.getElementById('marketplace-root');
+        root.innerHTML = '';
+        const stores = JSON.parse(localStorage.getItem("Tiffy_Marketplace_Directory") || "[]");
+        stores.forEach((s, i) => {
+            const el = document.createElement('a-entity');
+            const angle = (i / Math.max(stores.length, 1)) * 2 * Math.PI;
+            el.setAttribute('position', `${4*Math.cos(angle)} 1.5 ${4*Math.sin(angle)}`);
+            el.innerHTML = `<a-box class="clickable" color="#007BFF" depth="0.2" height="1" width="1"></a-box><a-text value="${s.name}" position="0 0.8 0" align="center"></a-text>`;
+            el.addEventListener('click', () => {
+                const html = localStorage.getItem(s.hash + "_Webpage");
+                if(html) document.getElementById('projector-lens').srcdoc = html;
+            });
+            root.appendChild(el);
+        });
+    }
+
+    function handleChat(e) {
+        if (e.key === 'Enter' && e.target.value) {
+            const hist = (localStorage.getItem('terminal_chat_history') || '') + `<div><b>You:</b> ${e.target.value}</div>`;
+            localStorage.setItem('terminal_chat_history', hist);
+            document.getElementById('chat-container').innerHTML = hist;
+            e.target.value = '';
+        }
+    }
+
+    window.onload = () => {
+        document.getElementById('tiffy-counter').innerText = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+        document.getElementById('tusd-counter').innerText = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+        document.getElementById('chat-container').innerHTML = localStorage.getItem('terminal_chat_history') || '';
+        
+        // Load builder preview into projector immediately
+        const draft = localStorage.getItem('webstore_pro_draft');
+        if(draft) document.getElementById('projector-lens').srcdoc = draft;
+        
+        renderMarketplace();
+    };
+</script>
+</body>
+</html>
