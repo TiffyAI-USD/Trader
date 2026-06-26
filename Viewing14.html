@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Webstore Pro - Sovereign Local Edition</title>
+    <style>
+        body { font-family: 'Bebas Neue', sans-serif; background: #25D366; color: #D4AF37; margin: 0; padding: 20px; }
+        #dashboard { display: flex; gap: 20px; }
+        #editor, #projector-lens { flex: 1; height: 80vh; border: 2px solid #D4AF37; padding: 10px; }
+        iframe { width: 100%; height: 100%; border: none; background: white; }
+    </style>
+</head>
+<body>
+
+    <div id="dashboard">
+        <div id="editor">
+            <h2>Editor</h2>
+            <textarea id="code-input" style="width:100%; height:90%;"></textarea>
+            <button onclick="updatePreview()">Update Preview</button>
+        </div>
+        <div id="projector-lens">
+            <h2>Live Preview</h2>
+            <iframe id="preview-frame"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // The core data object for your store
+        const storeData = {
+            name: "Sovereign Store",
+            content: "<h1>Welcome to your Sovereign Local Store</h1>"
+        };
+
+        // Direct rendering function: No localStorage, no "Restored" junk
+        function renderPreview(htmlContent) {
+            const iframe = document.getElementById('preview-frame');
+            iframe.srcdoc = htmlContent;
+        }
+
+        // Logic to update preview from editor input
+        function updatePreview() {
+            const input = document.getElementById('code-input').value;
+            renderPreview(input);
+        }
+
+        // Initialize: Load direct from storeData, not from storage
+        window.onload = function() {
+            renderPreview(storeData.content);
+        };
+    </script>
+</body>
+</html>
