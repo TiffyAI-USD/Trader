@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TIFFY Trader • Sovereign Dashboard</title>
+  <style>
+    body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+    #projector-lens { width: 100vw; height: 100vh; border: none; }
+  </style>
+</head>
+<body>
+
+  <iframe id="projector-lens"></iframe>
+
+  <script>
+    const lens = document.getElementById('projector-lens');
+    const KEY = 'webstore_pro_draft';
+
+    // RENDER: Direct injection of the string into srcdoc.
+    // No parsing, no templates, no manipulation. 
+    function render(data) {
+        if (!data) return;
+        localStorage.setItem(KEY, data);
+        lens.srcdoc = data;
+    }
+
+    // Keep the view synced
+    window.addEventListener('storage', (e) => {
+        if (e.key === KEY && e.newValue) render(e.newValue);
+    });
+
+    // Initial load
+    window.onload = () => {
+        const saved = localStorage.getItem(KEY);
+        if (saved) render(saved);
+    };
+  </script>
+</body>
+</html>
