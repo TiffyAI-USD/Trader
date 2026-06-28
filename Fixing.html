@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    #lens { width: 100%; height: 100%; border: none; }
+  </style>
+</head>
+<body>
+  <iframe id="lens"></iframe>
+  <script>
+    const lens = document.getElementById('lens');
+    const KEY = 'webstore_pro_draft';
+
+    function loadContent() {
+      const savedData = localStorage.getItem(KEY);
+      if (savedData) {
+        // Direct injection: The browser treats the string as the document
+        lens.srcdoc = savedData;
+      }
+    }
+
+    // Sync when storage changes
+    window.addEventListener('storage', (e) => {
+      if (e.key === KEY) loadContent();
+    });
+
+    // Run once on load
+    loadContent();
+  </script>
+</body>
+</html>
