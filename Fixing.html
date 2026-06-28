@@ -9,30 +9,47 @@
 </head>
 <body>
   <iframe id="lens"></iframe>
-  <script>
-    const lens = document.getElementById('lens');
-    const KEY = 'webstore_pro_draft';
+    <script>
+    const projector = document.getElementById('projector-lens');
+    const KEY = 'sovereign_live_site';
 
-    function loadContent() {
-      const rawData = localStorage.getItem(KEY);
-      if (!rawData) return;
-
-      // If the data is a JSON string, we are going to treat it 
-      // as a literal string to be injected.
-      try {
-        // If it's double-encoded, this will fix it.
-        const cleanData = rawData.startsWith('"') ? JSON.parse(rawData) : rawData;
-        lens.srcdoc = cleanData;
-      } catch (e) {
-        lens.srcdoc = rawData;
-      }
+    // The ORIGINAL working logic
+    function renderIframe(html) {
+        if (!html) return;
+        const doc = projector.contentDocument || projector.contentWindow.document;
+        doc.open();
+        doc.write(html);
+        doc.close();
     }
 
-    window.addEventListener('storage', (e) => {
-      if (e.key === KEY) loadContent();
-    });
+    // Logic to fetch and save
+    async function transport(url) {
+        try {
+            const response = await fetch(url);
+            const html = await response.text();
+            localStorage.setItem(KEY, html);
+            renderIframe(html);
+        } catch (e) { alert("Could not fetch remote site."); }
+    }
 
-    loadContent();
+    function testLoad() { transport(document.getElementById('url-loader').value); }
+    function loadHome() { renderIframe(localStorage.getItem(KEY) || ''); }
+    function clearViewer() { 
+        localStorage.removeItem(KEY); 
+        projector.srcdoc = ""; 
+    }
+
+    document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('hidden');
+
+    window.onload = () => {
+        document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+        document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+        
+        // This is the critical line that restores the preview
+        const saved = localStorage.getItem(KEY);
+        if (saved) renderIframe(saved);
+    };
   </script>
+
 </body>
 </html>
