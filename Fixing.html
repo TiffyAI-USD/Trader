@@ -17,16 +17,15 @@
       let data = localStorage.getItem(KEY);
       if (!data) return;
 
-      // Logic: If it's a JSON string, extract the HTML content.
-      // If it's already raw HTML, render it as-is.
-      if (data.trim().startsWith('{')) {
-        try {
-          const parsed = JSON.parse(data);
-          // Adjust 'code' or 'html' to the actual key name in your JSON
-          data = parsed.code || parsed.html || parsed.content || data;
-        } catch (e) {
-          // If JSON parsing fails, use the raw data
-        }
+      // Forceful extraction: 
+      // If it starts with {, we look for the first instance of <!DOCTYPE or <html>
+      // and treat everything from that point onwards as the HTML.
+      const htmlStartIndex = data.search(/<!DOCTYPE|<html/i);
+      
+      if (htmlStartIndex !== -1) {
+          // Extract from the start of the HTML tag to the end of the string
+          // We remove the trailing characters (like "}") if they exist
+          data = data.substring(htmlStartIndex, data.lastIndexOf('>') + 1);
       }
 
       lens.srcdoc = data;
