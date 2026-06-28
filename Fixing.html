@@ -14,19 +14,28 @@
     const KEY = 'webstore_pro_draft';
 
     function loadContent() {
-      const savedData = localStorage.getItem(KEY);
-      if (savedData) {
-        // Direct injection: The browser treats the string as the document
-        lens.srcdoc = savedData;
+      let data = localStorage.getItem(KEY);
+      if (!data) return;
+
+      // Logic: If it's a JSON string, extract the HTML content.
+      // If it's already raw HTML, render it as-is.
+      if (data.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(data);
+          // Adjust 'code' or 'html' to the actual key name in your JSON
+          data = parsed.code || parsed.html || parsed.content || data;
+        } catch (e) {
+          // If JSON parsing fails, use the raw data
+        }
       }
+
+      lens.srcdoc = data;
     }
 
-    // Sync when storage changes
     window.addEventListener('storage', (e) => {
       if (e.key === KEY) loadContent();
     });
 
-    // Run once on load
     loadContent();
   </script>
 </body>
