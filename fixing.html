@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    #lens { width: 100%; height: 100%; border: none; }
+  </style>
+</head>
+<body>
+  <iframe id="lens"></iframe>
+  <script>
+    const lens = document.getElementById('lens');
+    const KEY = 'webstore_pro_draft';
+
+    function loadContent() {
+      const rawData = localStorage.getItem(KEY);
+      if (!rawData) return;
+
+      // Reset the iframe
+      lens.srcdoc = "";
+      
+      // Inject logic that parses the JSON and writes the HTML
+      lens.srcdoc = `
+        <html>
+        <body>
+          <script>
+            const data = ${rawData};
+            // This assumes the HTML is the root string OR in a key named 'code' or 'html'
+            const content = (typeof data === 'object') ? (data.code || data.html || data.content || JSON.stringify(data)) : data;
+            document.write(content);
+          <\/script>
+        </body>
+        </html>
+      `;
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === KEY) loadContent();
+    });
+
+    loadContent();
+  </script>
+</body>
+</html>
