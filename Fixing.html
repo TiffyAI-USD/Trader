@@ -14,21 +14,18 @@
     const KEY = 'webstore_pro_draft';
 
     function loadContent() {
-      let data = localStorage.getItem(KEY);
-      if (!data) return;
+      const rawData = localStorage.getItem(KEY);
+      if (!rawData) return;
 
-      // Forceful extraction: 
-      // If it starts with {, we look for the first instance of <!DOCTYPE or <html>
-      // and treat everything from that point onwards as the HTML.
-      const htmlStartIndex = data.search(/<!DOCTYPE|<html/i);
-      
-      if (htmlStartIndex !== -1) {
-          // Extract from the start of the HTML tag to the end of the string
-          // We remove the trailing characters (like "}") if they exist
-          data = data.substring(htmlStartIndex, data.lastIndexOf('>') + 1);
+      // If the data is a JSON string, we are going to treat it 
+      // as a literal string to be injected.
+      try {
+        // If it's double-encoded, this will fix it.
+        const cleanData = rawData.startsWith('"') ? JSON.parse(rawData) : rawData;
+        lens.srcdoc = cleanData;
+      } catch (e) {
+        lens.srcdoc = rawData;
       }
-
-      lens.srcdoc = data;
     }
 
     window.addEventListener('storage', (e) => {
