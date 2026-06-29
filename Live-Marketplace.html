@@ -78,6 +78,8 @@
         localStorage.setItem('sovereign_html', html);
         localStorage.setItem('sovereign_thumb', thumb);
         renderThumbnail(thumb, html);
+        const doc = projector.contentDocument || projector.contentWindow.document;
+        doc.open(); doc.write(html); doc.close();
     }
 
     function renderThumbnail(thumb, html) {
@@ -137,8 +139,13 @@
         document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
         const h = localStorage.getItem('sovereign_html');
         const t = localStorage.getItem('sovereign_thumb');
-        if (h && t) renderThumbnail(t, h);
-        loadHome();
+        if (h && t) {
+            renderThumbnail(t, h);
+            const doc = projector.contentDocument || projector.contentWindow.document;
+            doc.open(); doc.write(h); doc.close();
+        } else {
+            loadHome();
+        }
     };
   </script>
 </body>
