@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Dashboard</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--electric-blue); border-radius: 16px; padding: 16px; z-index: 100; width: 320px; max-height: 95vh; overflow-y: auto; }
+    #toggle-ui { position: fixed; top: 20px; right: 20px; z-index: 101; background: var(--shocking-pink); width: 40px; height: 40px; border-radius: 50%; border: none; color: #fff; cursor: pointer; }
+    #projector-lens { width: 100%; height: 300px; background: #000; border: 1px solid #444; border-radius: 8px; margin: 10px 0; }
+    .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 8px 0; color: var(--shocking-pink); }
+    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 4px 0; border-radius: 10px; width: 100%; cursor: pointer; font-weight: bold; }
+    .nav-btn { display: flex; gap: 5px; }
+    #chat-container { height: 140px; overflow-y: auto; background: #000; border: 1px solid #444; padding: 8px; font-size: 11px; margin-bottom: 5px; }
+    #chat-input { width: 100%; padding: 12px; background: #111; color: #fff; border: 1px solid #666; border-radius: 8px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+  <div id="scene-container">
+    <a-scene embedded background="color: #000" vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-sphere position="0 2 -5" radius="1.5" color="#007BFF" opacity="0.2" wireframe="true"></a-sphere>
+    </a-scene>
+  </div>
+
+  <button id="toggle-ui">></button>
+  
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:10px;">TIFFYAI TERMINAL</div>
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+    
+    <div style="display:flex; gap:5px; margin-bottom:10px;">
+        <input type="text" id="url-loader" placeholder="Enter URL..." style="flex:1; padding:5px; background:#111; color:#fff; border:1px solid #444; border-radius:4px;">
+        <button onclick="testLoad()" style="width:auto; margin:0;">GO</button>
+    </div>
+
+    <iframe id="projector-lens"></iframe>
+
+    <div class="nav-btn">
+        <button onclick="loadHome()" style="background:#666;">HOME</button>
+        <button onclick="clearViewer()" style="background:#c00;">CLEAR VIEW</button>
+    </div>
+    
+    <button id="upload-store-btn">UPLOAD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html', '_blank')" style="background: #28a745;">EDIT/ADD TO STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')" style="background: #555;">INTERNATIONAL BANKING</button>
+    
+    <div style="margin-top:10px; font-size:10px; color:#aaa;">LIVE CHAT:</div>
+    <div id="chat-container"></div>
+    <input type="text" id="chat-input" placeholder="Type and Enter...">
+    <button onclick="clearChat()" style="background:#444; font-size:10px; padding:5px;">CLEAR CHAT ROOM</button>
+  </div>
+
+  <script>
+    const projector = document.getElementById('projector-lens');
+    const chatContainer = document.getElementById('chat-container');
+    const peer = new Peer('tiffy-trader-main-' + Math.floor(Math.random()*10000));
+    let connections = [];
+
+    peer.on('connection', (conn) => {
+        connections.push(conn);
+        conn.on('data', (data) => {
+            if (data.type === 'STORE') setupWorkspace(data.html, data.thumb);
+            if (data.type === 'CHAT') appendChat(data.msg, false);
+        });
+    });
+
+    function setupWorkspace(html, thumb) {
+        localStorage.setItem('sovereign_html', html);
+        localStorage.setItem('sovereign_thumb', thumb);
+        renderThumbnail(thumb, html);
+        const doc = projector.contentDocument || projector.contentWindow.document;
+        doc.open(); doc.write(html); doc.close();
+    }
+
+    function renderThumbnail(thumb, html) {
+        const old = document.getElementById('user-thumb');
+        if (old) old.remove();
+        const plane = document.createElement('a-plane');
+        plane.setAttribute('id', 'user-thumb');
+        plane.setAttribute('position', '0 1.5 -3');
+        plane.setAttribute('width', '2'); plane.setAttribute('height', '1.5');
+        plane.setAttribute('src', thumb);
+        plane.addEventListener('click', () => {
+            const doc = projector.contentDocument || projector.contentWindow.document;
+            doc.open(); doc.write(html); doc.close();
+        });
+        document.querySelector('a-scene').appendChild(plane);
+    }
+
+    function appendChat(msg, isLocal = true) {
+        const d = document.createElement('div'); d.textContent = "> " + msg;
+        chatContainer.appendChild(d);
+        if (isLocal) {
+            let hist = JSON.parse(localStorage.getItem('chat_hist') || '[]');
+            hist.push(msg);
+            localStorage.setItem('chat_hist', JSON.stringify(hist));
+            connections.forEach(c => c.send({ type: 'CHAT', msg: msg }));
+        }
+    }
+
+    document.getElementById('upload-store-btn').onclick = () => {
+        const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*';
+        i.onchange = (e) => {
+            const r = new FileReader(); r.onload = (re) => {
+                const h = document.createElement('input'); h.type = 'file'; h.accept = '.html';
+                h.onchange = (he) => {
+                    const rh = new FileReader(); rh.onload = (rhr) => {
+                        setupWorkspace(rhr.target.result, re.target.result);
+                        connections.forEach(c => c.send({ type: 'STORE', html: rhr.target.result, thumb: re.target.result }));
+                    };
+                    rh.readAsText(he.target.files[0]);
+                };
+                h.click();
+            };
+            r.readAsDataURL(e.target.files[0]);
+        };
+        i.click();
+    };
+
+    function loadHome() { projector.src = 'https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html'; }
+    function testLoad() { projector.src = document.getElementById('url-loader').value; }
+    function clearViewer() { localStorage.removeItem('sovereign_html'); localStorage.removeItem('sovereign_thumb'); window.location.reload(); }
+    function clearChat() { localStorage.removeItem('chat_hist'); chatContainer.innerHTML = ''; }
+
+    document.getElementById('chat-input').onkeypress = (e) => { if(e.key === 'Enter') { appendChat(e.target.value); e.target.value = ''; } };
+    document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('hidden');
+
+    window.onload = () => {
+        document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+        document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+        
+        const hist = JSON.parse(localStorage.getItem('chat_hist') || '[]');
+        hist.forEach(m => { const d = document.createElement('div'); d.textContent = "> " + m; chatContainer.appendChild(d); });
+
+        const h = localStorage.getItem('sovereign_html');
+        const t = localStorage.getItem('sovereign_thumb');
+        if (h && t) { renderThumbnail(t, h); const doc = projector.contentDocument || projector.contentWindow.document; doc.open(); doc.write(h); doc.close(); } else { loadHome(); }
+    };
+  </script>
+</body>
+</html>
