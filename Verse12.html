@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DEBUG TEST</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene background="color: #000">
+    <a-camera position="0 1.6 0"></a-camera>
+    <a-entity id="ar-portal" position="0 1.6 -2"></a-entity>
+  </a-scene>
+
+  <script>
+    function forceRender() {
+        const portal = document.getElementById('ar-portal');
+        portal.innerHTML = '';
+        
+        // CREATE A SIMPLE RED BOX TO PROVE THE SCENE IS WORKING
+        const box = document.createElement('a-box');
+        box.setAttribute('position', '0 0 0');
+        box.setAttribute('color', 'red');
+        box.setAttribute('scale', '0.5 0.5 0.5');
+        portal.appendChild(box);
+        
+        console.log("Scene initialized, box added.");
+        
+        // ATTEMPT TO LOAD THUMBNAIL
+        const thumb = localStorage.getItem('ar_store_thumb');
+        if (thumb) {
+            console.log("Found thumb in storage, length: " + thumb.length);
+            const plane = document.createElement('a-plane');
+            plane.setAttribute('position', '0 1 0');
+            plane.setAttribute('width', '1');
+            plane.setAttribute('height', '1');
+            plane.setAttribute('material', 'src: ' + thumb + '; color: white;');
+            portal.appendChild(plane);
+        } else {
+            console.log("No thumbnail found in localStorage.");
+        }
+    }
+    
+    // Give A-Frame a second to warm up before running
+    setTimeout(forceRender, 1000);
+  </script>
+</body>
+</html>
