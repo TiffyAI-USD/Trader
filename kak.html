@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+</head>
+<body>
+    <a-scene embedded vr-mode-ui="enabled: false">
+        <a-assets>
+            <video id="bgvideo" autoplay loop muted playsinline crossorigin="anonymous"></video>
+        </a-assets>
+
+        <a-sky id="background" src="#bgvideo"></a-sky>
+        <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
+
+    <script>
+        function swapBackground(url) {
+            const video = document.getElementById("bgvideo");
+            video.src = url;
+            video.load();
+            video.play().catch(e => console.log("Interaction required"));
+        }
+
+        // Logic from your working file
+        window.onload = () => {
+            swapBackground("Terminal1.mp4");
+        };
+
+        // Standard interaction to ensure video plays
+        document.body.addEventListener('click', () => {
+            document.getElementById("bgvideo").play();
+        }, { once: true });
+    </script>
+</body>
+</html>
