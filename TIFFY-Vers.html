@@ -2,57 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sovereign Mesh Terminal | Active</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <style>
-    body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #000; }
-    /* Loading/Interaction overlay to satisfy browser autoplay policy */
-    #overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); color: #00f0ff;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 9999; cursor: pointer; font-family: sans-serif;
-    }
-  </style>
 </head>
 <body>
 
-  <div id="overlay">
-    <h1>INITIALIZING MESH</h1>
-    <p>Tap or click to engage Terminal Interface</p>
-  </div>
-
   <a-scene embedded vr-mode-ui="enabled: false">
     <a-assets>
-      <!-- Native MP4 Video source pointing to your repo -->
-      <video id="terminal-vid" 
-             src="https://raw.githubusercontent.com/TiffyAI/Play/refs/heads/main/Terminal1.mp4" 
-             autoplay loop="true" muted playsinline crossorigin="anonymous">
-      </video>
+      <!-- The source element -->
+      <video id="terminal-vid" loop="true" muted playsinline crossorigin="anonymous"></video>
     </a-assets>
 
-    <!-- 360-degree seamless sphere environment -->
+    <!-- The sky primitive bound to the asset -->
     <a-sky id="background" src="#terminal-vid" rotation="0 0 0"></a-sky>
-
-    <!-- Camera setup -->
-    <a-camera position="0 1.6 0" look-controls="enabled: true" wasd-controls="enabled: false"></a-camera>
+    <a-camera position="0 1.6 0"></a-camera>
   </a-scene>
 
   <script>
-    const overlay = document.getElementById('overlay');
-    const vid = document.getElementById('terminal-vid');
+    // The exact swapBackground method used in TiffyAI Interface
+    function swapBackground(url) {
+      const vid = document.getElementById('terminal-vid');
+      const sky = document.getElementById('background');
 
-    // Engagement logic to force playback
-    const startTerminal = () => {
+      vid.src = url;
+      vid.load(); // Forces the browser to re-bind the new mp4
       vid.play();
-      overlay.style.display = 'none';
-    };
+      
+      // Re-bind to sky to ensure it takes the texture
+      sky.setAttribute('src', '#terminal-vid');
+      console.log("Terminal initialized with:", url);
+    }
 
-    overlay.addEventListener('click', startTerminal, { once: true });
-    
-    // Auto-retry if initial autoplay is blocked by browser policies
-    window.addEventListener('touchstart', startTerminal, { once: true });
+    // Execution: Triggering with your new file
+    window.addEventListener('load', () => {
+      swapBackground('Terminal1.mp4');
+    });
+
+    // Interaction lock override
+    window.addEventListener('click', () => {
+      document.getElementById('terminal-vid').play();
+    }, { once: true });
   </script>
 </body>
 </html>
