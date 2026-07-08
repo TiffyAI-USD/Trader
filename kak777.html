@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--electric-blue); border-radius: 16px; padding: 16px; z-index: 100; width: 340px; max-height: 95vh; overflow-y: auto; transition: transform 0.3s; padding-bottom: 50px; }
+    #ui-panel.hidden { transform: translateX(400px); }
+    #toggle-ui { position: fixed; top: 20px; left: 20px; z-index: 101; background: var(--shocking-pink); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-weight: bold; font-family: 'Orbitron'; }
+    #projector-lens { width: 100%; height: 250px; background: #000; border: 1px solid #444; border-radius: 8px; margin: 10px 0; cursor: pointer; }
+    .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 8px 0; color: var(--shocking-pink); }
+    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 4px 0; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
+    #chat-container { height: 120px; overflow-y: auto; background: #000; border: 1px solid #444; padding: 8px; font-size: 11px; margin-bottom: 5px; }
+    #upload-modal { position: fixed; top: 20%; left: 30%; width: 300px; background: #111; padding: 20px; border: 2px solid var(--electric-blue); z-index: 200; color: #fff; border-radius: 15px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">UI</button>
+  
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets>
+        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous"
+               src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+      </a-assets>
+      
+      <a-sky src="#bg-video" rotation="0 -90 0"
+             animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+      
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:10px;">TIFFY MESH TERMINAL</div>
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+    <input type="text" id="search-bar" placeholder="Search Mesh..." style="width:100%; padding:8px; background:#111; color:#fff; border:1px solid #444; border-radius:8px;">
+    <button onclick="searchMesh()">SEARCH MESH</button>
+    <iframe id="projector-lens" allow="fullscreen" allowfullscreen="true" onclick="enterFullscreen()"></iframe>
+    <div style="display:flex; gap:5px;">
+        <button onclick="loadHome()" style="background:#666;">HOME</button>
+        <button onclick="clearViewer()" style="background:#c00;">CLEAR</button>
+    </div>
+    <button onclick="document.getElementById('upload-modal').classList.remove('hidden')">UPLOAD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html', '_blank')" style="background: #28a745;">EDIT STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')" style="background: #555;">BANKING</button>
+    <div style="margin-top:10px; font-size:10px; color:#aaa;">LIVE CHAT:</div>
+    <div id="chat-container"></div>
+    <input type="text" id="chat-input" placeholder="Type and Enter..." style="width:100%; padding:8px; background:#111; color:#fff; border:1px solid #666; border-radius:8px;">
+    <button onclick="clearChat()" style="background:#444; font-size:10px; padding:5px;">CLEAR CHAT</button>
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3>DEPLOY STORE</h3>
+    <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%;">
+    <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%;">
+    <button onclick="deployStore()">CONFIRM DEPLOY</button>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
+  </div>
+
+  <script>
+    function startBackground() {
+      const video = document.getElementById('bg-video');
+      if (video) video.play().catch(() => {});
+    }
+    document.addEventListener('click', startBackground, { once: true });
+
+    const projector = document.getElementById('projector-lens');
+    const arPortal = document.getElementById('ar-portal');
+    const peer = new Peer(); 
+    let meshDir = JSON.parse(localStorage.getItem('MESH_DIR') || '{}');
+
+    function enterFullscreen() { 
+        const el = document.getElementById('projector-lens'); 
+        if (el.requestFullscreen) el.requestFullscreen(); 
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); 
+    }
+
+    function openStoreFullscreen(htmlContent) {
+        const newWin = window.open('', '_blank');
+        if (!newWin) return alert("Please allow popups for this site.");
+
+        newWin.document.write(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                <title>TIFFY Store</title>
+                <style>
+                    * { margin:0 !important; padding:0 !important; box-sizing:border-box !important; }
+                    html, body { 
+                        width:100vw !important; 
+                        height:100vh !important; 
+                        overflow:auto !important; 
+                        background:#000 !important;
+                    }
+                    iframe { width:100% !important; height:100vh !important; border:none !important; }
+                </style>
+            </head>
+            <body>
+                <iframe id="store-iframe"></iframe>
+            </body>
+            </html>
+        `);
+        newWin.document.close();
+
+        setTimeout(() => {
+            const blob = new Blob([htmlContent], {type: 'text/html'});
+            const url = URL.createObjectURL(blob);
+            const iframe = newWin.document.getElementById('store-iframe');
+            if (iframe) iframe.src = url;
+
+            // Try fullscreen
+            setTimeout(() => {
+                if (newWin.document.documentElement.requestFullscreen) {
+                    newWin.document.documentElement.requestFullscreen().catch(() => {});
+                }
+            }, 800);
+        }, 400);
+    }
+
+    function searchMesh() {
+        const query = document.getElementById('search-bar').value.toLowerCase();
+        const found = Object.values(meshDir).find(b => b.name?.toLowerCase().includes(query));
+        if (found) { 
+            const blob = new Blob([found.html], {type: 'text/html'}); 
+            projector.src = URL.createObjectURL(blob); 
+        } else { 
+            alert("Node not found."); 
+        }
+    }
+
+    function deployStore() {
+        const hFile = document.getElementById('html-input').files[0];
+        const tFile = document.getElementById('thumb-input').files[0];
+        if(!hFile || !tFile) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const html = e.target.result;
+            const tReader = new FileReader();
+            tReader.onload = (te) => {
+                const thumb = te.target.result;
+                const name = JSON.parse(localStorage.getItem('webstore_pro_draft') || '{"name":"Local Store"}').name;
+                meshDir[peer.id] = { name, html, thumb };
+                localStorage.setItem('MESH_DIR', JSON.stringify(meshDir));
+                renderPortals();
+                document.getElementById('upload-modal').classList.add('hidden');
+                localStorage.setItem('ar_store_html', html);
+                projector.src = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
+            };
+            tReader.readAsDataURL(tFile);
+        };
+        reader.readAsText(hFile);
+    }
+
+    function renderPortals() {
+        arPortal.innerHTML = '';
+        Object.entries(meshDir).forEach(([id, biz], i) => {
+            const el = document.createElement('a-plane');
+            el.setAttribute('position', `${(i * 1.5) - 1} 0 0`);
+            el.setAttribute('width', '1.2');
+            el.setAttribute('height', '1.2');
+            el.setAttribute('material', `src: url(${biz.thumb}); side: double`);
+            el.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear');
+            
+            el.addEventListener('click', () => openStoreFullscreen(biz.html));
+            arPortal.appendChild(el);
+        });
+    }
+
+    function addChatMessage(msg, save = true) {
+        const div = document.createElement('div');
+        div.textContent = "> " + msg;
+        document.getElementById('chat-container').appendChild(div);
+        if (save) {
+            let hist = JSON.parse(localStorage.getItem('chat_hist') || '[]');
+            hist.push(msg);
+            localStorage.setItem('chat_hist', JSON.stringify(hist));
+        }
+    }
+
+    document.getElementById('chat-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && e.target.value.trim() !== '') { 
+            addChatMessage(e.target.value); 
+            e.target.value = ''; 
+        }
+    });
+
+    peer.on('connection', (conn) => { 
+        conn.on('data', (d) => { 
+            if(d.type === 'HELLO') { 
+                meshDir[d.id] = { name: d.name, html: d.html, thumb: d.thumb }; 
+                localStorage.setItem('MESH_DIR', JSON.stringify(meshDir)); 
+                renderPortals(); 
+            } 
+        }); 
+    });
+
+    peer.on('open', (id) => {
+        const myStore = JSON.parse(localStorage.getItem('webstore_pro_draft') || '{}');
+        const myHtml = localStorage.getItem('ar_store_html') || '';
+        if (myStore.name) { 
+            meshDir[id] = { name: myStore.name, html: myHtml, thumb: myStore.logo }; 
+            localStorage.setItem('MESH_DIR', JSON.stringify(meshDir)); 
+            renderPortals(); 
+        }
+    });
+
+    function loadHome() { 
+        projector.src = 'https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html'; 
+    }
+    function clearViewer() { projector.src = ''; }
+    function clearChat() { 
+        localStorage.removeItem('chat_hist'); 
+        document.getElementById('chat-container').innerHTML = ''; 
+    }
+
+    window.onload = () => {
+        renderPortals();
+        document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+        document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+        
+        const savedHtml = localStorage.getItem('ar_store_html');
+        if (savedHtml) { 
+            projector.src = URL.createObjectURL(new Blob([savedHtml], {type: 'text/html'})); 
+        } else { 
+            loadHome(); 
+        }
+        
+        const hist = JSON.parse(localStorage.getItem('chat_hist') || '[]');
+        hist.forEach(m => addChatMessage(m, false));
+
+        setTimeout(startBackground, 800);
+    };
+  </script>
+</body>
+</html>
