@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--electric-blue); border-radius: 16px; padding: 16px; z-index: 100; width: 340px; max-height: 95vh; overflow-y: auto; transition: transform 0.3s; padding-bottom: 50px; }
+    #ui-panel.hidden { transform: translateX(400px); }
+    #toggle-ui { position: fixed; top: 20px; right: 20px; z-index: 101; background: var(--shocking-pink); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; color: white; font-weight: bold; }
+    #projector-lens { width: 100%; height: 250px; background: #000; border: 1px solid #444; border-radius: 8px; margin: 10px 0; }
+    .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 8px 0; color: var(--shocking-pink); }
+    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 4px 0; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
+    #chat-container { height: 120px; overflow-y: auto; background: #000; border: 1px solid #444; padding: 8px; font-size: 11px; margin-bottom: 5px; }
+    #upload-modal { position: fixed; top: 20%; left: 30%; width: 300px; background: #111; padding: 20px; border: 2px solid var(--electric-blue); z-index: 200; color: #fff; border-radius: 15px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">UI</button>
+  
+  <div id="scene-container">
+    <a-scene embedded background="color: #000" vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
+      <a-assets>
+        <img id="bg-gif" src="Terminal.gif">
+      </a-assets>
+      <a-sky material="shader:gif;src:#bg-gif;"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:10px;">TIFFY MESH TERMINAL</div>
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+    
+    <iframe id="projector-lens"></iframe>
+
+    <div style="display:flex; gap:5px;">
+        <button onclick="loadHome()" style="background:#666;">HOME</button>
+        <button onclick="clearViewer()" style="background:#c00;">CLEAR</button>
+    </div>
+    
+    <button onclick="document.getElementById('upload-modal').classList.remove('hidden')">UPLOAD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html', '_blank')" style="background: #28a745;">EDIT STORE</button>
+    
+    <div id="chat-container"></div>
+    <input type="text" id="chat-input" placeholder="Type and Enter..." style="width:100%; padding:8px; background:#111; color:#fff; border:1px solid #666; border-radius:8px;">
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3>DEPLOY STORE</h3>
+    <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%;">
+    <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%;">
+    <button onclick="deployStore()">CONFIRM DEPLOY</button>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
+  </div>
+
+  <script>
+    const projector = document.getElementById('projector-lens');
+    const arPortal = document.getElementById('ar-portal');
+    const peer = new Peer('tiffy-trader-global-mesh');
+    let connections = [];
+
+    function deployStore() {
+        const hFile = document.getElementById('html-input').files[0];
+        const tFile = document.getElementById('thumb-input').files[0];
+        if(!hFile) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const htmlString = e.target.result;
+            if (tFile) {
+                const tReader = new FileReader();
+                tReader.onload = (te) => {
+                    localStorage.setItem('ar_store_html', htmlString);
+                    localStorage.setItem('ar_store_thumb', te.target.result);
+                    renderAR(htmlString, te.target.result);
+                    document.getElementById('upload-modal').classList.add('hidden');
+                };
+                tReader.readAsDataURL(tFile);
+            }
+        };
+        reader.readAsText(hFile);
+    }
+
+    function renderAR(htmlString, thumbData) {
+        arPortal.innerHTML = '';
+        const blob = new Blob([htmlString], {type: 'text/html'});
+        const url = URL.createObjectURL(blob);
+        projector.src = url;
+
+        const entity = document.createElement('a-plane');
+        entity.setAttribute('position', '0 0 0');
+        entity.setAttribute('width', '2'); 
+        entity.setAttribute('height', '1.5');
+        entity.setAttribute('material', thumbData ? `src: url(${thumbData}); side: double` : 'color: #FF007F; side: double');
+        entity.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear');
+        entity.addEventListener('click', () => projector.src = url);
+        arPortal.appendChild(entity);
+    }
+
+    function loadHome() { projector.src = 'https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html'; }
+    function clearViewer() { localStorage.removeItem('ar_store_html'); localStorage.removeItem('ar_store_thumb'); window.location.reload(); }
+
+    window.onload = () => {
+        const savedHtml = localStorage.getItem('ar_store_html');
+        const savedThumb = localStorage.getItem('ar_store_thumb');
+        if (savedHtml) {
+            renderAR(savedHtml, savedThumb);
+        } else {
+            loadHome();
+        }
+    };
+  </script>
+</body>
+</html>
