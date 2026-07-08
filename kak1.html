@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+</head>
+<body>
+    <a-scene embedded vr-mode-ui="enabled: false">
+        <a-assets>
+            <video id="bgvideo" src="Terminal1.mp4" autoplay loop="true" muted playsinline crossorigin="anonymous"></video>
+        </a-assets>
+        <a-sky id="background" src="#bgvideo"></a-sky>
+        <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
+</body>
+</html>
