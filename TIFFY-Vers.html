@@ -6,35 +6,36 @@
 <body>
     <a-scene embedded vr-mode-ui="enabled: false">
         <a-assets>
-            <video id="bgvideo" autoplay loop muted playsinline></video>
+            <!-- THIS is the ID binding that the a-sky is looking for -->
+            <video id="bgvideo" autoplay loop muted playsinline crossorigin="anonymous"></video>
         </a-assets>
+        
+        <!-- Binding to the ID -->
         <a-sky id="background" src="#bgvideo"></a-sky>
         <a-camera position="0 1.6 0"></a-camera>
     </a-scene>
 
     <script>
-        // The exact swap logic that prevents the white-out
+        // Your exact swap function logic
         function swapBackground(url) {
             const video = document.getElementById("bgvideo");
             if (!video) return;
             
+            // 1. Force the source update
             video.src = url;
+            // 2. Clear the buffer and force a reload
             video.load(); 
+            // 3. Kick off the playback
             video.play().catch(err => console.log("Waiting for user interaction..."));
             
-            document.querySelector("#background").setAttribute("src", "#bgvideo");
+            // A-Frame's internal loader is already watching #bgvideo, 
+            // so we don't need to change the sky attribute if the ID stays the same.
         }
 
-        // Trigger with your specific file
+        // Trigger loading the specific file
         window.onload = () => {
             swapBackground("Terminal1.mp4");
         };
-
-        // Final interaction unlock
-        document.body.addEventListener('click', () => {
-            const v = document.getElementById("bgvideo");
-            if (v.paused) v.play();
-        }, { once: true });
     </script>
 </body>
 </html>
