@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script>
+</head>
+<body>
+    <a-scene embedded vr-mode-ui="enabled: false">
+        <a-assets>
+            <img id="terminal-gif" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal.gif" crossorigin="anonymous">
+        </a-assets>
+        <a-sky src="#terminal-gif" shader="gif" autoplay="true"></a-sky>
+        <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
+</body>
+</html>
