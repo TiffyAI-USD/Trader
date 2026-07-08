@@ -1,47 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Sovereign Mesh Terminal | Active</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
 </head>
 <body>
+    <a-scene embedded vr-mode-ui="enabled: false">
+        <a-assets>
+            <video id="bgvideo" autoplay loop muted playsinline></video>
+        </a-assets>
+        <a-sky id="background" src="#bgvideo"></a-sky>
+        <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
 
-  <a-scene embedded vr-mode-ui="enabled: false">
-    <a-assets>
-      <!-- The source element -->
-      <video id="terminal-vid" loop="true" muted playsinline crossorigin="anonymous"></video>
-    </a-assets>
+    <script>
+        // The exact swap logic that prevents the white-out
+        function swapBackground(url) {
+            const video = document.getElementById("bgvideo");
+            if (!video) return;
+            
+            video.src = url;
+            video.load(); 
+            video.play().catch(err => console.log("Waiting for user interaction..."));
+            
+            document.querySelector("#background").setAttribute("src", "#bgvideo");
+        }
 
-    <!-- The sky primitive bound to the asset -->
-    <a-sky id="background" src="#terminal-vid" rotation="0 0 0"></a-sky>
-    <a-camera position="0 1.6 0"></a-camera>
-  </a-scene>
+        // Trigger with your specific file
+        window.onload = () => {
+            swapBackground("Terminal1.mp4");
+        };
 
-  <script>
-    // The exact swapBackground method used in TiffyAI Interface
-    function swapBackground(url) {
-      const vid = document.getElementById('terminal-vid');
-      const sky = document.getElementById('background');
-
-      vid.src = url;
-      vid.load(); // Forces the browser to re-bind the new mp4
-      vid.play();
-      
-      // Re-bind to sky to ensure it takes the texture
-      sky.setAttribute('src', '#terminal-vid');
-      console.log("Terminal initialized with:", url);
-    }
-
-    // Execution: Triggering with your new file
-    window.addEventListener('load', () => {
-      swapBackground('Terminal1.mp4');
-    });
-
-    // Interaction lock override
-    window.addEventListener('click', () => {
-      document.getElementById('terminal-vid').play();
-    }, { once: true });
-  </script>
+        // Final interaction unlock
+        document.body.addEventListener('click', () => {
+            const v = document.getElementById("bgvideo");
+            if (v.paused) v.play();
+        }, { once: true });
+    </script>
 </body>
 </html>
