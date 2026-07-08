@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; --bg-dark: #0A0A1E; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; margin: 0; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--electric-blue); border-radius: 16px; padding: 20px; z-index: 100; width: 340px; transition: transform 0.3s; box-shadow: 0 0 20px rgba(0, 123, 255, 0.2); }
+    #ui-panel.hidden { transform: translateX(400px); }
+    #toggle-ui { position: fixed; top: 20px; right: 380px; z-index: 101; background: var(--shocking-pink); border: none; color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    
+    #projector-lens { width: 100%; height: 300px; background: #fff; border: none; border-radius: 8px; margin: 15px 0; }
+    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 12px; margin: 5px 0; border-radius: 8px; width: 100%; cursor: pointer; font-weight: 600; font-family: 'Orbitron'; text-transform: uppercase; }
+    .nav-btn { background: #222 !important; border: 1px solid #444; }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">MENU</button>
+
+  <div id="scene-container">
+    <a-scene embedded background="color: #000" vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+  
+  <div id="ui-panel">
+    <div style="text-align:center; margin-bottom:15px; font-family: 'Orbitron'; letter-spacing: 2px;">TIFFY MESH TERMINAL</div>
+    
+    <input type="text" id="search-bar" placeholder="Search Node..." style="width:100%; padding:10px; background:#111; color:#fff; border:1px solid #444; border-radius: 8px; box-sizing: border-box;">
+    <button onclick="searchBusiness()">SEARCH MESH</button>
+    
+    <iframe id="projector-lens"></iframe>
+    
+    <div id="tools-menu">
+        <button class="nav-btn" onclick="loadHome()">HOME</button>
+        <button class="nav-btn" onclick="alert('Upload System Active')">UPLOAD STORE</button>
+        <button class="nav-btn" onclick="alert('KYC Verified - Full Access')">ACCOUNT KYC</button>
+        <button class="nav-btn" onclick="alert('Balance: 70 TUSD-Nitro')">INTERNATIONAL BANK</button>
+    </div>
+  </div>
+
+  <script>
+    const projector = document.getElementById('projector-lens');
+    const arPortal = document.getElementById('ar-portal');
+    const peer = new Peer(); 
+    let tiffyDirectory = JSON.parse(localStorage.getItem('TIFFY_DIRECTORY') || '{}');
+
+    function projectStore(htmlData) {
+        // Sandboxed rendering for 1:1 fidelity
+        const content = (typeof htmlData === 'object') ? htmlData.data : htmlData;
+        projector.srcdoc = content;
+    }
+
+    function renderAllPortals() {
+        arPortal.innerHTML = '';
+        Object.values(tiffyDirectory).forEach((biz, i) => {
+            const el = document.createElement('a-plane');
+            el.setAttribute('position', `${(i * 2) - 2} 0 0`);
+            el.setAttribute('material', `src: url(${biz.thumb}); side: double`);
+            el.addEventListener('click', () => projectStore(biz.data));
+            arPortal.appendChild(el);
+        });
+    }
+
+    function searchBusiness() {
+        const q = document.getElementById('search-bar').value.toLowerCase();
+        const match = Object.values(tiffyDirectory).find(b => b.name?.toLowerCase().includes(q));
+        match ? projectStore(match.data) : alert("Node not found in mesh.");
+    }
+
+    peer.on('open', () => {
+        const draft = localStorage.getItem('webstore_pro_draft');
+        if (draft) {
+            const d = JSON.parse(draft);
+            tiffyDirectory[peer.id] = { id: peer.id, name: d.name, thumb: d.logo, data: draft };
+            renderAllPortals();
+        }
+    });
+
+    function loadHome() { projector.srcdoc = '<html><body style="font-family:sans-serif; text-align:center;"><h1>Tiffyverse</h1><p>Mesh Operational</p></body></html>'; }
+    window.onload = renderAllPortals;
+  </script>
+</body>
+</html>
