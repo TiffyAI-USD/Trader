@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script>
+</head>
+<body>
+    <a-scene embedded vr-mode-ui="enabled: false">
+        <a-assets>
+            <!-- Using the raw link you confirmed works -->
+            <img id="terminal-gif" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal.gif" crossorigin="anonymous">
+        </a-assets>
+
+        <!-- Mapping to the 360 sphere using the confirmed working shader logic -->
+        <a-sky src="#terminal-gif" shader="gif" autoplay="true"></a-sky>
+
+        <a-camera position="0 0 0" look-controls="enabled: true"></a-camera>
+    </a-scene>
+</body>
+</html>
