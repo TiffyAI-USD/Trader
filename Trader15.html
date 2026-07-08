@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    /* UI Styling */
+    body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
+    #loadingScreen { 
+      position: fixed; top:0; left:0; width:100%; height:100%; 
+      background: #000 url("Terminal.gif") center/cover no-repeat; 
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index: 9999; transition: opacity 1s;
+    }
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.8); border: 1px solid #007BFF; border-radius: 16px; padding: 15px; width: 300px; z-index: 100; }
+    #projector-lens { width: 100%; height: 200px; background: #000; border: 1px solid #444; margin: 10px 0; cursor: pointer; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="loadingScreen">
+    <button id="startBtn" style="padding:20px 40px; font-size:20px; cursor:pointer;">ENTER TERMINAL</button>
+  </div>
+
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false">
+      <a-assets>
+        <img id="bg-gif" src="Terminal.gif">
+      </a-assets>
+      <a-sky material="shader:gif;src:#bg-gif;"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <h3>MESH TERMINAL</h3>
+    <iframe id="projector-lens" allow="fullscreen" allowfullscreen="true" onclick="this.requestFullscreen()"></iframe>
+    <button onclick="document.getElementById('upload-modal').classList.remove('hidden')">DEPLOY STORE</button>
+  </div>
+
+  <script>
+    // Transition Logic
+    document.getElementById('startBtn').addEventListener('click', () => {
+      document.getElementById('loadingScreen').style.opacity = '0';
+      setTimeout(() => document.getElementById('loadingScreen').style.display = 'none', 1000);
+      renderPortals();
+    });
+
+    // Your existing Mesh/Peer logic goes here
+    const arPortal = document.getElementById('ar-portal');
+    let meshDir = JSON.parse(localStorage.getItem('MESH_DIR') || '{}');
+
+    function renderPortals() {
+      arPortal.innerHTML = '';
+      Object.entries(meshDir).forEach(([id, biz], i) => {
+        const el = document.createElement('a-plane');
+        el.setAttribute('position', `${(i * 1.5) - 1} 0 0`);
+        el.setAttribute('material', `src: url(${biz.thumb}); side: double`);
+        el.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear');
+        el.addEventListener('click', () => {
+            const blob = new Blob([biz.html], {type: 'text/html'});
+            document.getElementById('projector-lens').src = URL.createObjectURL(blob);
+        });
+        arPortal.appendChild(el);
+      });
+    }
+  </script>
+</body>
+</html>
