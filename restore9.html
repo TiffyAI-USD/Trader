@@ -62,7 +62,7 @@
     <h3>DEPLOY STORE</h3>
     <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%;">
     <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%;">
-    <button id="confirm-deploy">CONFIRM DEPLOY</button>
+    <button onclick="deployStore()">CONFIRM DEPLOY</button>
     <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
   </div>
 
@@ -72,43 +72,37 @@
     const peer = new Peer(); 
     let meshDir = JSON.parse(localStorage.getItem('MESH_DIR') || '{}');
 
-    // Direct event listener for safety
-    document.getElementById('confirm-deploy').addEventListener('click', deployStore);
-
     function deployStore() {
-        alert("🚀 Deploy button clicked - Starting...");
-
         const hFile = document.getElementById('html-input').files[0];
         const tFile = document.getElementById('thumb-input').files[0];
-
+        
         if (!hFile || !tFile) {
-            alert("❌ Please select both HTML and Thumbnail files");
+            alert("Please select both HTML and Thumbnail files.");
             return;
         }
 
-        alert("📄 Reading files...");
-
         const reader = new FileReader();
         reader.onload = (e) => {
-            const html = e.target.result;
-            alert("✅ HTML loaded");
+            const htmlString = e.target.result;
 
             const tReader = new FileReader();
             tReader.onload = (te) => {
-                const thumb = te.target.result;
-                alert("✅ Thumbnail loaded");
+                const thumbData = te.target.result;
 
+                // Save HTML
+                localStorage.setItem('ar_store_html', htmlString);
+
+                // Save to Mesh
                 const name = "My Store";
-
-                meshDir[peer.id || "local"] = { name, html, thumb };
+                meshDir[peer.id] = { name: name, html: htmlString, thumb: thumbData };
                 localStorage.setItem('MESH_DIR', JSON.stringify(meshDir));
-                localStorage.setItem('ar_store_html', html);
 
-                alert("💾 Saved successfully to Mesh!");
+                alert("✅ Store deployed successfully!");
 
                 renderPortals();
                 document.getElementById('upload-modal').classList.add('hidden');
-                projector.src = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
+
+                projector.src = URL.createObjectURL(new Blob([htmlString], {type: 'text/html'}));
             };
             tReader.readAsDataURL(tFile);
         };
