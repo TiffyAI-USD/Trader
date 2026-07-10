@@ -30,7 +30,8 @@
   <div id="scene-container">
     <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
       <a-assets>
-        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous"
+               src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
       </a-assets>
       <a-sky src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
       <a-camera position="0 1.6 0"></a-camera>
@@ -67,6 +68,12 @@
   </div>
 
   <script>
+    function startBackground() {
+      const video = document.getElementById('bg-video');
+      if (video) video.play().catch(() => {});
+    }
+    document.addEventListener('click', startBackground, { once: true });
+
     const projector = document.getElementById('projector-lens');
     const arPortal = document.getElementById('ar-portal');
     const peer = new Peer(); 
@@ -87,7 +94,6 @@
     function deployStore() {
         const hFile = document.getElementById('html-input').files[0];
         const tFile = document.getElementById('thumb-input').files[0];
-        
         if (!hFile || !tFile) {
             alert("Please select both HTML and Thumbnail files.");
             return;
@@ -95,25 +101,23 @@
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            const htmlString = e.target.result;
-            
+            const html = e.target.result;
             const tReader = new FileReader();
             tReader.onload = (te) => {
-                const thumbData = te.target.result;
-                
-                // Save to localStorage
-                localStorage.setItem('ar_store_html', htmlString);
-
-                // Save to mesh
+                const thumb = te.target.result;
                 const name = JSON.parse(localStorage.getItem('webstore_pro_draft') || '{"name":"Local Store"}').name || "My Store";
-                meshDir[peer.id] = { name, html: htmlString, thumb: thumbData };
+
+                const storeData = { id: peer.id, name, html, thumb, timestamp: Date.now() };
+                meshDir[peer.id] = storeData;
+
                 localStorage.setItem('MESH_DIR', JSON.stringify(meshDir));
+                localStorage.setItem('ar_store_html', html);
 
                 renderPortals();
                 document.getElementById('upload-modal').classList.add('hidden');
 
-                // Show in main viewer
-                projector.src = URL.createObjectURL(new Blob([htmlString], {type: 'text/html'}));
+                // Show in projector
+                projector.src = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
             };
             tReader.readAsDataURL(tFile);
         };
@@ -144,15 +148,6 @@
         }
     }
 
-    function loadHome() { 
-        projector.src = 'https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html'; 
-    }
-    function clearViewer() { projector.src = ''; }
-    function clearChat() { 
-        localStorage.removeItem('chat_hist'); 
-        document.getElementById('chat-container').innerHTML = ''; 
-    }
-
     function addChatMessage(msg, save = true) {
         const div = document.createElement('div');
         div.textContent = "> " + msg;
@@ -171,13 +166,24 @@
         }
     });
 
+    function loadHome() { 
+        projector.src = 'https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html'; 
+    }
+    function clearViewer() { projector.src = ''; }
+    function clearChat() { 
+        localStorage.removeItem('chat_hist'); 
+        document.getElementById('chat-container').innerHTML = ''; 
+    }
+
     peer.on('open', (id) => {
-        console.log("Peer ID:", id);
+        console.log("Connected with ID:", id);
         renderPortals();
     });
 
     window.onload = () => {
         renderPortals();
+        
+        // Fix counters
         document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
         document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
         
@@ -187,6 +193,10 @@
         } else { 
             loadHome(); 
         }
+        
+        const hist = JSON.parse(localStorage.getItem('chat_hist') || '[]');
+        hist.forEach(m => addChatMessage(m, false));
+
         setTimeout(startBackground, 800);
     };
   </script>
