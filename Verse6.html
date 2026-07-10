@@ -92,6 +92,24 @@
     }
 
     function deployStore() {
+        const isVerified = localStorage.getItem("verified");
+        if (!isVerified) {
+            if (!document.getElementById('kyc-modal')) {
+                const modal = document.createElement('div');
+                modal.id = 'kyc-modal';
+                modal.style.cssText = 'position:fixed; top:20%; left:30%; width:320px; background:#111; padding:20px; border:2px solid #FF007F; z-index:999; color:#fff; border-radius:15px; text-align:center;';
+                modal.innerHTML = `
+                    <h3 style="margin-bottom:15px;">ACTION REQUIRED</h3>
+                    <p style="font-size:12px; margin-bottom:15px;">Top up your banking terminal with a minimum of 10 dollars to start receiving and sending payments instantly.. also do your KYC business registration and you good to go.</p>
+                    <button onclick="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NVPAZWBES9WAS', '_blank')" style="background:#28a745; margin-bottom:10px;">TOP UP ACCOUNT</button>
+                    <button onclick="window.open('https://tiffyai-usd.github.io/KYC/', '_blank')" style="background:#007BFF;">DO KYC REGISTRATION</button>
+                    <button onclick="document.getElementById('kyc-modal').remove()" style="background:#444; margin-top:10px;">CLOSE</button>
+                `;
+                document.body.appendChild(modal);
+            }
+            return;
+        }
+
         const hFile = document.getElementById('html-input').files[0];
         const tFile = document.getElementById('thumb-input').files[0];
         if (!hFile || !tFile) {
@@ -106,17 +124,12 @@
             tReader.onload = (te) => {
                 const thumb = te.target.result;
                 const name = JSON.parse(localStorage.getItem('webstore_pro_draft') || '{"name":"Local Store"}').name || "My Store";
-
                 const storeData = { id: peer.id, name, html, thumb, timestamp: Date.now() };
                 meshDir[peer.id] = storeData;
-
                 localStorage.setItem('MESH_DIR', JSON.stringify(meshDir));
                 localStorage.setItem('ar_store_html', html);
-
                 renderPortals();
                 document.getElementById('upload-modal').classList.add('hidden');
-
-                // Show in projector
                 projector.src = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
             };
             tReader.readAsDataURL(tFile);
@@ -182,8 +195,6 @@
 
     window.onload = () => {
         renderPortals();
-        
-        // Fix counters
         document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
         document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
         
@@ -196,7 +207,6 @@
         
         const hist = JSON.parse(localStorage.getItem('chat_hist') || '[]');
         hist.forEach(m => addChatMessage(m, false));
-
         setTimeout(startBackground, 800);
     };
   </script>
