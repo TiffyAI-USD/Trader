@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #007BFF; --shocking-pink: #FF007F; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: rgba(10, 10, 30, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--electric-blue); border-radius: 16px; padding: 16px; z-index: 100; width: 340px; max-height: 95vh; overflow-y: auto; transition: transform 0.3s; padding-bottom: 50px; }
+    #ui-panel.hidden { transform: translateX(400px); }
+    #toggle-ui { position: fixed; top: 20px; left: 20px; z-index: 101; background: var(--shocking-pink); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-weight: bold; font-family: 'Orbitron'; }
+    #projector-lens { width: 100%; height: 250px; background: #000; border: 1px solid #444; border-radius: 8px; margin: 10px 0; cursor: pointer; }
+    .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 8px 0; color: var(--shocking-pink); }
+    button { background: linear-gradient(45deg, var(--electric-blue), var(--shocking-pink)); border: none; color: #fff; padding: 10px; margin: 4px 0; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
+    #chat-container { height: 140px; overflow-y: auto; background: #000; border: 1px solid #444; padding: 8px; font-size: 11px; margin-bottom: 5px; }
+    #local-video, #remote-video { width: 100%; background: #111; border: 1px solid #444; margin: 5px 0; }
+    #upload-modal { position: fixed; top: 20%; left: 30%; width: 300px; background: #111; padding: 20px; border: 2px solid var(--electric-blue); z-index: 200; color: #fff; border-radius: 15px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">UI</button>
+  
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets>
+        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+      </a-assets>
+      <a-sky src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:10px;">TIFFY MESH TERMINAL</div>
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+    <input type="text" id="search-bar" placeholder="Search Mesh..." style="width:100%; padding:8px; background:#111; color:#fff; border:1px solid #444; border-radius:8px;">
+    <button onclick="searchMesh()">SEARCH MATRIX</button>
+    <iframe id="projector-lens" allow="fullscreen" allowfullscreen="true" onclick="enterFullscreen()"></iframe>
+    
+    <div style="display:flex; gap:5px;">
+        <button onclick="loadHome()" style="background:#666;">HOME</button>
+        <button onclick="clearViewer()" style="background:#c00;">CLEAR</button>
+    </div>
+
+    <button onclick="document.getElementById('upload-modal').classList.remove('hidden')">UPLOAD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/v6.html', '_blank')" style="background: #28a745;">EDIT STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')" style="background: #555;">BANKING</button>
+
+    <div style="margin-top:10px; font-size:10px; color:#aaa;">LIVE VIDEO + CHAT</div>
+    <video id="local-video" autoplay muted playsinline></video>
+    <video id="remote-video" autoplay playsinline></video>
+    <div id="chat-container"></div>
+    <input type="text" id="chat-input" placeholder="Type and Enter..." style="width:100%; padding:8px; background:#111; color:#fff; border:1px solid #666; border-radius:8px;">
+    <button onclick="startVideoCall()" style="background:#0066ff;">📹 START VIDEO</button>
+    <button onclick="stopVideoCall()" style="background:#c00;">⛔ STOP VIDEO</button>
+    <button onclick="clearChat()" style="background:#444; font-size:10px; padding:5px;">CLEAR CHAT</button>
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3>DEPLOY STORE</h3>
+    <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%;">
+    <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%;">
+    <button onclick="deployStore()">CONFIRM DEPLOY</button>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
+  </div>
+
+<script>
+// ==================== INDEXEDDB ====================
+const DB_NAME = "TiffyStoreDB";
+const STORE_NAME = "StoreData";
+
+async function getFromIDB(key) {
+  return new Promise(resolve => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+    request.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result);
+    };
+  });
+}
+
+async function saveToIDB(key, value) {
+  return new Promise(resolve => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).put(value, key);
+      tx.oncomplete = () => resolve(true);
+    };
+  });
+}
+
+// ==================== CORE VARIABLES ====================
+const projector = document.getElementById('projector-lens');
+const arPortal = document.getElementById('ar-portal');
+let meshDir = {};
+let localStream = null;
+
+// ==================== VIDEO CALL ====================
+async function startVideoCall() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('local-video').srcObject = localStream;
+    addChatMessage("📹 Video started", false);
+  } catch(e) {
+    alert("Cannot access camera/microphone");
+  }
+}
+
+function stopVideoCall() {
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  document.getElementById('local-video').srcObject = null;
+  document.getElementById('remote-video').srcObject = null;
+}
+
+// ==================== STORAGE & DEPLOY ====================
+async function deployStore() {
+  const isVerified = localStorage.getItem("verified");
+  if (!isVerified) {
+    alert("Please complete KYC first");
+    return;
+  }
+
+  const hFile = document.getElementById('html-input').files[0];
+  const tFile = document.getElementById('thumb-input').files[0];
+  if (!hFile || !tFile) return alert("Select both files");
+
+  const html = await hFile.text();
+  const thumb = await new Promise(r => {
+    const fr = new FileReader();
+    fr.onload = () => r(fr.result);
+    fr.readAsDataURL(tFile);
+  });
+
+  const name = "My Store";
+  const storeData = { id: Date.now(), name, html, thumb, timestamp: Date.now() };
+  meshDir = storeData;
+
+  await saveToIDB('MESH_DIR', meshDir);
+  localStorage.setItem('ar_store_html', html);
+
+  renderPortals();
+  projector.src = URL.createObjectURL(new Blob( , {type: 'text/html'}));
+  document.getElementById('upload-modal').classList.add('hidden');
+  addChatMessage(`✅ Store "${name}" deployed`, false);
+}
+
+// ==================== OTHER FUNCTIONS ====================
+function renderPortals() {
+  arPortal.innerHTML = '';
+  Object.values(meshDir).forEach((biz, i) => {
+    const el = document.createElement('a-plane');
+    el.setAttribute('position', `${(i*1.5)-1} 0 0`);
+    el.setAttribute('width', '1.2');
+    el.setAttribute('height', '1.2');
+    el.setAttribute('material', `src: url(${biz.thumb}); side: double`);
+    el.addEventListener('click', () => {
+      const blob = new Blob( , {type: 'text/html'});
+      window.open(URL.createObjectURL(blob), '_blank');
+    });
+    arPortal.appendChild(el);
+  });
+}
+
+function searchMesh() {
+  const query = document.getElementById('search-bar').value.toLowerCase().trim();
+  const found = Object.values(meshDir).find(b => b.name.toLowerCase().includes(query));
+  if (found) projector.src = URL.createObjectURL(new Blob( , {type:'text/html'}));
+}
+
+function addChatMessage(msg) {
+  const div = document.createElement('div');
+  div.textContent = "> " + msg;
+  document.getElementById('chat-container').appendChild(div);
+  document.getElementById('chat-container').scrollTop = 9999;
+}
+
+function loadHome() { projector.src = 'https://tiffyai-usd.github.io/Web-Store-App/v6.html'; }
+function clearViewer() { projector.src = ''; }
+function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
+function enterFullscreen() { 
+  const el = document.getElementById('projector-lens');
+  if (el.requestFullscreen) el.requestFullscreen();
+}
+
+// ==================== INIT ====================
+window.onload = async () => {
+  const saved = await getFromIDB('MESH_DIR');
+  if (saved) meshDir = saved;
+  renderPortals();
+
+  const savedHtml = localStorage.getItem('ar_store_html');
+  if (savedHtml) projector.src = URL.createObjectURL(new Blob( , {type: 'text/html'}));
+  else loadHome();
+
+  document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+  document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+};
+</script>
+</body>
+</html>
