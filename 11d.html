@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    body { margin:0; background:#000; color:#fff; font-family:sans-serif; overflow:hidden; }
+    #ui { position:fixed; top:10px; right:10px; background:rgba(10,15,40,0.85); backdrop-filter:blur(12px); border:1px solid #0ff; padding:15px; width:340px; border-radius:12px; z-index:100; }
+    button { width:100%; padding:12px; margin:6px 0; background:#0ff; color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
+    #chat { height:120px; overflow-y:auto; background:#111; padding:8px; margin:10px 0; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <h2 style="text-align:center; color:#0ff;">TIFFY MESH TERMINAL</h2>
+  
+  <button onclick="document.getElementById('upload-modal').classList.remove('hidden')">UPLOAD STORE</button>
+  <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/BusinessBox.html','_blank')">EDIT STORE</button>
+  <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html','_blank')">BANKING</button>
+
+  <div id="chat"></div>
+</div>
+
+<div id="upload-modal" class="hidden" style="position:fixed;top:20%;left:30%;background:#111;padding:20px;border:2px solid #0ff;width:320px;z-index:200;">
+  <h3>DEPLOY STORE</h3>
+  <input type="file" id="thumb" accept="image/*" style="width:100%;margin:8px 0;"><br>
+  <input type="file" id="html" accept=".html" style="width:100%;margin:8px 0;"><br>
+  <button onclick="deployStore()" style="background:#0f0;padding:12px;">CONFIRM & DEPLOY</button>
+  <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
+</div>
+
+<script>
+// IndexedDB
+const DB_NAME = 'TiffyStoreDB';
+const STORE_NAME = 'StoreData';
+
+async function getFromIDB(key) {
+  return new Promise(resolve => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const getReq = tx.objectStore(STORE_NAME).get(key);
+      getReq.onsuccess = () => resolve(getReq.result);
+    };
+  });
+}
+
+async function saveToIDB(key, value) {
+  return new Promise(resolve => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(value, key);
+      tx.oncomplete = () => resolve(true);
+    };
+  });
+}
+
+async function deployStore() {
+  const htmlFile = document.getElementById('html').files[0];
+  const thumbFile = document.getElementById('thumb').files[0];
+  if (!htmlFile || !thumbFile) return alert("Select both files");
+
+  const html = await htmlFile.text();
+  const thumb = await new Promise(r => {
+    const fr = new FileReader();
+    fr.onload = () => r(fr.result);
+    fr.readAsDataURL(thumbFile);
+  });
+
+  const storeData = { id: Date.now(), name: "My Store", html, thumb, timestamp: Date.now() };
+  await saveToIDB('MESH_DIR', storeData);
+  localStorage.setItem('ar_store_html', html);
+
+  alert("Store deployed successfully!");
+  document.getElementById('upload-modal').classList.add('hidden');
+}
+
+window.onload = async () => {
+  console.log("Terminal ready");
+};
+</script>
+</body>
+</html>
