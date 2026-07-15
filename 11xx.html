@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TIFFY Trader • Simple Deploy</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    body { margin:0; padding:0; background:#000; color:#fff; font-family:Arial; }
+    #ui { position:fixed; top:10px; right:10px; background:rgba(0,0,0,0.9); padding:15px; border:2px solid #007BFF; border-radius:10px; z-index:100; width:320px; }
+    button { width:100%; padding:12px; margin:8px 0; background:#007BFF; color:white; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
+    button:hover { background:#00aaff; }
+    button:disabled { background:#555; cursor:wait; }
+    #modal { position:fixed; top:20%; left:35%; background:#111; padding:25px; border:3px solid #007BFF; border-radius:12px; z-index:200; width:320px; display:none; }
+    #status { margin:10px 0; padding:10px; background:#222; border-radius:6px; min-height:20px; }
+  </style>
+</head>
+<body>
+
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui">
+    <h2 style="text-align:center;">TIFFY MESH TERMINAL</h2>
+    <button onclick="document.getElementById('modal').style.display='block'">UPLOAD & DEPLOY STORE</button>
+  </div>
+
+  <!-- DEPLOY MODAL -->
+  <div id="modal">
+    <h3>DEPLOY STORE</h3>
+    <div id="status">Ready</div>
+    
+    <label>Thumbnail Image:</label><br>
+    <input type="file" id="thumb-input" accept="image/*"><br><br>
+    
+    <label>HTML Storefront:</label><br>
+    <input type="file" id="html-input" accept=".html"><br><br>
+
+    <button onclick="deployStore()" id="deployBtn">CONFIRM DEPLOY</button>
+    <button onclick="cancelDeploy()">CANCEL</button>
+  </div>
+
+  <script>
+    let meshDir = JSON.parse(localStorage.getItem('MESH_DIR') || '{}');
+
+    function updateStatus(msg, color = "#0f0") {
+      const status = document.getElementById('status');
+      status.innerHTML = msg;
+      status.style.color = color;
+    }
+
+    function deployStore() {
+      const deployBtn = document.getElementById('deployBtn');
+      deployBtn.disabled = true;
+      updateStatus("Reading files...");
+
+      const thumbFile = document.getElementById('thumb-input').files[0];
+      const htmlFile = document.getElementById('html-input').files[0];
+
+      if (!thumbFile || !htmlFile) {
+        alert("Please select both files");
+        deployBtn.disabled = false;
+        updateStatus("Ready");
+        return;
+      }
+
+      // Read HTML first
+      const htmlReader = new FileReader();
+      htmlReader.onload = function(e) {
+        updateStatus("HTML loaded ✓<br>Reading thumbnail...");
+        const htmlString = e.target.result;
+
+        const thumbReader = new FileReader();
+        thumbReader.onload = function(te) {
+          const thumbData = te.target.result;
+
+          const key = 'store-' + Date.now();
+          
+          meshDir[key] = {
+            name: "My Store",
+            html: htmlString,
+            thumb: thumbData
+          };
+
+          try {
+            localStorage.setItem('MESH_DIR', JSON.stringify(meshDir));
+            updateStatus("✅ DEPLOY SUCCESSFUL!", "#0f0");
+            
+            setTimeout(() => {
+              alert("✅ Store deployed successfully!");
+              renderPortals();
+              document.getElementById('modal').style.display = 'none';
+              deployBtn.disabled = false;
+              updateStatus("Ready");
+            }, 300);
+          } catch (err) {
+            console.error(err);
+            alert("Storage error - file might be too big");
+            deployBtn.disabled = false;
+          }
+        };
+        
+        thumbReader.onerror = () => {
+          alert("Failed to read thumbnail");
+          deployBtn.disabled = false;
+        };
+        thumbReader.readAsDataURL(thumbFile);
+      };
+      
+      htmlReader.onerror = () => {
+        alert("Failed to read HTML file");
+        deployBtn.disabled = false;
+      };
+      htmlReader.readAsText(htmlFile);
+    }
+
+    function cancelDeploy() {
+      document.getElementById('modal').style.display = 'none';
+      document.getElementById('deployBtn').disabled = false;
+      updateStatus("Ready");
+    }
+
+    function renderPortals() {
+      const container = document.getElementById('ar-portal');
+      container.innerHTML = '';
+
+      Object.values(meshDir).forEach((biz, i) => {
+        const plane = document.createElement('a-plane');
+        plane.setAttribute('position', `${(i * 2.2) - 2} 0.8 0`);
+        plane.setAttribute('width', '1.8');
+        plane.setAttribute('height', '1.8');
+        plane.setAttribute('material', {
+          src: biz.thumb,
+          side: 'double',
+          transparent: true,
+          shader: 'flat'
+        });
+        plane.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear');
+
+        plane.addEventListener('click', () => {
+          const blob = new Blob([biz.html], {type: 'text/html'});
+          window.open(URL.createObjectURL(blob), '_blank');
+        });
+
+        container.appendChild(plane);
+      });
+    }
+
+    window.onload = () => {
+      renderPortals();
+    };
+  </script>
+</body>
+</html>
