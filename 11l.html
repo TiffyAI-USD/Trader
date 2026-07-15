@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TIFFY Deploy Test</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    body { font-family: Arial; background:#000; color:#0f0; padding:20px; }
+    button { padding:15px; margin:10px; font-size:16px; }
+    #status { margin:15px 0; padding:10px; background:#111; }
+  </style>
+</head>
+<body>
+
+  <h1>Deploy Debug Version</h1>
+  <button onclick="document.getElementById('modal').style.display='block'">OPEN DEPLOY</button>
+
+  <div id="modal" style="display:none; position:fixed; top:20%; left:30%; background:#222; padding:20px; border:2px solid #0f0; width:400px;">
+    <h2>DEPLOY STORE</h2>
+    <div id="status">KYC: <span id="kyc">NOT VERIFIED</span></div>
+    
+    <input type="file" id="thumb" accept="image/*"><br><br>
+    <input type="file" id="htmlfile" accept=".html"><br><br>
+    
+    <button onclick="verifyKYC()">1. VERIFY KYC</button>
+    <button onclick="tryDeploy()" id="deployBtn" disabled>2. CONFIRM DEPLOY</button>
+    <button onclick="document.getElementById('modal').style.display='none'">Close</button>
+  </div>
+
+  <div id="ar-portal"></div>
+
+  <script>
+    let meshDir = JSON.parse(localStorage.getItem('MESH_DIR') || '{}');
+    let kycVerified = false;
+
+    function verifyKYC() {
+      kycVerified = true;
+      document.getElementById('kyc').innerHTML = "✅ VERIFIED";
+      document.getElementById('deployBtn').disabled = false;
+      console.log("KYC set to true");
+    }
+
+    function tryDeploy() {
+      console.log("=== DEPLOY ATTEMPT START ===");
+      
+      if (!kycVerified) {
+        alert("KYC not verified");
+        return;
+      }
+
+      const thumbFile = document.getElementById('thumb').files[0];
+      const htmlFile = document.getElementById('htmlfile').files[0];
+
+      if (!thumbFile || !htmlFile) {
+        alert("Select both files!");
+        return;
+      }
+
+      console.log("Files selected:", thumbFile.name, htmlFile.name);
+
+      const htmlReader = new FileReader();
+      htmlReader.onload = function(e) {
+        const htmlContent = e.target.result;
+        console.log("HTML read successfully, length:", htmlContent.length);
+
+        const thumbReader = new FileReader();
+        thumbReader.onload = function(te) {
+          const thumbData = te.target.result;
+          console.log("Thumbnail read as DataURL");
+
+          const key = 'test-' + Date.now();
+          meshDir[key] = {
+            name: "Test Store",
+            html: htmlContent,
+            thumb: thumbData
+          };
+
+          localStorage.setItem('MESH_DIR', JSON.stringify(meshDir));
+          console.log("%c✅ SAVED TO LOCALSTORAGE", "color:lime; font-size:16px");
+
+          alert("DEPLOY SUCCESS! Check console and portals below.");
+
+          renderPortals();
+          document.getElementById('modal').style.display = 'none';
+        };
+        thumbReader.readAsDataURL(thumbFile);
+      };
+      htmlReader.readAsText(htmlFile);
+    }
+
+    function renderPortals() {
+      const container = document.getElementById('ar-portal');
+      container.innerHTML = '<h2>Deployed Portals:</h2>';
+
+      Object.values(meshDir).forEach((biz, i) => {
+        const img = document.createElement('img');
+        img.src = biz.thumb;
+        img.style.width = '150px';
+        img.style.border = '2px solid #0f0';
+        img.style.margin = '10px';
+        container.appendChild(img);
+      });
+    }
+
+    // Initial render
+    window.onload = () => {
+      renderPortals();
+      console.log("Page loaded. Current items in meshDir:", Object.keys(meshDir).length);
+    };
+  </script>
+</body>
+</html>
