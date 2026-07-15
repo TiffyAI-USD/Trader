@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TIFFY Storage Cleaner</title>
+  <style>
+    body { background:#000; color:#0f0; font-family:Arial; padding:30px; }
+    button { padding:15px 25px; font-size:18px; margin:10px; background:#007BFF; color:white; border:none; border-radius:8px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <h1>TIFFY Storage Cleaner</h1>
+  <p>This will ONLY clear mesh stores (thumbnails + HTML files)</p>
+  
+  <button onclick="clearMeshOnly()">CLEAR MESH STORES ONLY</button>
+  <button onclick="showStorage()">Show Current Keys</button>
+
+  <div id="log" style="margin-top:20px; background:#111; padding:15px; white-space:pre-wrap;"></div>
+
+  <script>
+    function log(msg) {
+      document.getElementById('log').innerHTML += msg + "\n";
+    }
+
+    function showStorage() {
+      log("=== CURRENT LOCALSTORAGE KEYS ===");
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        log(key);
+      }
+    }
+
+    function clearMeshOnly() {
+      if (!confirm("Delete ONLY mesh stores? (MESH_DIR and ar_store_html)")) return;
+
+      localStorage.removeItem('MESH_DIR');
+      localStorage.removeItem('ar_store_html');
+      
+      log("✅ Cleared: MESH_DIR and ar_store_html");
+      alert("Mesh storage cleared successfully!");
+    }
+  </script>
+</body>
+</html>
