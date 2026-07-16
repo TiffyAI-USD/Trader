@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { 
+      --electric-blue: #00f0ff; 
+      --glass: rgba(6, 10, 35, 0.55); 
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+
+    #ui-panel { 
+      position: fixed; top: 20px; right: 20px; 
+      background: var(--glass); backdrop-filter: blur(24px); 
+      border: 1px solid var(--glass-border); border-radius: 20px; 
+      padding: 18px; z-index: 100; width: 340px; max-height: 92vh; 
+      overflow-y: auto; box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
+    }
+
+    button { 
+      background: rgba(0, 240, 255, 0.18); border: 1px solid var(--glass-border); 
+      color: #fff; padding: 13px; margin: 6px 0; border-radius: 12px; 
+      width: 100%; cursor: pointer; font-weight: bold; transition: all 0.25s;
+    }
+    button:hover { background: rgba(0, 240, 255, 0.4); transform: scale(1.04); }
+
+    #search-suggestions {
+      position: absolute; width: 304px; background: rgba(6, 10, 35, 0.85);
+      backdrop-filter: blur(15px); border: 1px solid var(--electric-blue);
+      border-radius: 0 0 15px 15px; z-index: 200; max-height: 250px;
+      overflow-y: auto; box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+      animation: slideDown 0.3s ease-out forwards;
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .suggestion-item {
+      padding: 12px 15px; cursor: pointer; color: #fff; font-size: 13px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.2); transition: all 0.2s;
+    }
+    .suggestion-item:hover { background: rgba(0, 240, 255, 0.2); color: var(--electric-blue); padding-left: 20px; }
+
+    #projector-lens { width: 100%; height: 235px; background: #000; border: 1px solid var(--glass-border); border-radius: 12px; margin: 12px 0; }
+    #chat-container { height: 135px; overflow-y: auto; background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); padding: 10px; font-size: 12.5px; margin: 10px 0; }
+    #upload-modal { position: fixed; top: 18%; left: 35%; width: 360px; background: rgba(8,10,40,0.95); backdrop-filter: blur(22px); border: 2px solid var(--electric-blue); z-index: 300; color: #fff; border-radius: 18px; padding: 25px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets><video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video></a-assets>
+      <a-sky src="#bg-video" rotation="0 -90 0" animation="property: rotation; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
+    <input type="text" id="search-bar" placeholder="Search Mesh..." style="width:100%; padding:10px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--glass-border); border-radius:10px;">
+    <button onclick="searchMesh()">SEARCH MATRIX</button>
+    <iframe id="projector-lens" allowfullscreen="true"></iframe>
+    <button onclick="startVideoCall()">📹 START VIDEO</button>
+    <div id="chat-container"></div>
+  </div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData';
+  let meshDir = {}, activeCall = null, incomingCall = null, localStream = null;
+  const peer = new Peer();
+
+  // --- MESH & SEARCH ENGINE ---
+  peer.on('connection', (conn) => {
+    conn.on('open', () => conn.send({ type: 'SYNC_DIR', data: meshDir }));
+    conn.on('data', (data) => {
+      if (data.type === 'SYNC_DIR') { Object.assign(meshDir, data.data); renderPortals(); }
+    });
+  });
+
+  const searchBar = document.getElementById('search-bar');
+  const suggestDiv = document.createElement('div');
+  suggestDiv.id = 'search-suggestions';
+  suggestDiv.style.display = 'none';
+  searchBar.parentNode.insertBefore(suggestDiv, searchBar.nextSibling);
+
+  searchBar.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    if (query.length < 2) { suggestDiv.style.display = 'none'; return; }
+    const matches = Object.values(meshDir).filter(b => b.name?.toLowerCase().includes(query));
+    if (matches.length > 0) {
+      suggestDiv.innerHTML = '';
+      matches.forEach(biz => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        item.textContent = biz.name;
+        item.onclick = () => { searchBar.value = biz.name; suggestDiv.style.display = 'none'; searchMesh(); };
+        suggestDiv.appendChild(item);
+      });
+      suggestDiv.style.display = 'block';
+    } else suggestDiv.style.display = 'none';
+  });
+
+  // --- VIDEO ENGINE ---
+  peer.on('call', (call) => {
+    incomingCall = call;
+    alert("Incoming Call!");
+  });
+
+  async function startVideoCall() {
+    if (incomingCall) {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      incomingCall.answer(localStream);
+      incomingCall.on('stream', (remoteStream) => {
+        const overlay = document.createElement('video');
+        overlay.srcObject = remoteStream;
+        overlay.autoplay = true;
+        overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:12px; z-index:10;';
+        document.getElementById('projector-lens').parentElement.appendChild(overlay);
+      });
+    } else alert("No incoming call.");
+  }
+
+  // --- INIT ---
+  window.onload = async () => {
+    const db = await new Promise(r => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+        req.onsuccess = e => r(e.target.result);
+    });
+    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('MESH_DIR');
+    req.onsuccess = () => { meshDir = req.result || {}; renderPortals(); };
+  };
+
+  function renderPortals() { /* ... existing portal logic ... */ }
+  function searchMesh() { /* ... existing search logic ... */ }
+</script>
+</body>
+</html>
