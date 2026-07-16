@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Sovereign Mesh Terminal (Integrated V6)</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.7); --glass-border: rgba(0, 240, 255, 0.5); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: var(--glass); backdrop-filter: blur(25px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px; width: 360px; height: 95vh; overflow-y: auto; z-index: 100; box-shadow: 0 0 40px rgba(0, 240, 255, 0.15); }
+    .node-card { padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(0,240,255,0.2); }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px; }
+    .active { background: #00ff00; }
+    .busy { background: #ff00ff; }
+    button { background: rgba(0, 240, 255, 0.15); border: 1px solid var(--glass-border); color: #fff; padding: 12px; margin: 6px 0; border-radius: 10px; width: 100%; cursor: pointer; }
+    #projector { width: 100%; height: 200px; background: #000; border: 1px solid var(--glass-border); margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div style="position:fixed; top:0; width:100vw; height:100vh;">
+    <a-scene embedded vr-mode-ui="enabled: false">
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-nodes" position="0 1.5 -5"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <h2 style="color:var(--electric-blue); text-align:center; font-family:'Orbitron'; margin-bottom:15px;">MESH TERMINAL</h2>
+    <div id="peer-list"></div>
+    <div id="projector"></div>
+    <button onclick="setStatus('ACTIVE')">SET ACTIVE</button>
+    <button onclick="setStatus('BUSY')" style="background:#ff00ff44;">SET BUSY</button>
+    <button onclick="document.getElementById('upload-modal').classList.remove('hidden')">DEPLOY STORE</button>
+    <div id="chat" style="height:100px; overflow-y:auto; font-size:12px; background:#111; padding:10px; margin-top:10px;"></div>
+  </div>
+
+  <div id="upload-modal" class="hidden" style="position:fixed; top:20%; left:30%; width:400px; background:#050510; padding:20px; border:2px solid var(--electric-blue); border-radius:20px;">
+    <input type="text" id="name-input" placeholder="Store Name" style="width:100%; padding:10px; margin-bottom:10px; background:#000; color:#fff;">
+    <input type="file" id="thumb-input" style="margin-bottom:10px;">
+    <button onclick="commitToMesh()">COMMIT TO MESH</button>
+  </div>
+
+<script>
+  let peer = new Peer(), meshDir = {}, myStatus = 'ACTIVE', db;
+
+  // DB INIT
+  const req = indexedDB.open('TiffyStoreDB', 1);
+  req.onupgradeneeded = e => e.target.result.createObjectStore('StoreData');
+  req.onsuccess = e => { db = e.target.result; loadMesh(); };
+
+  // MESH SIGNALING & PRESENCE
+  peer.on('open', id => {
+    meshDir[id] = { status: myStatus };
+    startHeartbeat();
+  });
+
+  function startHeartbeat() {
+    setInterval(() => {
+      // Sync logic here: PeerJS DataConnection to meshDir broadcast
+      renderNodeUI();
+    }, 5000);
+  }
+
+  function renderNodeUI() {
+    const list = document.getElementById('peer-list');
+    list.innerHTML = '<h3>ACTIVE NODES</h3>';
+    Object.entries(meshDir).forEach(([id, data]) => {
+      const div = document.createElement('div');
+      div.className = 'node-card';
+      div.innerHTML = `<span>${id.substring(0,8)}</span> <span class="status-dot ${data.status.toLowerCase()}"></span>`;
+      div.onclick = () => connect(id);
+      list.appendChild(div);
+    });
+  }
+
+  function connect(targetId) {
+    const conn = peer.connect(targetId);
+    navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(s => {
+      const call = peer.call(targetId, s);
+      call.on('stream', st => {
+        const v = document.createElement('video'); v.autoplay = true; v.srcObject = st; v.style.width = '100%';
+        const p = document.getElementById('projector'); p.innerHTML = ''; p.appendChild(v);
+      });
+    });
+  }
+
+  // STORE DEPLOYMENT
+  async function commitToMesh() {
+    const name = document.getElementById('name-input').value;
+    const thumb = await new Promise(r => { const f = document.getElementById('thumb-input').files[0]; const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+    meshDir[peer.id] = { name, status: myStatus, thumb };
+    db.transaction('StoreData', 'readwrite').objectStore('StoreData').put(meshDir, 'MESH_DIR');
+    renderNodeUI();
+    document.getElementById('upload-modal').classList.add('hidden');
+  }
+
+  function setStatus(s) { myStatus = s; meshDir[peer.id].status = s; renderNodeUI(); }
+  function loadMesh() { db.transaction('StoreData').objectStore('StoreData').get('MESH_DIR').onsuccess = e => { if(e.target.result) { meshDir = e.target.result; renderNodeUI(); } }; }
+</script>
+</body>
+</html>
