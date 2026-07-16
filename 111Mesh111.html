@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.7); }
+    body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--electric-blue); border-radius: 20px; padding: 20px; width: 360px; height: 90vh; overflow-y: auto; z-index: 100; }
+    .node-card { display: flex; justify-content: space-between; padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px; }
+    .active { background: #00ff00; }
+    .busy { background: #ff00ff; }
+    #projector { width: 100%; height: 200px; background: #000; border: 1px solid var(--electric-blue); margin: 10px 0; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<a-scene embedded vr-mode-ui="enabled: false">
+  <a-assets>
+    <video id="bg-vid" autoplay loop muted playsinline crossorigin="anonymous" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+  </a-assets>
+  <a-sky src="#bg-vid" rotation="0 -90 0"></a-sky>
+  <a-camera position="0 1.6 0"></a-camera>
+  <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+</a-scene>
+
+<div id="ui-panel">
+  <h3 style="color:var(--electric-blue); text-align:center;">SOVEREIGN MESH</h3>
+  <div id="peer-list"></div>
+  <div id="projector"></div>
+  <button onclick="setStatus('ACTIVE')">SET ACTIVE</button>
+  <button onclick="setStatus('BUSY')">SET BUSY</button>
+  <button onclick="document.getElementById('upload-modal').classList.remove('hidden')">DEPLOY STORE</button>
+  <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')">BANKING</button>
+</div>
+
+<div id="upload-modal" class="hidden" style="position:fixed; top:20%; left:30%; width:350px; background:#000; border:1px solid #fff; padding:20px; z-index:200;">
+  <input type="text" id="name-in" placeholder="Store Name" style="width:100%; margin-bottom:10px;">
+  <input type="file" id="thumb-in" style="margin-bottom:10px;">
+  <button onclick="commit()">COMMIT TO MESH</button>
+</div>
+
+<script>
+  let peer = new Peer(), meshDir = {}, myStatus = 'ACTIVE', db;
+
+  // Persistence Init
+  const req = indexedDB.open('TiffyStoreDB', 1);
+  req.onupgradeneeded = e => e.target.result.createObjectStore('StoreData');
+  req.onsuccess = e => { db = e.target.result; loadStore(); };
+
+  // Mesh & Presence Logic
+  peer.on('open', id => {
+    meshDir[id] = { status: myStatus };
+    startHeartbeat();
+  });
+
+  function startHeartbeat() {
+    setInterval(() => {
+      // Logic for broadcasting presence
+      renderNodes();
+    }, 3000);
+  }
+
+  function renderNodes() {
+    const list = document.getElementById('peer-list');
+    list.innerHTML = '<h4>LIVE NODES</h4>';
+    Object.entries(meshDir).forEach(([id, data]) => {
+      const div = document.createElement('div');
+      div.className = 'node-card';
+      div.innerHTML = `<span>${id.substring(0,8)}</span> <span class="status-dot ${data.status.toLowerCase()}"></span>`;
+      div.onclick = () => connect(id);
+      list.appendChild(div);
+    });
+  }
+
+  function connect(id) {
+    const conn = peer.connect(id);
+    navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(s => {
+      const call = peer.call(id, s);
+      call.on('stream', st => {
+        const v = document.createElement('video'); v.autoplay = true; v.srcObject = st; v.style.width = '100%';
+        document.getElementById('projector').innerHTML = ''; document.getElementById('projector').appendChild(v);
+      });
+    });
+  }
+
+  function setStatus(s) { 
+    myStatus = s; 
+    if(meshDir[peer.id]) meshDir[peer.id].status = s; 
+    renderNodes(); 
+  }
+
+  async function commit() {
+    const name = document.getElementById('name-in').value;
+    const thumb = await new Promise(r => { const fr = new FileReader(); fr.onload = e => r(e.target.result); fr.readAsDataURL(document.getElementById('thumb-in').files[0]); });
+    meshDir[peer.id] = { name, status: myStatus, thumb };
+    db.transaction('StoreData', 'readwrite').objectStore('StoreData').put(meshDir, 'MESH_DIR');
+    renderNodes();
+  }
+
+  function loadStore() {
+    db.transaction('StoreData').objectStore('StoreData').get('MESH_DIR').onsuccess = e => {
+      if(e.target.result) { meshDir = e.target.result; renderNodes(); }
+    };
+  }
+</script>
+</body>
+</html>
