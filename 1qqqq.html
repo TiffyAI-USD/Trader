@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  
+  <style>
+    :root { 
+        --electric-blue: #00f0ff; 
+        --shocking-pink: #ff00aa; 
+        --bg-panel: rgba(8, 12, 35, 0.45);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    
+    #ui-panel { 
+      position: fixed; top: 15px; right: 15px; 
+      background: var(--bg-panel); 
+      backdrop-filter: blur(20px); 
+      border: 1px solid rgba(0, 240, 255, 0.5); 
+      border-radius: 16px; 
+      padding: 14px; 
+      z-index: 100; 
+      width: 320px; 
+      max-height: 90vh; 
+      overflow-y: auto; 
+    }
+
+    button { 
+      background: rgba(0, 240, 255, 0.25); 
+      border: 1px solid rgba(0, 240, 255, 0.6); 
+      color: #fff; 
+      padding: 11px; 
+      margin: 5px 0; 
+      border-radius: 10px; 
+      width: 100%; 
+      cursor: pointer; 
+      font-weight: bold; 
+      transition: background 0.3s;
+    }
+    button:hover { background: rgba(0, 240, 255, 0.4); }
+
+    #toggle-ui { 
+      position: fixed; top: 15px; left: 15px; z-index: 200; 
+      background: var(--shocking-pink); border: none; 
+      width: 42px; height: 42px; border-radius: 50%; 
+      cursor: pointer; font-size: 20px; 
+    }
+
+    .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 6px 0; color: #ff88cc; font-size: 1.05rem; }
+    
+    #chat-container { height: 150px; overflow-y: auto; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,240,255,0.3); padding: 8px; font-size: 11px; margin: 8px 0; }
+    
+    /* Video Feed */
+    #local-video { width: 100%; background: #000; border: 1px solid rgba(0,240,255,0.4); border-radius: 8px; margin: 5px 0; }
+    
+    .hidden { display: none !important; }
+    
+    #upload-modal { 
+      position: fixed; top: 20%; left: 10%; right: 10%; 
+      background: rgba(0,0,0,0.95); padding: 25px; border: 2px solid var(--electric-blue); 
+      border-radius: 15px; z-index: 1000; color: #fff; text-align: center; 
+    }
+
+    .spinner { 
+      display: inline-block; width: 20px; height: 20px; 
+      border: 3px solid rgba(255,255,255,.3); border-radius: 50%; 
+      border-top-color: var(--electric-blue); 
+      animation: spin 1s ease-in-out infinite; 
+      margin-right: 10px; vertical-align: middle; 
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">☰</button>
+  
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets>
+        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+      </a-assets>
+      <a-sky src="#bg-video" rotation="0 -90 0"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:10px; font-size:1.25rem; color:#00f0ff;">TIFFY MESH TERMINAL</div>
+    
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+
+    <input type="text" id="search-bar" placeholder="Search stores..." style="width:100%; padding:9px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid rgba(0,240,255,0.4); border-radius:8px; margin:8px 0;">
+    <button onclick="searchMesh()">SEARCH MESH</button>
+
+    <iframe id="projector-lens" allow="fullscreen" allowfullscreen="true" style="width:100%; height:210px; border:1px solid rgba(0,240,255,0.4);"></iframe>
+
+    <div style="display:flex; gap:5px;">
+        <button onclick="loadHome()" style="background:rgba(80,80,80,0.6);">HOME</button>
+        <button onclick="clearViewer()" style="background:rgba(200,0,0,0.6);">CLEAR</button>
+    </div>
+
+    <button onclick="document.getElementById('upload-modal').classList.remove('hidden')">UPLOAD STORE</button>
+    
+    <video id="local-video" autoplay playsinline muted></video>
+    <button onclick="startVideoCall()" style="background:rgba(255,0,102,0.7);">📹 START VIDEO</button>
+    <button onclick="stopVideoCall()" style="background:rgba(140,0,0,0.7);">⛔ STOP VIDEO</button>
+
+    <div id="chat-container"></div>
+    <input type="text" id="chat-input" placeholder="Type message..." style="width:100%; padding:9px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid rgba(0,240,255,0.4); border-radius:8px;">
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3>DEPLOY STORE</h3>
+    <input type="text" id="name-input" placeholder="Store Name" style="width:100%; padding:8px; margin:8px 0; background:#000; color:#fff; border:1px solid #555;">
+    <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%; margin:8px 0;">
+    <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%; margin:8px 0;">
+    <button id="deploy-btn" onclick="deployStore()" style="margin-top:12px; padding:14px;">CONFIRM & DEPLOY</button>
+    <div id="deploy-status" style="margin-top:10px; font-size:12px; color:var(--electric-blue);"></div>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')" style="background:none; border:1px solid #555; margin-top:10px;">CANCEL</button>
+  </div>
+
+<script>
+const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData';
+let meshDir = {}, localStream = null;
+
+async function getDB() {
+    return new Promise(r => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+        req.onsuccess = e => r(e.target.result);
+    });
+}
+
+async function deployStore() {
+    const btn = document.getElementById('deploy-btn'), status = document.getElementById('deploy-status');
+    const name = document.getElementById('name-input').value, hFile = document.getElementById('html-input').files[0], tFile = document.getElementById('thumb-input').files[0];
+    if (!name || !hFile || !tFile) return alert("All fields required.");
+    btn.disabled = true; status.innerHTML = '<div class="spinner"></div> Processing...';
+    try {
+        const html = await hFile.text(), thumb = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(tFile); });
+        meshDir['store_' + Date.now()] = { name, html, thumb };
+        const db = await getDB();
+        db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(meshDir, 'MESH_DIR');
+        renderPortals();
+        status.innerHTML = '✅ Deployed!';
+        setTimeout(() => { document.getElementById('upload-modal').classList.add('hidden'); btn.disabled = false; status.innerHTML = ''; }, 1500);
+    } catch(e) { status.innerHTML = '❌ Error.'; btn.disabled = false; }
+}
+
+function renderPortals() {
+    const arPortal = document.getElementById('ar-portal'); arPortal.innerHTML = '';
+    Object.values(meshDir).forEach(biz => {
+        const el = document.createElement('a-plane');
+        el.setAttribute('position', `${(Math.random()*5 - 2.5)} 0.5 -3`);
+        el.setAttribute('material', `src: url(${biz.thumb}); side: double`);
+        el.addEventListener('click', () => window.open(URL.createObjectURL(new Blob([biz.html], {type: 'text/html'})), '_blank'));
+        arPortal.appendChild(el);
+    });
+}
+
+async function startVideoCall() { try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); document.getElementById('local-video').srcObject = localStream; } catch (e) { alert("Camera access denied"); } }
+function stopVideoCall() { if (localStream) localStream.getTracks().forEach(t => t.stop()); document.getElementById('local-video').srcObject = null; }
+
+window.onload = async () => {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('MESH_DIR');
+    tx.onsuccess = () => { meshDir = tx.result || {}; renderPortals(); };
+    document.getElementById('bg-video').play().catch(()=>{});
+};
+</script>
+</body>
+</html>
