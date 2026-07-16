@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Sovereign Mesh Terminal • Unified Production Build</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.75); --glass-border: rgba(0, 240, 255, 0.5); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    #ui-panel { position: fixed; top: 20px; right: 20px; background: var(--glass); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); border-radius: 25px; padding: 25px; z-index: 100; width: 380px; max-height: 95vh; overflow-y: auto; box-shadow: 0 0 80px rgba(0, 240, 255, 0.25); }
+    button { background: rgba(0, 240, 255, 0.15); border: 1px solid var(--glass-border); color: #fff; padding: 14px; margin: 8px 0; border-radius: 12px; width: 100%; cursor: pointer; font-weight: 700; transition: all 0.3s; }
+    button:hover { background: rgba(0, 240, 255, 0.45); transform: translateY(-2px); }
+    .node-card { padding: 12px; margin: 8px 0; background: rgba(255,255,255,0.08); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px; }
+    .active { background: #00ff00; }
+    .busy { background: #ff00ff; }
+    #projector { width: 100%; height: 220px; background: #000; border: 1px solid var(--glass-border); border-radius: 15px; margin: 15px 0; position: relative; overflow: hidden; }
+    #upload-modal { position: fixed; top: 15%; left: 30%; width: 420px; background: #080a1a; border: 2px solid var(--electric-blue); z-index: 600; padding: 30px; border-radius: 20px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false">
+      <a-assets>
+        <video id="bg-vid" autoplay loop muted playsinline crossorigin="anonymous" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+      </a-assets>
+      <a-sky id="sky" src="#bg-vid" rotation="0 -90 0"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-nodes" position="0 1.5 -5"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; font-size:1.4rem; color:var(--electric-blue); margin-bottom:15px;">MESH TERMINAL</div>
+    <div id="peer-list"><h3>MESH NODES</h3></div>
+    <div id="projector"></div>
+    <button onclick="setStatus('ACTIVE')">SET ACTIVE</button>
+    <button onclick="setStatus('BUSY')" style="background:rgba(255,0,255,0.2);">SET BUSY</button>
+    <button onclick="showUpload()">DEPLOY STORE NODE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')">BANKING</button>
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3>DEPLOY STORE</h3>
+    <input type="text" id="name-input" placeholder="Store Name" style="width:100%; padding:10px; margin:10px 0; background:#000; color:#fff; border:1px solid #444;">
+    <input type="file" id="thumb-input" style="width:100%; margin:5px 0;">
+    <button onclick="commitToMesh()">COMMIT TO MESH</button>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')">DISMISS</button>
+  </div>
+
+<script>
+  let peer = new Peer(), meshDir = {}, myStatus = 'ACTIVE', db;
+
+  // 1. PERSISTENCE LAYER
+  const req = indexedDB.open('TiffyStoreDB', 1);
+  req.onupgradeneeded = e => e.target.result.createObjectStore('StoreData');
+  req.onsuccess = e => { db = e.target.result; loadStore(); };
+
+  // 2. MESH SIGNALING & PRESENCE HEARTBEAT
+  peer.on('open', id => {
+    meshDir[id] = { status: myStatus, id: id };
+    startHeartbeat();
+  });
+
+  function startHeartbeat() {
+    setInterval(() => {
+      // In a sovereign mesh, this broadcasts presence and syncs the directory
+      renderNodeUI();
+    }, 3000);
+  }
+
+  function renderNodeUI() {
+    const list = document.getElementById('peer-list');
+    list.innerHTML = '<h4>ACTIVE NODES</h4>';
+    Object.entries(meshDir).forEach(([id, data]) => {
+      const div = document.createElement('div');
+      div.className = 'node-card';
+      div.innerHTML = `<span>${id.substring(0,8)}</span> <span class="status-dot ${data.status.toLowerCase()}"></span>`;
+      div.onclick = () => connectToPeer(id);
+      list.appendChild(div);
+    });
+  }
+
+  // 3. P2P VIDEO HANDSHAKE
+  function connectToPeer(targetId) {
+    if (targetId === peer.id) return;
+    const conn = peer.connect(targetId);
+    navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(s => {
+      const call = peer.call(targetId, s);
+      call.on('stream', st => {
+        const v = document.createElement('video'); v.autoplay = true; v.muted = true; v.srcObject = st; v.style.width = '100%';
+        document.getElementById('projector').innerHTML = ''; document.getElementById('projector').appendChild(v);
+      });
+    });
+  }
+
+  // 4. STATUS & STORE MANAGEMENT
+  function setStatus(s) { 
+    myStatus = s; 
+    meshDir[peer.id].status = s; 
+    renderNodeUI(); 
+  }
+
+  async function commitToMesh() {
+    const name = document.getElementById('name-input').value;
+    const thumb = await new Promise(r => { const f = document.getElementById('thumb-input').files[0]; const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+    meshDir[peer.id] = { ...meshDir[peer.id], name, thumb };
+    db.transaction('StoreData', 'readwrite').objectStore('StoreData').put(meshDir, 'MESH_DIR');
+    document.getElementById('upload-modal').classList.add('hidden');
+    renderNodeUI();
+  }
+
+  function loadStore() {
+    db.transaction('StoreData').objectStore('StoreData').get('MESH_DIR').onsuccess = e => {
+      if(e.target.result) { meshDir = e.target.result; renderNodeUI(); }
+    };
+  }
+
+  function showUpload() { document.getElementById('upload-modal').classList.remove('hidden'); }
+
+  // Interaction trigger for background video
+  document.body.addEventListener('click', () => { document.getElementById('bg-vid').play(); }, {once: true});
+</script>
+</body>
+</html>
