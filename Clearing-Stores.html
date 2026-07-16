@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clear Tiffy Mesh DB - Fixed Version</title>
+  <style>
+    body { background:#000; color:#0ff; font-family:Arial; padding:40px; text-align:center; }
+    button { padding:18px 40px; font-size:18px; background:#ff0088; color:white; border:none; border-radius:12px; cursor:pointer; margin:20px; }
+    #log { margin-top:30px; background:#111; padding:20px; text-align:left; height:320px; overflow:auto; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>CLEAR MESH DATABASE</h1>
+  <p>This tool will wipe all thumbnails and HTML stores from IndexedDB.</p>
+  
+  <button onclick="clearMesh()">🗑️ CLEAR ALL THUMBNAILS & HTML FILES</button>
+  <button onclick="checkNodes()">Check Current Nodes</button>
+
+  <div id="log"></div>
+
+<script>
+  function log(msg) {
+    document.getElementById('log').innerHTML += msg + '\n';
+  }
+
+  function clearMesh() {
+    if (!confirm("Delete ALL thumbnails and HTML files from IndexedDB?\n\nThis cannot be undone.")) return;
+
+    log("Starting cleanup...");
+
+    const names = ;
+
+    names.forEach(name => {
+      const req = indexedDB.deleteDatabase(name);
+      
+      req.onsuccess = () => log(`✅ Deleted database: ${name}`);
+      req.onerror = () => log(`❌ Error deleting ${name}`);
+      req.onblocked = () => log(`⚠️ ${name} is blocked (close other tabs)`);
+    });
+
+    setTimeout(() => {
+      log("\nCleanup finished. Refresh this page and click 'Check Current Nodes' to verify.");
+    }, 800);
+  }
+
+  function checkNodes() {
+    const names = ;
+    let checked = 0;
+
+    log("Checking databases...");
+
+    names.forEach(name => {
+      const request = indexedDB.open(name, 1);
+      request.onsuccess = (e) => {
+        const db = e.target.result;
+        if (db.objectStoreNames.contains("StoreData") || db.objectStoreNames.contains("meshStores")) {
+          log(`Found data in: ${name}`);
+        } else {
+          log(`Database exists but empty: ${name}`);
+        }
+        db.close();
+        checked++;
+        if (checked === names.length) log("\nCheck complete.");
+      };
+      request.onerror = () => {
+        log(`No database found: ${name}`);
+        checked++;
+      };
+    });
+  }
+</script>
+</body>
+</html>
