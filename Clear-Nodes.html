@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clear Tiffy Mesh IndexedDB</title>
+  <style>
+    body { background:#000; color:#0f0; font-family:Arial; padding:40px; text-align:center; }
+    button { padding:20px 40px; font-size:18px; background:#ff0088; color:white; border:none; border-radius:12px; cursor:pointer; margin:20px; }
+  </style>
+</head>
+<body>
+  <h1>TIFFY MESH CLEAR TOOL</h1>
+  <p>This will permanently delete ALL stored stores, thumbnails and HTML files from IndexedDB.</p>
+  <p><strong>LocalStorage balances and other keys will NOT be touched.</strong></p>
+  
+  <button onclick="clearMeshDB()">🗑️ CLEAR ALL MESH NODES (13+)</button>
+  <button onclick="checkDB()">Check Current Nodes</button>
+
+  <div id="log" style="margin-top:30px; background:#111; padding:20px; text-align:left; max-height:400px; overflow:auto; white-space:pre-wrap;"></div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+
+  function log(msg) {
+    document.getElementById('log').innerHTML += msg + "\n";
+  }
+
+  function clearMeshDB() {
+    if (!confirm("⚠️ This will delete ALL deployed stores, thumbnails and HTML files.\n\nAre you sure?")) return;
+
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    
+    request.onsuccess = () => {
+      log("✅ Successfully deleted entire IndexedDB database.");
+      log("Fresh start ready. You can now deploy new nodes.");
+      alert("Mesh database cleared successfully!");
+    };
+
+    request.onerror = () => {
+      log("❌ Error deleting database");
+      alert("Error clearing database");
+    };
+
+    request.onblocked = () => {
+      log("⚠️ Database delete blocked. Close other tabs and try again.");
+    };
+  }
+
+  function checkDB() {
+    const request = indexedDB.open(DB_NAME, 1);
+    
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const getAll = store.getAll();
+
+      getAll.onsuccess = () => {
+        log(`Found ${getAll.result.length} stored nodes:`);
+        getAll.result.forEach(item => {
+          log(`• \( {item.name || item.id} ( \){new Date(item.timestamp).toLocaleString()})`);
+        });
+        if (getAll.result.length === 0) log("No nodes found.");
+        db.close();
+      };
+    };
+
+    request.onerror = () => log("No database found.");
+  }
+</script>
+</body>
+</html>
