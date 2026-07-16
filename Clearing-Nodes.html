@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clear All Mesh Nodes</title>
+  <style>
+    body { background:#000; color:#0ff; font-family:Arial; padding:40px; text-align:center; line-height:1.6; }
+    button { padding:18px 35px; font-size:17px; background:#ff0088; color:white; border:none; border-radius:12px; margin:15px; cursor:pointer; }
+    #log { margin-top:30px; background:#111; padding:20px; text-align:left; height:300px; overflow:auto; }
+  </style>
+</head>
+<body>
+  <h1>CLEAR MESH DATABASE</h1>
+  <p>This will completely wipe all thumbnails and HTML files stored in IndexedDB.<br>
+  <strong>Balances will NOT be touched.</strong></p>
+
+  <button onclick="clearAllNodes()">🗑️ CLEAR ALL NODES NOW</button>
+  <button onclick="checkCurrentNodes()">Check How Many Nodes Exist</button>
+
+  <div id="log"></div>
+
+<script>
+  const DB_NAME = "TiffyStoreDB";
+  const STORE_NAME = "StoreData";
+
+  function log(msg) {
+    document.getElementById("log").innerHTML += msg + "<br>";
+  }
+
+  // This is the one you need
+  function clearAllNodes() {
+    if (!confirm("This will delete ALL thumbnails and HTML files.\n\nAre you sure?")) return;
+
+    const request = indexedDB.deleteDatabase(DB_NAME);
+
+    request.onsuccess = () => {
+      log("✅ Database successfully deleted.");
+      log("All nodes, thumbnails, and HTML files have been wiped.");
+      alert("Mesh completely cleared! You now have a fresh start.");
+    };
+
+    request.onerror = () => log("❌ Error
