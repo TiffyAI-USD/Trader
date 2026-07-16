@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <script>
+    const DB_NAME = 'TiffyStoreDB';
+    const STORE_NAME = 'StoreData';
+    const MESH_KEY = 'MESH_DIR';
+
+    async function clearMeshOnly() {
+      const request = indexedDB.open(DB_NAME, 1);
+      
+      request.onsuccess = (e) => {
+        const db = e.target.result;
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        
+        // This specifically targets the mesh data
+        const deleteRequest = store.delete(MESH_KEY);
+
+        deleteRequest.onsuccess = () => {
+          console.log("Fresh slate: MESH_DIR has been deleted.");
+          alert("Mesh data cleared. Refreshing terminal...");
+          window.location.reload(); // Optional: reload to reset your local meshDir variable
+        };
+
+        deleteRequest.onerror = (err) => {
+          console.error("Error clearing mesh data:", err);
+        };
+      };
+    }
+
+    clearMeshOnly();
+  </script>
+</body>
+</html>
