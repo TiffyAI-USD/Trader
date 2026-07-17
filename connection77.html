@@ -194,44 +194,15 @@
     <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
   </div>
 
-   <script>
+   
+    <script>
   const DB_NAME = 'TiffyStoreDB';
   const STORE_NAME = 'StoreData';
   let meshDir = {};
   let myPeerId = null;
-  const peer = new Peer();
+  const peer = new Peer(); 
   let activePeers = {};
-  
-  // RESTORED: Full state variables for media/calls
-  let activeCall = null;
-  let localStream = null;
-
-  // --- AUTOMATED MESH & PERSISTENCE ---
-  async function saveMeshToDB() {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(meshDir, 'MESH_DIR');
-  }
-
-  function initiateMeshSync() {
-    Object.values(meshDir).forEach(store => {
-      if (store.id !== myPeerId && !activePeers[store.id]) {
-        const conn = peer.connect(store.id);
-        conn.on('open', () => {
-          activePeers[store.id] = store.name;
-          updateOnlineStatus();
-          renderOnlineList();
-        });
-        conn.on('data', handleIncomingData);
-      }
-    });
-  }
-
-  function broadcastPresence() {
-    if (!myPeerId) return;
-    const packet = { type: 'PRESENCE', id: myPeerId, name: meshDir[myPeerId]?.name || 'Guest', dir: meshDir };
-    Object.values(peer.connections).forEach(conns => conns.forEach(c => c.send(packet)));
-  }
+  const myHandle = window.location.pathname.split('/').pop() || "MyStore";
 
   // --- DATABASE ---
   async function getDB() {
@@ -242,60 +213,85 @@
     });
   }
 
+  async function saveMeshToDB(data) {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(data, 'MESH_DIR');
+    return new Promise(r => tx.oncomplete = r);
+  }
+
   // --- KYC & DEPLOY ---
-  function checkKYC() {
-    return !!localStorage.getItem("KYC_Verified_Hash") || !!localStorage.getItem("verified");
-  }
-
-  function showKYCModal() {
-    if (document.getElementById('kyc-modal')) return;
-    const modal = document.createElement('div');
-    modal.id = 'kyc-modal';
-    modal.style.cssText = 'position:fixed; top:20%; left:35%; width:340px; background:rgba(10,10,35,0.98); backdrop-filter:blur(20px); padding:25px; border:2px solid #FF007F; z-index:999; color:#fff; border-radius:16px; text-align:center;';
-    modal.innerHTML = `
-      <h3 style="margin-bottom:15px; color:#ff007f;">ACTION REQUIRED</h3>
-      <p style="font-size:13.5px; line-height:1.5; margin-bottom:20px;">Top up $10 and complete KYC.</p>
-      <button onclick="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NVPAZWBES9WAS', '_blank');" style="background:#28a745; margin:8px 0; padding:14px;">TOP UP</button>
-      <button onclick="window.open('https://tiffyai-usd.github.io/KYC/', '_blank');" style="background:#007BFF; margin:8px 0; padding:14px;">KYC REGISTRATION</button>
-      <button onclick="this.parentElement.remove()" style="background:#444; margin-top:12px;">CLOSE</button>
-    `;
-    document.body.appendChild(modal);
-  }
-
   async function deployStore() {
-    if (!checkKYC()) { showKYCModal(); return; }
-    const name = document.getElementById('name-input').value.trim() || "My Store";
-    const hFile = document.getElementById('html-input').files[0];
-    const tFile = document.getElementById('thumb-input').files[0];
-    if (!hFile || !tFile) return alert("Both files required");
-    try {
-      const html = await hFile.text();
-      const thumb = await new Promise(r => {
-        const fr = new FileReader();
-        fr.onload = () => r(fr.result);
-        fr.readAsDataURL(tFile);
-      });
-      const key = peer.id || 'store-' + Date.now();
-      meshDir[key] = { id: key, name, html, thumb, timestamp: Date.now(), status: "active" };
-      await saveMeshToDB();
-      localStorage.setItem('ar_store_html', html);
-      renderPortals();
-      document.getElementById('projector-lens').src = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
-      document.getElementById('upload-modal').classList.add('hidden');
-      alert(`✅ ${name} deployed successfully!`);
-    } catch (e) { console.error(e); alert("Deploy failed"); }
+    if (!(!!localStorage.getItem("KYC_Verified_Hash") || !!localStorage.getItem("verified"))) {
+      alert("Action Required: Complete KYC & Top Up"); 
+      return;
+    }
+    const name = document.getElementById('name-input')?.value.trim() || myHandle;
+    const fileInput = document.getElementById('html-input');
+    if (!fileInput || !fileInput.files[0]) return;
+    
+    const html = await fileInput.files[0].text();
+    meshDir[peer.id] = { id: peer.id, name, html, timestamp: Date.now() };
+    await saveMeshToDB(meshDir);
+    localStorage.setItem('ar_store_html', html);
+    renderPortals();
+    document.getElementById('upload-modal')?.classList.add('hidden');
   }
 
-  // --- UI RENDERERS ---
+  // --- MESH & GOSSIP PROTOCOL ---
+  function handleIncomingData(data) {
+    if (data.type === 'PRESENCE') {
+      activePeers[data.id] = data.name;
+      let updated = false;
+      Object.keys(data.dir).forEach(k => {
+        if (!meshDir[k]) {
+          meshDir[k] = data.dir[k];
+          updated = true;
+        }
+      });
+      if (updated) {
+        saveMeshToDB(meshDir).then(renderPortals);
+      }
+      renderOnlineList();
+    }
+  }
+
+  function initiateMeshSync() {
+    Object.values(meshDir).forEach(store => {
+      if (store.id !== myPeerId && !activePeers[store.id]) {
+        const conn = peer.connect(store.id);
+        conn.on('open', () => {
+          activePeers[store.id] = store.name;
+          renderOnlineList();
+          conn.send({ type: 'PRESENCE', id: myPeerId, name: myHandle, dir: meshDir });
+        });
+        conn.on('data', handleIncomingData);
+      }
+    });
+  }
+
+  function broadcastPresence() {
+    if (!myPeerId) return;
+    const packet = { type: 'PRESENCE', id: myPeerId, name: myHandle, dir: meshDir };
+    peer.connections && Object.values(peer.connections).forEach(conns => 
+      conns.forEach(c => { if (c.open) c.send(packet); })
+    );
+  }
+
+  // --- UI ---
   function renderPortals() {
     const container = document.getElementById('ar-portal');
     if (!container) return;
     container.innerHTML = '';
     Object.values(meshDir).forEach((biz, i) => {
+      if (!biz.html) return;
       const el = document.createElement('a-plane');
       el.setAttribute('position', `${(i * 1.8) - 1.5} 0.6 -2.5`);
-      el.setAttribute('material', { src: biz.thumb, side: 'double', transparent: true });
-      el.addEventListener('click', () => window.open(URL.createObjectURL(new Blob([biz.html], {type: 'text/html'})), '_blank'));
+      el.setAttribute('material', { side: 'double', transparent: true });
+      el.addEventListener('click', () => {
+        const blob = new Blob([biz.html], {type: 'text/html'});
+        window.open(URL.createObjectURL(blob), '_blank');
+      });
       container.appendChild(el);
     });
   }
@@ -303,114 +299,42 @@
   function renderOnlineList() {
     const list = document.getElementById('online-members-list');
     if (!list) return;
-    list.innerHTML = `<div class="suggestion-item"><span>Me (You)</span><span class="status-dot active"></span></div>`;
+    list.innerHTML = `<div class="suggestion-item"><span>${myHandle} (You)</span><span class="status-dot active"></span></div>`;
     Object.entries(activePeers).forEach(([id, name]) => {
       list.innerHTML += `<div class="suggestion-item"><span>${name}</span><span class="status-dot active"></span></div>`;
     });
   }
 
-  function updateOnlineStatus() {
-    document.querySelectorAll('.suggestion-item').forEach(el => {
-      const id = el.dataset.id;
-      const dot = el.querySelector('.status-dot');
-      if (dot) {
-        const isOnline = (id === myPeerId) || !!activePeers[id];
-        dot.className = `status-dot ${isOnline ? 'active' : 'disconnected'}`;
-      }
-    });
-  }
-
-  // --- SEARCH & CHAT ---
-  const searchBar = document.getElementById('search-bar');
-  const suggestionsBox = document.getElementById('search-suggestions');
-
-  function showSuggestions(matches) {
-    suggestionsBox.innerHTML = '';
-    if (matches.length === 0) { suggestionsBox.style.display = 'none'; return; }
-    matches.forEach(store => {
-      const div = document.createElement('div');
-      div.className = 'suggestion-item';
-      div.dataset.id = store.id;
-      div.innerHTML = `${store.name} <span class="status-dot active"></span>`;
-      div.onclick = () => { searchBar.value = store.name; suggestionsBox.style.display = 'none'; window.open(URL.createObjectURL(new Blob([store.html], {type: 'text/html'})), '_blank'); };
-      suggestionsBox.appendChild(div);
-    });
-    suggestionsBox.style.display = 'block';
-  }
-
-  searchBar.addEventListener('input', () => {
-    const query = searchBar.value.toLowerCase().trim();
-    if (query.length < 1) { suggestionsBox.style.display = 'none'; return; }
-    const matches = Object.values(meshDir).filter(s => s.name && s.name.toLowerCase().includes(query));
-    showSuggestions(matches);
-  });
-
-  function addChatMessage(msg) {
-    const container = document.getElementById('chat-container');
-    const div = document.createElement('div');
-    div.textContent = "> " + msg;
-    container.appendChild(div);
-  }
-
-  // --- MEDIA HANDLERS ---
-  async function startVideoCall() {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-      alert("Camera enabled");
-    } catch (e) { alert("Camera access denied"); }
-  }
-
-  // --- PEER & SYNC HANDLER ---
-  async function handleIncomingData(data) {
-    if(data.type === 'PRESENCE') { 
-        activePeers[data.id] = data.name; 
-        if(data.dir) {
-            Object.assign(meshDir, data.dir);
-            await saveMeshToDB();
-            renderPortals();
-        }
-        renderOnlineList(); 
-        initiateMeshSync();
-    } else {
-        addChatMessage("Peer: " + data);
-    }
-  }
-
+  // --- INIT ---
   peer.on('connection', (c) => {
     c.on('data', handleIncomingData);
+    activePeers[c.peer] = 'Peer'; 
   });
 
-  // --- INITIALIZATION ---
+  peer.on('open', (id) => {
+    myPeerId = id;
+    meshDir[id] = { id: id, name: myHandle };
+    saveMeshToDB(meshDir);
+    renderOnlineList();
+    setInterval(broadcastPresence, 5000);
+    setInterval(initiateMeshSync, 10000);
+  });
+
   window.onload = async () => {
-    const bgVideo = document.getElementById('bg-video');
-    bgVideo.play().catch(() => {});
-    
     const db = await getDB();
-    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('MESH_DIR');
-    req.onsuccess = () => { 
-        meshDir = req.result || {}; 
-        renderPortals(); 
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).get('MESH_DIR');
+    req.onsuccess = () => {
+      meshDir = req.result || {};
+      renderPortals();
     };
-
-    peer.on('open', (id) => { 
-        myPeerId = id; 
-        renderOnlineList(); 
-        setInterval(broadcastPresence, 5000); 
-        setInterval(initiateMeshSync, 10000); 
-    });
-
-    document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
-    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
     
-    const savedHtml = localStorage.getItem('ar_store_html');
-    if (savedHtml) document.getElementById('projector-lens').src = URL.createObjectURL(new Blob([savedHtml], {type: 'text/html'}));
+    const tiffyCounter = document.getElementById('tiffy-counter');
+    if (tiffyCounter) tiffyCounter.textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+    
+    const tusdCounter = document.getElementById('tusd-counter');
+    if (tusdCounter) tusdCounter.textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
   };
-
-  function clearViewer() { document.getElementById('projector-lens').src = ''; }
-  function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
-  function showDeployModal() { document.getElementById('upload-modal').classList.remove('hidden'); }
 </script>
-
-
 </body>
 </html>
