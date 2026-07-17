@@ -1,0 +1,8 @@
+{
+  "store-unique-id-1": {
+    "id": "store-unique-id-1",
+    "name": "Initial Store",
+    "html": "<html>...</html>",
+    "thumb": "data:image/png;base64,..."
+  }
+}
