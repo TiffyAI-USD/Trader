@@ -194,15 +194,57 @@
     <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
   </div>
 
-   
-    <script>
+   <script>
   const DB_NAME = 'TiffyStoreDB';
   const STORE_NAME = 'StoreData';
   let meshDir = {};
   let myPeerId = null;
-  const peer = new Peer(); 
+  const peer = new Peer();
+  let currentConn = null;
   let activePeers = {};
-  const myHandle = window.location.pathname.split('/').pop() || "MyStore";
+
+  // --- MESH DISCOVERY & BRIDGE LOGIC ---
+  function renderOnlineList() {
+    const list = document.getElementById('online-members-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    let myDisplayName = "Me";
+    try {
+        const savedDraft = localStorage.getItem('webstore_pro_draft');
+        if (savedDraft) {
+            const data = JSON.parse(savedDraft);
+            if (data.name && data.name.trim() !== "") {
+                myDisplayName = data.name;
+            }
+        }
+    } catch (e) { console.warn("Could not load business name."); }
+    
+    list.innerHTML += `<div class="suggestion-item"><span>${myDisplayName} (You)</span><span class="status-dot active"></span></div>`;
+    
+    Object.entries(activePeers).forEach(([id, name]) => {
+      list.innerHTML += `<div class="suggestion-item" data-id="${id}"><span>${name}</span><span class="status-dot active"></span></div>`;
+    });
+  }
+
+  function broadcastPresence() {
+    if (!myPeerId) return;
+    const myStore = Object.values(meshDir).find(s => s.id === myPeerId) || { name: "Guest" };
+    const packet = { type: 'PRESENCE', id: myPeerId, name: myStore.name };
+    Object.values(peer.connections).forEach(conns => conns.forEach(c => c.send(packet)));
+    renderOnlineList();
+  }
+
+  function updateOnlineStatus() {
+    document.querySelectorAll('.suggestion-item').forEach(el => {
+      const id = el.dataset.id;
+      const dot = el.querySelector('.status-dot');
+      if (dot) {
+        const isOnline = (id === myPeerId) || !!activePeers[id];
+        dot.className = `status-dot ${isOnline ? 'active' : 'disconnected'}`;
+      }
+    });
+  }
 
   // --- DATABASE ---
   async function getDB() {
@@ -213,47 +255,84 @@
     });
   }
 
-  async function saveMeshToDB(data) {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(data, 'MESH_DIR');
-    return new Promise(r => tx.oncomplete = r);
+  // --- KYC ---
+  function checkKYC() {
+    return !!localStorage.getItem("KYC_Verified_Hash") || !!localStorage.getItem("verified");
   }
 
-  // --- KYC & DEPLOY ---
+  function showKYCModal() {
+    if (document.getElementById('kyc-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'kyc-modal';
+    modal.style.cssText = 'position:fixed; top:20%; left:35%; width:340px; background:rgba(10,10,35,0.98); backdrop-filter:blur(20px); padding:25px; border:2px solid #FF007F; z-index:999; color:#fff; border-radius:16px; text-align:center;';
+    modal.innerHTML = `
+      <h3 style="margin-bottom:15px; color:#ff007f;">ACTION REQUIRED</h3>
+      <p style="font-size:13.5px; line-height:1.5; margin-bottom:20px;">
+        Top up your banking terminal with a minimum of $10.<br><br>
+        Complete your KYC business registration and you good to go.
+      </p>
+      <button onclick="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NVPAZWBES9WAS', '_blank');" style="background:#28a745; margin:8px 0; padding:14px;">TOP UP ACCOUNT</button>
+      <button onclick="window.open('https://tiffyai-usd.github.io/KYC/', '_blank');" style="background:#007BFF; margin:8px 0; padding:14px;">DO KYC REGISTRATION</button>
+      <button onclick="this.parentElement.remove()" style="background:#444; margin-top:12px;">CLOSE</button>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  // --- CORE FUNCTIONS ---
   async function deployStore() {
-    if (!(!!localStorage.getItem("KYC_Verified_Hash") || !!localStorage.getItem("verified"))) {
-      alert("Action Required: Complete KYC & Top Up"); 
-      return;
-    }
-    const name = document.getElementById('name-input')?.value.trim() || myHandle;
-    const fileInput = document.getElementById('html-input');
-    if (!fileInput || !fileInput.files[0]) return;
-    
-    const html = await fileInput.files[0].text();
-    meshDir[peer.id] = { id: peer.id, name, html, timestamp: Date.now() };
-    await saveMeshToDB(meshDir);
-    localStorage.setItem('ar_store_html', html);
-    renderPortals();
-    document.getElementById('upload-modal')?.classList.add('hidden');
+    if (!checkKYC()) { showKYCModal(); return; }
+    const name = document.getElementById('name-input').value.trim() || "My Store";
+    const hFile = document.getElementById('html-input').files[0];
+    const tFile = document.getElementById('thumb-input').files[0];
+    if (!hFile || !tFile) return alert("Both files required");
+    try {
+      const html = await hFile.text();
+      const thumb = await new Promise(r => {
+        const fr = new FileReader();
+        fr.onload = () => r(fr.result);
+        fr.readAsDataURL(tFile);
+      });
+      const key = peer.id || 'store-' + Date.now();
+      meshDir[key] = { id: key, name, html, thumb, timestamp: Date.now(), status: "active" };
+      const db = await getDB();
+      db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(meshDir, 'MESH_DIR');
+      localStorage.setItem('ar_store_html', html);
+      renderPortals();
+      document.getElementById('projector-lens').src = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
+      document.getElementById('upload-modal').classList.add('hidden');
+      alert(`✅ ${name} deployed successfully!`);
+    } catch (e) { console.error(e); alert("Deploy failed"); }
   }
 
-  // --- MESH & GOSSIP PROTOCOL ---
-  function handleIncomingData(data) {
-    if (data.type === 'PRESENCE') {
-      activePeers[data.id] = data.name;
-      let updated = false;
-      Object.keys(data.dir).forEach(k => {
-        if (!meshDir[k]) {
-          meshDir[k] = data.dir[k];
-          updated = true;
-        }
+  function renderPortals() {
+    const container = document.getElementById('ar-portal');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.values(meshDir).forEach((biz, i) => {
+      const el = document.createElement('a-plane');
+      el.setAttribute('position', `${(i * 1.8) - 1.5} 0.6 -2.5`);
+      el.setAttribute('width', '1.5');
+      el.setAttribute('height', '1.5');
+      el.setAttribute('material', { src: biz.thumb, side: 'double', transparent: true });
+      el.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 6500; easing: linear');
+      el.addEventListener('click', () => {
+        window.open(URL.createObjectURL(new Blob([biz.html], {type: 'text/html'})), '_blank');
       });
-      if (updated) {
-        saveMeshToDB(meshDir).then(renderPortals);
-      }
-      renderOnlineList();
+      container.appendChild(el);
+    });
+  }
+
+  // --- PEER & SEARCH ---
+  const searchBar = document.getElementById('search-bar');
+  const suggestionsBox = document.getElementById('search-suggestions');
+
+  function handleIncomingData(data) {
+    if(data.type === 'PRESENCE') { 
+      activePeers[data.id] = data.name; 
+      updateOnlineStatus(); 
+      renderOnlineList(); 
     }
+    else addChatMessage("Peer: " + data);
   }
 
   function initiateMeshSync() {
@@ -263,77 +342,108 @@
         conn.on('open', () => {
           activePeers[store.id] = store.name;
           renderOnlineList();
-          conn.send({ type: 'PRESENCE', id: myPeerId, name: myHandle, dir: meshDir });
+          conn.send({ type: 'PRESENCE', id: myPeerId, name: (Object.values(meshDir).find(s => s.id === myPeerId)?.name || 'Guest') });
         });
         conn.on('data', handleIncomingData);
       }
     });
   }
 
-  function broadcastPresence() {
-    if (!myPeerId) return;
-    const packet = { type: 'PRESENCE', id: myPeerId, name: myHandle, dir: meshDir };
-    peer.connections && Object.values(peer.connections).forEach(conns => 
-      conns.forEach(c => { if (c.open) c.send(packet); })
-    );
+  function connectToPeer(targetId, name) {
+    if (targetId === myPeerId) return alert("You are already connected to yourself");
+    currentConn = peer.connect(targetId);
+    currentConn.on('open', () => {
+      activePeers[targetId] = name;
+      updateOnlineStatus();
+      renderOnlineList();
+      alert(`✅ Connected to ${name}`);
+      currentConn.send({ type: 'PRESENCE', id: myPeerId, name: (Object.values(meshDir).find(s => s.id === myPeerId)?.name || 'Guest') });
+    });
+    currentConn.on('data', handleIncomingData);
   }
 
-  // --- UI ---
-  function renderPortals() {
-    const container = document.getElementById('ar-portal');
-    if (!container) return;
-    container.innerHTML = '';
-    Object.values(meshDir).forEach((biz, i) => {
-      if (!biz.html) return;
-      const el = document.createElement('a-plane');
-      el.setAttribute('position', `${(i * 1.8) - 1.5} 0.6 -2.5`);
-      el.setAttribute('material', { side: 'double', transparent: true });
-      el.addEventListener('click', () => {
-        const blob = new Blob([biz.html], {type: 'text/html'});
-        window.open(URL.createObjectURL(blob), '_blank');
-      });
-      container.appendChild(el);
+  peer.on('connection', (c) => {
+    currentConn = c;
+    currentConn.on('data', handleIncomingData);
+  });
+
+  searchBar.addEventListener('input', () => {
+    const query = searchBar.value.toLowerCase().trim();
+    if (query.length < 1) { suggestionsBox.style.display = 'none'; return; }
+    const matches = Object.values(meshDir).filter(s => s.name && s.name.toLowerCase().includes(query));
+    
+    suggestionsBox.innerHTML = '';
+    matches.forEach(store => {
+      const div = document.createElement('div');
+      div.className = 'suggestion-item';
+      div.innerHTML = `${store.name}`;
+      div.onclick = () => { connectToPeer(store.id, store.name); suggestionsBox.style.display = 'none'; };
+      suggestionsBox.appendChild(div);
     });
+    suggestionsBox.style.display = matches.length ? 'block' : 'none';
+  });
+
+  function searchMesh() {
+    const query = searchBar.value.toLowerCase().trim();
+    const found = Object.values(meshDir).find(b => b.name?.toLowerCase().includes(query));
+    if (found) window.open(URL.createObjectURL(new Blob([found.html], {type: 'text/html'})), '_blank');
+    else alert("Node not found.");
   }
 
-  function renderOnlineList() {
-    const list = document.getElementById('online-members-list');
-    if (!list) return;
-    list.innerHTML = `<div class="suggestion-item"><span>${myHandle} (You)</span><span class="status-dot active"></span></div>`;
-    Object.entries(activePeers).forEach(([id, name]) => {
-      list.innerHTML += `<div class="suggestion-item"><span>${name}</span><span class="status-dot active"></span></div>`;
-    });
+  // --- VIDEO & CHAT ---
+  let localStream = null;
+  async function startVideoCall() {
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); alert("Local camera started"); }
+    catch(e) { alert("Camera access denied"); }
   }
+  function stopVideoCall() { if (localStream) localStream.getTracks().forEach(t => t.stop()); }
+
+  function addChatMessage(msg) {
+    const container = document.getElementById('chat-container');
+    const div = document.createElement('div');
+    div.textContent = "> " + msg;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  document.getElementById('chat-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter' && e.target.value.trim()) {
+      const msg = e.target.value;
+      addChatMessage("You: " + msg);
+      if (currentConn) currentConn.send(msg);
+      e.target.value = '';
+    }
+  });
 
   // --- INIT ---
-  peer.on('connection', (c) => {
-    c.on('data', handleIncomingData);
-    activePeers[c.peer] = 'Peer'; 
-  });
-
-  peer.on('open', (id) => {
-    myPeerId = id;
-    meshDir[id] = { id: id, name: myHandle };
-    saveMeshToDB(meshDir);
-    renderOnlineList();
-    setInterval(broadcastPresence, 5000);
-    setInterval(initiateMeshSync, 10000);
-  });
+  function loadHome() { document.getElementById('projector-lens').src = 'https://tiffyai-usd.github.io/Web-Store-App/v6.html'; }
+  function clearViewer() { document.getElementById('projector-lens').src = ''; }
+  function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
+  function showDeployModal() {
+    document.getElementById('upload-modal').classList.remove('hidden');
+    const statusEl = document.getElementById('kyc-status-text');
+    statusEl.textContent = checkKYC() ? "✅ VERIFIED" : "NOT VERIFIED";
+    statusEl.style.color = checkKYC() ? "#0f0" : "#ff0";
+  }
 
   window.onload = async () => {
+    document.getElementById('bg-video').play().catch(() => {});
+    peer.on('open', (id) => { 
+        myPeerId = id; 
+        setInterval(broadcastPresence, 10000); 
+        initiateMeshSync();
+    });
+    
     const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const req = tx.objectStore(STORE_NAME).get('MESH_DIR');
-    req.onsuccess = () => {
-      meshDir = req.result || {};
-      renderPortals();
-    };
+    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('MESH_DIR');
+    req.onsuccess = () => { meshDir = req.result || {}; renderPortals(); };
     
-    const tiffyCounter = document.getElementById('tiffy-counter');
-    if (tiffyCounter) tiffyCounter.textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+    document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
     
-    const tusdCounter = document.getElementById('tusd-counter');
-    if (tusdCounter) tusdCounter.textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+    const savedHtml = localStorage.getItem('ar_store_html');
+    if (savedHtml) document.getElementById('projector-lens').src = URL.createObjectURL(new Blob([savedHtml], {type: 'text/html'}));
+    else loadHome();
   };
 </script>
 </body>
