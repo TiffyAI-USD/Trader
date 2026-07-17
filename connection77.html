@@ -326,25 +326,37 @@
   const searchBar = document.getElementById('search-bar');
   const suggestionsBox = document.getElementById('search-suggestions');
 
-  function handleIncomingData(data) {
-    if(data.type === 'PRESENCE') { 
-      activePeers[data.id] = data.name; 
-      updateOnlineStatus(); 
-      renderOnlineList(); 
+    // --- PEER & SEARCH FIX ---
+  function handleIncomingData(id, data) {
+    if (data.type === 'REQUEST_DIR') {
+      // Send our full directory to the peer who requested it
+      const conn = peer.connections[id]?.[0];
+      if (conn) conn.send({ type: 'SYNC_DIR', dir: meshDir });
+    }
+    else if (data.type === 'SYNC_DIR') {
+      // Merge received directory and update AR
+      Object.assign(meshDir, data.dir);
+      renderPortals();
+    }
+    else if (data.type === 'PRESENCE') {
+      activePeers[id] = data.name;
+      updateOnlineStatus();
+      renderOnlineList();
     }
     else addChatMessage("Peer: " + data);
   }
 
   function initiateMeshSync() {
     Object.values(meshDir).forEach(store => {
-      if (store.id !== myPeerId && !activePeers[store.id]) {
+      if (store.id !== myPeerId) {
         const conn = peer.connect(store.id);
         conn.on('open', () => {
           activePeers[store.id] = store.name;
           renderOnlineList();
-          conn.send({ type: 'PRESENCE', id: myPeerId, name: (Object.values(meshDir).find(s => s.id === myPeerId)?.name || 'Guest') });
+          // Ask the peer for their directory immediately
+          conn.send({ type: 'REQUEST_DIR' });
         });
-        conn.on('data', handleIncomingData);
+        conn.on('data', (data) => handleIncomingData(conn.peer, data));
       }
     });
   }
@@ -359,12 +371,14 @@
       alert(`✅ Connected to ${name}`);
       currentConn.send({ type: 'PRESENCE', id: myPeerId, name: (Object.values(meshDir).find(s => s.id === myPeerId)?.name || 'Guest') });
     });
-    currentConn.on('data', handleIncomingData);
+    // PASS THE PEER ID HERE
+    currentConn.on('data', (data) => handleIncomingData(currentConn.peer, data));
   }
 
   peer.on('connection', (c) => {
     currentConn = c;
-    currentConn.on('data', handleIncomingData);
+    // PASS THE PEER ID HERE
+    currentConn.on('data', (data) => handleIncomingData(c.peer, data));
   });
 
   searchBar.addEventListener('input', () => {
