@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { 
+      --electric-blue: #00f0ff; 
+      --glass: rgba(6, 10, 35, 0.55); 
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+
+    #ui-panel { 
+      position: fixed; 
+      top: 20px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      background: var(--glass); 
+      backdrop-filter: blur(24px); 
+      border: 1px solid var(--glass-border); 
+      border-radius: 20px; 
+      padding: 18px; 
+      z-index: 100; 
+      width: 340px; 
+      max-height: 92vh; 
+      overflow-y: auto; 
+      box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
+      position: relative;
+    }
+
+    button { 
+      background: rgba(0, 240, 255, 0.18); 
+      border: 1px solid var(--glass-border); 
+      color: #fff; 
+      padding: 13px; 
+      margin: 6px 0; 
+      border-radius: 12px; 
+      width: 100%; 
+      cursor: pointer; 
+      font-weight: bold; 
+      transition: all 0.25s;
+    }
+    button:hover { background: rgba(0, 240, 255, 0.4); transform: scale(1.04); }
+
+    #toggle-ui { 
+      position: fixed; top: 20px; left: 20px; z-index: 101; 
+      background: #ff00aa; border: none; 
+      width: 52px; height: 52px; border-radius: 50%; 
+      cursor: pointer; font-size: 26px; 
+    }
+
+    .stat-row { 
+      font-family: 'Orbitron', sans-serif; 
+      text-align: center; 
+      margin: 12px 0; 
+      color: var(--electric-blue); 
+      font-size: 1.3rem; 
+      text-shadow: 0 0 15px var(--electric-blue);
+    }
+
+    #projector-lens { width: 100%; height: 235px; background: #000; border: 1px solid var(--glass-border); border-radius: 12px; margin: 12px 0; }
+
+    #chat-container { 
+      height: 135px; overflow-y: auto; background: rgba(0,0,0,0.6); 
+      border: 1px solid var(--glass-border); padding: 10px; font-size: 12.5px; margin: 10px 0; 
+    }
+
+    #upload-modal { 
+      position: fixed; top: 18%; left: 35%; width: 360px; 
+      background: rgba(8,10,40,0.95); backdrop-filter: blur(22px); 
+      border: 2px solid var(--electric-blue); 
+      z-index: 300; color: #fff; border-radius: 18px; padding: 25px; 
+    }
+
+    #search-suggestions {
+      position: absolute; 
+      top: 100%; 
+      left: 0; 
+      width: 100%; 
+      background: rgba(6, 10, 35, 0.95);
+      backdrop-filter: blur(18px); 
+      border: 1px solid var(--electric-blue);
+      border-radius: 0 0 15px 15px; 
+      z-index: 250; 
+      max-height: 260px;
+      overflow-y: auto; 
+      box-shadow: 0 10px 30px rgba(0, 240, 255, 0.4);
+    }
+    .suggestion-item { 
+      padding: 12px 15px; 
+      cursor: pointer; 
+      border-bottom: 1px solid rgba(0,240,255,0.2); 
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .suggestion-item:hover { 
+      background: rgba(0, 240, 255, 0.3); 
+      color: var(--electric-blue); 
+    }
+    .status-dot {
+      width: 12px; height: 12px; border-radius: 50%; margin-left: 8px;
+    }
+    .active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+    .busy { background: #ffdd00; box-shadow: 0 0 8px #ffdd00; }
+    .disconnected { background: #888; }
+    .hidden { display: none !important; }
+    
+    #online-members-container {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--glass-border);
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">☰</button>
+  
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets>
+        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous"
+               src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+      </a-assets>
+      <a-sky id="sky" src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel" style="position: relative;">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:12px; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
+    
+    <!-- ONLINE MEMBERS SECTION -->
+    <div id="online-members-container">
+      <div style="font-size: 10px; color: #888; margin-bottom: 5px;">ONLINE MEMBERS</div>
+      <div id="online-members-list"></div>
+    </div>
+    
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+
+    <div style="position: relative; margin-bottom: 8px;">
+      <input type="text" id="search-bar" placeholder="Search Mesh..." style="width:100%; padding:10px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--glass-border); border-radius:10px;">
+      <div id="search-suggestions"></div>
+    </div>
+    
+    <button onclick="searchMesh()">SEARCH MATRIX</button>
+
+    <iframe id="projector-lens" allowfullscreen="true"></iframe>
+
+    <div style="display:flex; gap:8px;">
+      <button onclick="loadHome()">HOME</button>
+      <button onclick="clearViewer()" style="background:rgba(200,0,0,0.4);">CLEAR</button>
+    </div>
+
+    <button onclick="showDeployModal()">UPLOAD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/v6.html', '_blank')">EDIT STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')">BANKING</button>
+
+    <div style="margin-top:15px; font-size:11px; color:#aaa;">LIVE CHAT + VIDEO</div>
+    <div id="chat-container"></div>
+    <input type="text" id="chat-input" placeholder="Type message..." style="width:100%; padding:9px; background:rgba(0,0,0,0.5); border:1px solid var(--glass-border); border-radius:8px;">
+    
+    <div style="display:flex; gap:6px; margin-top:8px;">
+      <button onclick="startVideoCall()" style="flex:1;">📹 START VIDEO</button>
+      <button onclick="stopVideoCall()" style="flex:1; background:rgba(180,0,0,0.5);">⛔ STOP</button>
+    </div>
+    <button onclick="clearChat()" style="background:#333; font-size:11px;">CLEAR CHAT</button>
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3 style="color:var(--electric-blue);">DEPLOY STORE</h3>
+    <div id="kyc-notice" style="padding:12px; background:rgba(0,0,0,0.6); border-radius:10px; margin:12px 0;">
+      KYC: <span id="kyc-status-text" style="color:#ff0;">CHECKING...</span>
+    </div>
+
+    <input type="text" id="name-input" placeholder="Store Name" style="width:100%; padding:10px; margin:8px 0; background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); color:#fff;">
+    <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%; margin:6px 0;">
+    <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%; margin:6px 0;">
+
+    <button onclick="deployStore()" id="deploy-btn">CONFIRM & DEPLOY</button>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
+  </div>
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+  let meshDir = {};
+  let myPeerId = null;
+  const peer = new Peer();
+  let currentConn = null;
+  let activePeers = {};
+
+  // --- MESH DISCOVERY & BRIDGE LOGIC ---
+    function renderOnlineList() {
+    const list = document.getElementById('online-members-list');
+    list.innerHTML = '';
+    
+    // Retrieve business name from the Webstore Pro storage
+    let myDisplayName = "Me";
+    try {
+        const savedDraft = localStorage.getItem('webstore_pro_draft');
+        if (savedDraft) {
+            const data = JSON.parse(savedDraft);
+            if (data.name && data.name.trim() !== "") {
+                myDisplayName = data.name;
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load business name from storage.");
+    }
+    
+    list.innerHTML += `<div class="suggestion-item"><span>${myDisplayName} (You)</span><span class="status-dot active"></span></div>`;
+    
+    Object.entries(activePeers).forEach(([id, name]) => {
+      list.innerHTML += `<div class="suggestion-item"><span>${name}</span><span class="status-dot active"></span></div>`;
+    });
+  }
+
+  function broadcastPresence() {
+    if (!myPeerId) return;
+    const myStore = Object.values(meshDir).find(s => s.id === myPeerId) || { name: "Guest" };
+    const packet = { type: 'PRESENCE', id: myPeerId, name: myStore.name };
+    Object.values(peer.connections).forEach(conns => conns.forEach(c => c.send(packet)));
+    renderOnlineList();
+  }
+
+  function updateOnlineStatus() {
+    document.querySelectorAll('.suggestion-item').forEach(el => {
+      const id = el.dataset.id;
+      const dot = el.querySelector('.status-dot');
+      if (dot) {
+        const isOnline = (id === myPeerId) || !!activePeers[id];
+        dot.className = `status-dot ${isOnline ? 'active' : 'disconnected'}`;
+      }
+    });
+  }
+
+  // --- DATABASE ---
+  async function getDB() {
+    return new Promise(r => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+      req.onsuccess = e => r(e.target.result);
+    });
+  }
+
+  // --- KYC ---
+  function checkKYC() {
+    return !!localStorage.getItem("KYC_Verified_Hash") || !!localStorage.getItem("verified");
+  }
+
+  function showKYCModal() {
+    if (document.getElementById('kyc-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'kyc-modal';
+    modal.style.cssText = 'position:fixed; top:20%; left:35%; width:340px; background:rgba(10,10,35,0.98); backdrop-filter:blur(20px); padding:25px; border:2px solid #FF007F; z-index:999; color:#fff; border-radius:16px; text-align:center;';
+    modal.innerHTML = `
+      <h3 style="margin-bottom:15px; color:#ff007f;">ACTION REQUIRED</h3>
+      <p style="font-size:13.5px; line-height:1.5; margin-bottom:20px;">
+        Top up your banking terminal with a minimum of $10.<br><br>
+        Complete your KYC business registration and you good to go.
+      </p>
+      <button onclick="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NVPAZWBES9WAS', '_blank');" style="background:#28a745; margin:8px 0; padding:14px;">TOP UP ACCOUNT</button>
+      <button onclick="window.open('https://tiffyai-usd.github.io/KYC/', '_blank');" style="background:#007BFF; margin:8px 0; padding:14px;">DO KYC REGISTRATION</button>
+      <button onclick="this.parentElement.remove()" style="background:#444; margin-top:12px;">CLOSE</button>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  // --- CORE FUNCTIONS ---
+  async function deployStore() {
+    if (!checkKYC()) { showKYCModal(); return; }
+    const name = document.getElementById('name-input').value.trim() || "My Store";
+    const hFile = document.getElementById('html-input').files[0];
+    const tFile = document.getElementById('thumb-input').files[0];
+    if (!hFile || !tFile) return alert("Both files required");
+    try {
+      const html = await hFile.text();
+      const thumb = await new Promise(r => {
+        const fr = new FileReader();
+        fr.onload = () => r(fr.result);
+        fr.readAsDataURL(tFile);
+      });
+      const key = peer.id || 'store-' + Date.now();
+      meshDir[key] = { id: key, name, html, thumb, timestamp: Date.now(), status: "active" };
+      const db = await getDB();
+      db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(meshDir, 'MESH_DIR');
+      localStorage.setItem('ar_store_html', html);
+      renderPortals();
+      document.getElementById('projector-lens').src = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
+      document.getElementById('upload-modal').classList.add('hidden');
+      alert(`✅ ${name} deployed successfully!`);
+    } catch (e) { console.error(e); alert("Deploy failed"); }
+  }
+
+  function renderPortals() {
+    const container = document.getElementById('ar-portal');
+    container.innerHTML = '';
+    Object.values(meshDir).forEach((biz, i) => {
+      const el = document.createElement('a-plane');
+      el.setAttribute('position', `${(i * 1.8) - 1.5} 0.6 -2.5`);
+      el.setAttribute('width', '1.5');
+      el.setAttribute('height', '1.5');
+      el.setAttribute('material', { src: biz.thumb, side: 'double', transparent: true });
+      el.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 6500; easing: linear');
+      el.addEventListener('click', () => {
+        window.open(URL.createObjectURL(new Blob([biz.html], {type: 'text/html'})), '_blank');
+      });
+      container.appendChild(el);
+    });
+  }
+
+  const searchBar = document.getElementById('search-bar');
+  const suggestionsBox = document.getElementById('search-suggestions');
+
+  function showSuggestions(matches) {
+    suggestionsBox.innerHTML = '';
+    if (matches.length === 0) { suggestionsBox.style.display = 'none'; return; }
+    matches.forEach(store => {
+      const div = document.createElement('div');
+      div.className = 'suggestion-item';
+      div.dataset.id = store.id;
+      const isOnline = (store.id === myPeerId) || !!activePeers[store.id];
+      div.innerHTML = `${store.name} <span class="status-dot ${isOnline ? 'active' : 'disconnected'}"></span>`;
+      const connectBtn = document.createElement('button');
+      connectBtn.textContent = "Connect";
+      connectBtn.style.cssText = "padding:4px 10px; font-size:11px; margin-left:8px; background:#00ff00; color:#000;";
+      connectBtn.onclick = (e) => { e.stopImmediatePropagation(); connectToPeer(store.id, store.name); };
+      div.appendChild(connectBtn);
+      div.onclick = () => { searchBar.value = store.name; suggestionsBox.style.display = 'none'; window.open(URL.createObjectURL(new Blob([store.html], {type: 'text/html'})), '_blank'); };
+      suggestionsBox.appendChild(div);
+    });
+    suggestionsBox.style.display = 'block';
+  }
+
+  function connectToPeer(targetId, name) {
+    if (targetId === myPeerId) return alert("You are already connected to yourself");
+    currentConn = peer.connect(targetId);
+    currentConn.on('open', () => {
+      activePeers[targetId] = name;
+      updateOnlineStatus();
+      renderOnlineList();
+      alert(`✅ Connected to ${name}`);
+      currentConn.send({ type: 'PRESENCE', id: myPeerId, name: (Object.values(meshDir).find(s => s.id === myPeerId)?.name || 'Guest') });
+    });
+    currentConn.on('data', (data) => {
+      if(data.type === 'PRESENCE') { activePeers[data.id] = data.name; updateOnlineStatus(); renderOnlineList(); }
+      else addChatMessage("Peer: " + data);
+    });
+  }
+
+  peer.on('connection', (c) => {
+    currentConn = c;
+    currentConn.on('data', (data) => {
+      if(data.type === 'PRESENCE') { activePeers[data.id] = data.name; updateOnlineStatus(); renderOnlineList(); }
+      else addChatMessage("Peer: " + data);
+    });
+  });
+
+  searchBar.addEventListener('input', () => {
+    const query = searchBar.value.toLowerCase().trim();
+    if (query.length < 1) { suggestionsBox.style.display = 'none'; return; }
+    const matches = Object.values(meshDir).filter(s => s.name && s.name.toLowerCase().includes(query));
+    showSuggestions(matches);
+  });
+
+  function searchMesh() {
+    const query = searchBar.value.toLowerCase().trim();
+    const found = Object.values(meshDir).find(b => b.name?.toLowerCase().includes(query));
+    if (found) window.open(URL.createObjectURL(new Blob([found.html], {type: 'text/html'})), '_blank');
+    else alert("Node not found.");
+  }
+
+  function showDeployModal() {
+    document.getElementById('upload-modal').classList.remove('hidden');
+    const statusEl = document.getElementById('kyc-status-text');
+    statusEl.textContent = checkKYC() ? "✅ VERIFIED" : "NOT VERIFIED";
+    statusEl.style.color = checkKYC() ? "#0f0" : "#ff0";
+  }
+
+  let localStream = null;
+  async function startVideoCall() {
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); alert("Local camera started"); }
+    catch(e) { alert("Camera access denied"); }
+  }
+  function stopVideoCall() { if (localStream) localStream.getTracks().forEach(t => t.stop()); }
+
+  function addChatMessage(msg) {
+    const container = document.getElementById('chat-container');
+    const div = document.createElement('div');
+    div.textContent = "> " + msg;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  document.getElementById('chat-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter' && e.target.value.trim()) {
+      const msg = e.target.value;
+      addChatMessage("You: " + msg);
+      if (currentConn) currentConn.send(msg);
+      e.target.value = '';
+    }
+  });
+
+  function loadHome() { document.getElementById('projector-lens').src = 'https://tiffyai-usd.github.io/Web-Store-App/v6.html'; }
+  function clearViewer() { document.getElementById('projector-lens').src = ''; }
+  function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
+
+  window.onload = async () => {
+    const bgVideo = document.getElementById('bg-video');
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+  let meshDir = {};
+  let myPeerId = null;
+  const peer = new Peer();
+  let currentConn = null;
+  let activePeers = {};
+  let localStream = null;
+
+  // --- MESH DISCOVERY & BRIDGE LOGIC ---
+  function renderOnlineList() {
+    const list = document.getElementById('online-members-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    let myDisplayName = "Me";
+    try {
+        const savedDraft = localStorage.getItem('webstore_pro_draft');
+        if (savedDraft) {
+            const data = JSON.parse(savedDraft);
+            if (data.name && data.name.trim() !== "") {
+                myDisplayName = data.name;
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load business name from storage.");
+    }
+    
+    list.innerHTML += `<div class="suggestion-item"><span>${myDisplayName} (You)</span><span class="status-dot active"></span></div>`;
+    
+    Object.entries(activePeers).forEach(([id, name]) => {
+      list.innerHTML += `<div class="suggestion-item"><span>${name}</span><span class="status-dot active"></span></div>`;
+    });
+  }
+
+  function broadcastPresence() {
+    if (!myPeerId) return;
+    const myStore = Object.values(meshDir).find(s => s.id === myPeerId) || { name: "Guest" };
+    const packet = { type: 'PRESENCE', id: myPeerId, name: myStore.name };
+    Object.values(peer.connections).forEach(conns => conns.forEach(c => c.send(packet)));
+    renderOnlineList();
+  }
+
+  function updateOnlineStatus() {
+    document.querySelectorAll('.suggestion-item').forEach(el => {
+      const id = el.dataset.id;
+      const dot = el.querySelector('.status-dot');
+      if (dot) {
+        const isOnline = (id === myPeerId) || !!activePeers[id];
+        dot.className = `status-dot ${isOnline ? 'active' : 'disconnected'}`;
+      }
+    });
+  }
+
+  // --- DATABASE ---
+  async function getDB() {
+    return new Promise(r => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+      req.onsuccess = e => r(e.target.result);
+    });
+  }
+
+  // --- KYC ---
+  function checkKYC() {
+    return !!localStorage.getItem("KYC_Verified_Hash") || !!localStorage.getItem("verified");
+  }
+
+  function showKYCModal() {
+    if (document.getElementById('kyc-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'kyc-modal';
+    modal.style.cssText = 'position:fixed; top:20%; left:35%; width:340px; background:rgba(10,10,35,0.98); backdrop-filter:blur(20px); padding:25px; border:2px solid #FF007F; z-index:999; color:#fff; border-radius:16px; text-align:center;';
+    modal.innerHTML = `
+      <h3 style="margin-bottom:15px; color:#ff007f;">ACTION REQUIRED</h3>
+      <p style="font-size:13.5px; line-height:1.5; margin-bottom:20px;">
+        Top up your banking terminal with a minimum of $10.<br><br>
+        Complete your KYC business registration and you good to go.
+      </p>
+      <button onclick="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NVPAZWBES9WAS', '_blank');" style="background:#28a745; margin:8px 0; padding:14px;">TOP UP ACCOUNT</button>
+      <button onclick="window.open('https://tiffyai-usd.github.io/KYC/', '_blank');" style="background:#007BFF; margin:8px 0; padding:14px;">DO KYC REGISTRATION</button>
+      <button onclick="this.parentElement.remove()" style="background:#444; margin-top:12px;">CLOSE</button>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  // --- CORE FUNCTIONS ---
+  async function deployStore() {
+    if (!checkKYC()) { showKYCModal(); return; }
+    const name = document.getElementById('name-input').value.trim() || "My Store";
+    const hFile = document.getElementById('html-input').files[0];
+    const tFile = document.getElementById('thumb-input').files[0];
+    if (!hFile || !tFile) return alert("Both files required");
+    try {
+      const html = await hFile.text();
+      const thumb = await new Promise(r => {
+        const fr = new FileReader();
+        fr.onload = () => r(fr.result);
+        fr.readAsDataURL(tFile);
+      });
+      const key = peer.id || 'store-' + Date.now();
+      
+      // Update meshDir and persist
+      meshDir[key] = { id: key, name, html, thumb, timestamp: Date.now(), status: "active" };
+      const db = await getDB();
+      db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(meshDir, 'MESH_DIR');
+      
+      localStorage.setItem('ar_store_html', html);
+      renderPortals();
+      document.getElementById('projector-lens').src = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
+      document.getElementById('upload-modal').classList.add('hidden');
+      alert(`✅ ${name} deployed successfully!`);
+    } catch (e) { console.error(e); alert("Deploy failed"); }
+  }
+
+  function renderPortals() {
+    const container = document.getElementById('ar-portal');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.values(meshDir).forEach((biz, i) => {
+      const el = document.createElement('a-plane');
+      el.setAttribute('position', `${(i * 1.8) - 1.5} 0.6 -2.5`);
+      el.setAttribute('width', '1.5');
+      el.setAttribute('height', '1.5');
+      el.setAttribute('material', { src: biz.thumb, side: 'double', transparent: true });
+      el.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 6500; easing: linear');
+      el.addEventListener('click', () => {
+        window.open(URL.createObjectURL(new Blob([biz.html], {type: 'text/html'})), '_blank');
+      });
+      container.appendChild(el);
+    });
+  }
+
+  const searchBar = document.getElementById('search-bar');
+  const suggestionsBox = document.getElementById('search-suggestions');
+
+  function showSuggestions(matches) {
+    suggestionsBox.innerHTML = '';
+    if (matches.length === 0) { suggestionsBox.style.display = 'none'; return; }
+    matches.forEach(store => {
+      const div = document.createElement('div');
+      div.className = 'suggestion-item';
+      div.dataset.id = store.id;
+      const isOnline = (store.id === myPeerId) || !!activePeers[store.id];
+      div.innerHTML = `${store.name} <span class="status-dot ${isOnline ? 'active' : 'disconnected'}"></span>`;
+      const connectBtn = document.createElement('button');
+      connectBtn.textContent = "Connect";
+      connectBtn.style.cssText = "padding:4px 10px; font-size:11px; margin-left:8px; background:#00ff00; color:#000;";
+      connectBtn.onclick = (e) => { e.stopImmediatePropagation(); connectToPeer(store.id, store.name); };
+      div.appendChild(connectBtn);
+      div.onclick = () => { searchBar.value = store.name; suggestionsBox.style.display = 'none'; window.open(URL.createObjectURL(new Blob([store.html], {type: 'text/html'})), '_blank'); };
+      suggestionsBox.appendChild(div);
+    });
+    suggestionsBox.style.display = 'block';
+  }
+
+  function connectToPeer(targetId, name) {
+    if (targetId === myPeerId) return alert("You are already connected to yourself");
+    currentConn = peer.connect(targetId);
+    currentConn.on('open', () => {
+      activePeers[targetId] = name;
+      updateOnlineStatus();
+      renderOnlineList();
+      alert(`✅ Connected to ${name}`);
+      currentConn.send({ type: 'PRESENCE', id: myPeerId, name: (Object.values(meshDir).find(s => s.id === myPeerId)?.name || 'Guest') });
+    });
+    currentConn.on('data', (data) => {
+      if(data.type === 'PRESENCE') { activePeers[data.id] = data.name; updateOnlineStatus(); renderOnlineList(); }
+      else addChatMessage("Peer: " + data);
+    });
+  }
+
+  peer.on('connection', (c) => {
+    currentConn = c;
+    currentConn.on('data', (data) => {
+      if(data.type === 'PRESENCE') { activePeers[data.id] = data.name; updateOnlineStatus(); renderOnlineList(); }
+      else addChatMessage("Peer: " + data);
+    });
+  });
+
+  searchBar.addEventListener('input', () => {
+    const query = searchBar.value.toLowerCase().trim();
+    if (query.length < 1) { suggestionsBox.style.display = 'none'; return; }
+    const matches = Object.values(meshDir).filter(s => s.name && s.name.toLowerCase().includes(query));
+    showSuggestions(matches);
+  });
+
+  function searchMesh() {
+    const query = searchBar.value.toLowerCase().trim();
+    const found = Object.values(meshDir).find(b => b.name?.toLowerCase().includes(query));
+    if (found) window.open(URL.createObjectURL(new Blob([found.html], {type: 'text/html'})), '_blank');
+    else alert("Node not found.");
+  }
+
+  function showDeployModal() {
+    document.getElementById('upload-modal').classList.remove('hidden');
+    const statusEl = document.getElementById('kyc-status-text');
+    statusEl.textContent = checkKYC() ? "✅ VERIFIED" : "NOT VERIFIED";
+    statusEl.style.color = checkKYC() ? "#0f0" : "#ff0";
+  }
+
+  async function startVideoCall() {
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); alert("Local camera started"); }
+    catch(e) { alert("Camera access denied"); }
+  }
+  function stopVideoCall() { if (localStream) localStream.getTracks().forEach(t => t.stop()); }
+
+  function addChatMessage(msg) {
+    const container = document.getElementById('chat-container');
+    const div = document.createElement('div');
+    div.textContent = "> " + msg;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  document.getElementById('chat-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter' && e.target.value.trim()) {
+      const msg = e.target.value;
+      addChatMessage("You: " + msg);
+      if (currentConn) currentConn.send(msg);
+      e.target.value = '';
+    }
+  });
+
+  function loadHome() { document.getElementById('projector-lens').src = 'https://tiffyai-usd.github.io/Web-Store-App/v6.html'; }
+  function clearViewer() { document.getElementById('projector-lens').src = ''; }
+  function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
+
+  window.onload = async () => {
+    const bgVideo = document.getElementById('bg-video');
+    bgVideo.play().catch(() => {});
+    peer.on('open', (id) => { myPeerId = id; setInterval(broadcastPresence, 10000); });
+    
+    // Database init and state restoration
+    const db = await getDB();
+    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('MESH_DIR');
+    req.onsuccess = () => { 
+        meshDir = req.result || {}; 
+        renderPortals(); 
+    };
+
+    // Original balance display logic
+    document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+    
+    const savedHtml = localStorage.getItem('ar_store_html');
+    if (savedHtml) document.getElementById('projector-lens').src = URL.createObjectURL(new Blob([savedHtml], {type: 'text/html'}));
+    else loadHome();
+  };
+</script>
+</body>
+</html>
