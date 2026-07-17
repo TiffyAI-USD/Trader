@@ -194,15 +194,16 @@
     <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
   </div>
 
-   
-  <script>
+   <script>
   const DB_NAME = 'TiffyStoreDB';
   const STORE_NAME = 'StoreData';
   let meshDir = {};
   let myPeerId = null;
   const peer = new Peer();
-  let currentConn = null;
   let activePeers = {};
+  
+  // RESTORED: Full state variables for media/calls
+  let activeCall = null;
   let localStream = null;
 
   // --- AUTOMATED MESH & PERSISTENCE ---
@@ -212,7 +213,6 @@
     tx.objectStore(STORE_NAME).put(meshDir, 'MESH_DIR');
   }
 
-  // AGGRESSIVE HEARTBEAT: Auto-connects to every store in meshDir
   function initiateMeshSync() {
     Object.values(meshDir).forEach(store => {
       if (store.id !== myPeerId && !activePeers[store.id]) {
@@ -352,6 +352,14 @@
     container.appendChild(div);
   }
 
+  // --- MEDIA HANDLERS ---
+  async function startVideoCall() {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+      alert("Camera enabled");
+    } catch (e) { alert("Camera access denied"); }
+  }
+
   // --- PEER & SYNC HANDLER ---
   async function handleIncomingData(data) {
     if(data.type === 'PRESENCE') { 
@@ -386,6 +394,7 @@
 
     peer.on('open', (id) => { 
         myPeerId = id; 
+        renderOnlineList(); 
         setInterval(broadcastPresence, 5000); 
         setInterval(initiateMeshSync, 10000); 
     });
@@ -397,12 +406,11 @@
     if (savedHtml) document.getElementById('projector-lens').src = URL.createObjectURL(new Blob([savedHtml], {type: 'text/html'}));
   };
 
-  // Helper functions kept for UI
-  function startVideoCall() { alert("Camera system initialized"); }
   function clearViewer() { document.getElementById('projector-lens').src = ''; }
   function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
   function showDeployModal() { document.getElementById('upload-modal').classList.remove('hidden'); }
 </script>
+
 
 </body>
 </html>
