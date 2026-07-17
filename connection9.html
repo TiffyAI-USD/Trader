@@ -203,11 +203,26 @@
   let activePeers = {};
 
   // --- MESH DISCOVERY & BRIDGE LOGIC ---
-  function renderOnlineList() {
+    function renderOnlineList() {
     const list = document.getElementById('online-members-list');
     list.innerHTML = '';
-    const myName = Object.values(meshDir).find(s => s.id === myPeerId)?.name || "Me";
-    list.innerHTML += `<div class="suggestion-item"><span>${myName} (You)</span><span class="status-dot active"></span></div>`;
+    
+    // Retrieve business name from the Webstore Pro storage
+    let myDisplayName = "Me";
+    try {
+        const savedDraft = localStorage.getItem('webstore_pro_draft');
+        if (savedDraft) {
+            const data = JSON.parse(savedDraft);
+            if (data.name && data.name.trim() !== "") {
+                myDisplayName = data.name;
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load business name from storage.");
+    }
+    
+    list.innerHTML += `<div class="suggestion-item"><span>${myDisplayName} (You)</span><span class="status-dot active"></span></div>`;
+    
     Object.entries(activePeers).forEach(([id, name]) => {
       list.innerHTML += `<div class="suggestion-item"><span>${name}</span><span class="status-dot active"></span></div>`;
     });
