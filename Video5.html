@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.55); }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #ui-panel { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--glass); backdrop-filter: blur(24px); border: 1px solid var(--electric-blue); padding: 18px; z-index: 100; width: 340px; border-radius: 20px; }
+    button { background: rgba(0, 240, 255, 0.18); border: 1px solid var(--electric-blue); color: #fff; padding: 10px; width: 100%; cursor: pointer; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+
+<div id="scene-container">
+  <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
+    <a-assets>
+      <video id="bg-video" autoplay loop muted playsinline src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+      <video id="remote-video-stream" autoplay playsinline></video>
+    </a-assets>
+    <a-sky src="#bg-video" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+    <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    <a-video id="ar-caller-video" width="2" height="1.5" position="0 1.5 -2" src="#remote-video-stream" visible="false"></a-video>
+  </a-scene>
+</div>
+
+<div id="ui-panel">
+  <div style="text-align:center; color:var(--electric-blue);">MESH TERMINAL</div>
+  <div id="online-members-list" style="font-size:10px;"></div>
+  <button onclick="startVideoCall()">📹 CALL SELECTED</button>
+</div>
+
+<script>
+  const peer = new Peer();
+  let meshDir = {}, myPeerId = null, currentCall = null;
+  let activeConnections = {};
+
+  // 1. Peer Lifecycle & Auto-Discovery
+  peer.on('open', (id) => {
+    myPeerId = id;
+    console.log("My Peer ID:", id);
+    // Add logic here to connect to known bootstrap nodes if needed
+  });
+
+  // 2. Incoming Connections (Receiving the Mesh)
+  peer.on('connection', (conn) => {
+    conn.on('data', (data) => handleIncomingData(conn.peer, data));
+    conn.on('open', () => conn.send({ type: 'SYNC', dir: meshDir }));
+  });
+
+  function handleIncomingData(fromId, data) {
+    if (data.type === 'SYNC') {
+      Object.assign(meshDir, data.dir);
+      renderPortals();
+    }
+  }
+
+  // 3. Video Call Lifecycle
+  peer.on('call', async (call) => {
+    const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+    call.answer(stream);
+    setupCallListeners(call);
+  });
+
+  async function startVideoCall() {
+    // You must have clicked a portal to set currentTargetStore
+    const target = Object.values(meshDir).find(s => s.name === localStorage.getItem('last_target_name'));
+    if (!target) return alert("Select a store portal in the 3D space first!");
+    
+    const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+    setupCallListeners(peer.call(target.id, stream));
+  }
+
+  function setupCallListeners(call) {
+    currentCall = call;
+    call.on('stream', (stream) => {
+      document.getElementById('remote-video-stream').srcObject = stream;
+      document.getElementById('ar-caller-video').setAttribute('visible', 'true');
+    });
+    call.on('close', () => {
+      document.getElementById('ar-caller-video').setAttribute('visible', 'false');
+    });
+  }
+
+  // 4. Portal Rendering
+  function renderPortals() {
+    const container = document.getElementById('ar-portal');
+    container.innerHTML = '';
+    Object.values(meshDir).forEach((biz, i) => {
+      const el = document.createElement('a-plane');
+      el.setAttribute('position', `${(i * 1.8) - 1.5} 0 0`);
+      el.setAttribute('material', 'color: cyan');
+      el.addEventListener('click', () => {
+        localStorage.setItem('last_target_name', biz.name);
+        alert("Selected: " + biz.name);
+      });
+      container.appendChild(el);
+    });
+  }
+</script>
+</body>
+</html>
