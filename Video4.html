@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.55); --glass-border: rgba(0, 240, 255, 0.45); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    #ui-panel { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--glass); backdrop-filter: blur(24px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px; z-index: 100; width: 340px; max-height: 92vh; overflow-y: auto; box-shadow: 0 0 50px rgba(0, 240, 255, 0.2); }
+    button { background: rgba(0, 240, 255, 0.18); border: 1px solid var(--glass-border); color: #fff; padding: 13px; margin: 6px 0; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; transition: all 0.25s; }
+    button:hover { background: rgba(0, 240, 255, 0.4); transform: scale(1.04); }
+    #toggle-ui { position: fixed; top: 20px; left: 20px; z-index: 101; background: #ff00aa; border: none; width: 52px; height: 52px; border-radius: 50%; cursor: pointer; font-size: 26px; }
+    .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 12px 0; color: var(--electric-blue); font-size: 1.3rem; text-shadow: 0 0 15px var(--electric-blue); }
+    #projector-lens { width: 100%; height: 235px; background: #000; border: 1px solid var(--glass-border); border-radius: 12px; margin: 12px 0; }
+    #chat-container { height: 135px; overflow-y: scroll; background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); padding: 10px; font-size: 12.5px; margin: 10px 0; color: #fff; display: flex; flex-direction: column; }
+    #chat-input { width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; }
+    #upload-modal { position: fixed; top: 18%; left: 35%; width: 360px; background: rgba(8,10,40,0.95); backdrop-filter: blur(22px); border: 2px solid var(--electric-blue); z-index: 300; color: #fff; border-radius: 18px; padding: 25px; }
+    .star { cursor: pointer; font-size: 1.2rem; margin: 0 2px; color: #555; }
+    .star.filled { color: #ff0; }
+    .suggestion-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid rgba(0,240,255,0.2); display: flex; justify-content: space-between; align-items: center; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">☰</button>
+  
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets>
+        <video id="bg-video" autoplay loop muted playsinline src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+        <video id="remote-video-stream" autoplay playsinline></video>
+      </a-assets>
+      <a-sky src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+      <a-video id="ar-caller-video" width="2" height="1.5" position="0 1.5 -2" src="#remote-video-stream" visible="false"></a-video>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:12px; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
+    <div id="online-members-list"></div>
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <input type="text" id="search-bar" placeholder="Search Mesh..." style="width:100%; padding:10px; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); color:#fff; border-radius:10px;">
+    <button onclick="searchMesh()">SEARCH MATRIX</button>
+    <iframe id="projector-lens"></iframe>
+    <div id="chat-container"></div>
+    <div id="star-rating-area" style="text-align:center; margin:5px 0;"></div>
+    <input type="text" id="chat-input" placeholder="Type review/message...">
+    <div style="display:flex; gap:6px; margin-top:8px;">
+      <button onclick="startVideoCall()" style="flex:1;">📹 CALL</button>
+      <button onclick="stopVideoCall()" style="flex:1; background:rgba(180,0,0,0.5);">⛔ STOP</button>
+    </div>
+  </div>
+
+<script>
+  const peer = new Peer();
+  let meshDir = {}, myPeerId = null, currentCall = null, localStream = null, currentTargetStore = localStorage.getItem('last_target_name');
+
+  // Initialization & Peer Logic
+  peer.on('open', (id) => { myPeerId = id; });
+  
+  peer.on('call', async (call) => {
+    const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+    call.answer(stream);
+    setupCallListeners(call);
+  });
+
+  function setupCallListeners(call) {
+    currentCall = call;
+    call.on('stream', (stream) => {
+      document.getElementById('remote-video-stream').srcObject = stream;
+      document.getElementById('ar-caller-video').setAttribute('visible', 'true');
+    });
+    call.on('close', () => {
+      document.getElementById('ar-caller-video').setAttribute('visible', 'false');
+      currentCall = null;
+    });
+  }
+
+  async function startVideoCall() {
+    if (currentCall) return;
+    const target = Object.values(meshDir).find(s => s.name === currentTargetStore);
+    if (!target) return alert("Select a store first");
+    localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+    setupCallListeners(peer.call(target.id, localStream));
+  }
+
+  function stopVideoCall() {
+    if (currentCall) currentCall.close();
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+  }
+
+  // Chat & Review Logic
+  document.getElementById('chat-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && e.target.value.trim()) {
+      const msg = e.target.value;
+      const biz = Object.values(meshDir).find(b => b.name === currentTargetStore);
+      if(biz) { biz.reviews.push({ msg }); renderReviews(currentTargetStore); }
+      e.target.value = '';
+    }
+  });
+
+  // Star Rating Logic
+  const starArea = document.getElementById('star-rating-area');
+  for(let i=1; i<=5; i++) {
+    const s = document.createElement('span');
+    s.innerHTML = '★'; s.className = 'star';
+    s.onclick = () => {
+      document.querySelectorAll('.star').forEach((el, idx) => el.className = idx < i ? 'star filled' : 'star');
+    };
+    starArea.appendChild(s);
+  }
+
+  function renderReviews(storeName) {
+    currentTargetStore = storeName;
+    const biz = Object.values(meshDir).find(b => b.name === storeName);
+    if (!biz) return;
+    const container = document.getElementById('chat-container');
+    container.innerHTML = `<div style="color:var(--electric-blue);">REVIEWS: ${biz.name}</div>`;
+    biz.reviews.forEach(r => container.innerHTML += `<div style="font-size:11px;">> ${r.msg}</div>`);
+  }
+
+  function searchMesh() {
+    const query = document.getElementById('search-bar').value.toLowerCase();
+    const found = Object.values(meshDir).find(b => b.name?.toLowerCase().includes(query));
+    if (found) renderReviews(found.name);
+  }
+</script>
+</body>
+</html>
