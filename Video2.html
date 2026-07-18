@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.55); --glass-border: rgba(0, 240, 255, 0.45); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    
+    /* Video Overlay */
+    #video-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+    #video-wrapper { position: relative; width: 80%; height: 70%; }
+    #remote-video { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; border: 1px solid var(--electric-blue); }
+    #local-video { position: absolute; top: 10px; right: 10px; width: 25%; height: 25%; object-fit: cover; border-radius: 8px; border: 1px solid #fff; }
+    .call-controls { margin-top: 20px; display: flex; gap: 10px; }
+
+    #ui-panel { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--glass); backdrop-filter: blur(24px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px; z-index: 100; width: 340px; max-height: 92vh; overflow-y: auto; box-shadow: 0 0 50px rgba(0, 240, 255, 0.2); }
+    button { background: rgba(0, 240, 255, 0.18); border: 1px solid var(--glass-border); color: #fff; padding: 13px; margin: 6px 0; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; transition: all 0.25s; }
+    button:hover { background: rgba(0, 240, 255, 0.4); transform: scale(1.04); }
+    #toggle-ui { position: fixed; top: 20px; left: 20px; z-index: 101; background: #ff00aa; border: none; width: 52px; height: 52px; border-radius: 50%; cursor: pointer; font-size: 26px; }
+    .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 12px 0; color: var(--electric-blue); font-size: 1.3rem; text-shadow: 0 0 15px var(--electric-blue); }
+    #projector-lens { width: 100%; height: 235px; background: #000; border: 1px solid var(--glass-border); border-radius: 12px; margin: 12px 0; }
+    #chat-container { height: 135px; overflow-y: scroll; background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); padding: 10px; font-size: 12.5px; margin: 10px 0; color: #fff; display: flex; flex-direction: column; }
+    #chat-input { width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; }
+    #upload-modal { position: fixed; top: 18%; left: 35%; width: 360px; background: rgba(8,10,40,0.95); backdrop-filter: blur(22px); border: 2px solid var(--electric-blue); z-index: 300; color: #fff; border-radius: 18px; padding: 25px; }
+    .star-rating { cursor: pointer; color: #555; font-size: 1.5rem; transition: color 0.2s; }
+    .star-rating.filled { color: #ff0; }
+    #search-suggestions { position: absolute; top: 100%; left: 0; width: 100%; background: rgba(6, 10, 35, 0.95); backdrop-filter: blur(18px); border: 1px solid var(--electric-blue); border-radius: 0 0 15px 15px; z-index: 250; max-height: 260px; overflow-y: auto; }
+    .suggestion-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid rgba(0,240,255,0.2); display: flex; justify-content: space-between; align-items: center; }
+    .suggestion-item:hover { background: rgba(0, 240, 255, 0.3); color: var(--electric-blue); }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; margin-left: 8px; }
+    .active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+    .disconnected { background: #888; }
+    .hidden { display: none !important; }
+    #online-members-container { background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">☰</button>
+
+  <div id="video-overlay">
+    <div id="video-wrapper">
+      <video id="remote-video" autoplay playsinline></video>
+      <video id="local-video" autoplay playsinline muted></video>
+    </div>
+    <div class="call-controls">
+      <button onclick="stopVideoCall()" style="background:rgba(200,0,0,0.8);">HANG UP</button>
+    </div>
+  </div>
+  
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets>
+        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+      </a-assets>
+      <a-sky id="sky" src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity id="ar-portal" position="0 1.5 -3"></a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:12px; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
+    <div id="online-members-container">
+      <div style="font-size: 10px; color: #888; margin-bottom: 5px;">ONLINE MEMBERS</div>
+      <div id="online-members-list"></div>
+    </div>
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+    <div style="position: relative; margin-bottom: 8px;">
+      <input type="text" id="search-bar" placeholder="Search Mesh..." style="width:100%; padding:10px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--glass-border); border-radius:10px;">
+      <div id="search-suggestions"></div>
+    </div>
+    <button onclick="searchMesh()">SEARCH MATRIX</button>
+    <iframe id="projector-lens" allowfullscreen="true"></iframe>
+    <div style="display:flex; gap:8px;">
+      <button onclick="loadHome()">HOME</button>
+      <button onclick="clearViewer()" style="background:rgba(200,0,0,0.4);">CLEAR</button>
+    </div>
+    <button onclick="showDeployModal()">UPLOAD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/v6.html', '_blank')">EDIT STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')">BANKING</button>
+    <div style="margin-top:15px; font-size:11px; color:#aaa;">LIVE CHAT + REPUTATION</div>
+    <div id="chat-container"></div>
+    <div id="star-rating-area" style="text-align:center; margin:5px 0;"></div>
+    <input type="text" id="chat-input" placeholder="Review/Message...">
+    <button onclick="clearChat()" style="background:#333; font-size:11px;">CLEAR CHAT</button>
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3 style="color:var(--electric-blue);">DEPLOY STORE</h3>
+    <div id="kyc-notice" style="padding:12px; background:rgba(0,0,0,0.6); border-radius:10px; margin:12px 0;">KYC: <span id="kyc-status-text" style="color:#ff0;">CHECKING...</span></div>
+    <input type="text" id="name-input" placeholder="Store Name" style="width:100%; padding:10px; margin:8px 0; background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); color:#fff;">
+    <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%; margin:6px 0;">
+    <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%; margin:6px 0;">
+    <button onclick="deployStore()" id="deploy-btn">CONFIRM & DEPLOY</button>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
+  </div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData';
+  let meshDir = {}, myPeerId = null, activePeers = {}, currentTargetStore = localStorage.getItem('last_target_name') || null;
+  let localStream = null, currentCall = null;
+  const peer = new Peer();
+
+  // --- MESH & DB CORE ---
+  async function getDB() { return new Promise(r => { const req = indexedDB.open(DB_NAME, 1); req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME); req.onsuccess = e => r(e.target.result); }); }
+  async function saveMeshDir() { const db = await getDB(); const tx = db.transaction(STORE_NAME, 'readwrite'); tx.objectStore(STORE_NAME).put(meshDir, 'MESH_DIR'); return new Promise(resolve => tx.oncomplete = resolve); }
+
+  // --- VIDEO CALL LOGIC ---
+  async function getLocalStream() { try { if (!localStream) { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); document.getElementById('local-video').srcObject = localStream; } return localStream; } catch (err) { alert("Camera access needed."); return null; } }
+  function setupCallUI(call) { currentCall = call; document.getElementById('video-overlay').style.display = 'flex'; call.on('stream', (s) => document.getElementById('remote-video').srcObject = s); call.on('close', stopVideoCall); }
+  async function startCall(targetId) { const stream = await getLocalStream(); if (stream) { const call = peer.call(targetId, stream); setupCallUI(call); } }
+  peer.on('call', async (call) => { const stream = await getLocalStream(); if (stream) { call.answer(stream); setupCallUI(call); } });
+  function stopVideoCall() { if (currentCall) { currentCall.close(); currentCall = null; } if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; } document.getElementById('video-overlay').style.display = 'none'; }
+
+  // --- MESH OPS ---
+  function renderOnlineList() {
+    const list = document.getElementById('online-members-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const myName = JSON.parse(localStorage.getItem('webstore_pro_draft') || '{}').name || "Me";
+    list.innerHTML += `<div class="suggestion-item"><span>${myName} (You)</span><span class="status-dot active"></span></div>`;
+    Object.entries(activePeers).forEach(([id, name]) => {
+      list.innerHTML += `<div class="suggestion-item" data-id="${id}"><span>${name}</span><button onclick="startCall('${id}')" style="width:auto; padding:4px 10px; font-size:10px;">📹 CALL</button></div>`;
+    });
+  }
+
+  function broadcastPresence() { if (!myPeerId) return; const packet = { type: 'PRESENCE', id: myPeerId, name: (Object.values(meshDir).find(s => s.id === myPeerId)?.name || 'Guest') }; Object.values(peer.connections).flat().forEach(conn => { if (conn.open) conn.send(packet); }); renderOnlineList(); }
+  function checkKYC() { return !!localStorage.getItem("KYC_Verified_Hash"); }
+  function showKYCModal() { const m = document.createElement('div'); m.innerHTML = `<div style="position:fixed; top:20%; left:35%; width:340px; background:rgba(10,10,35,0.98); padding:25px; border:2px solid #FF007F; z-index:999; color:#fff; border-radius:16px;">Action Required: Top up $10 or do KYC.</div>`; document.body.appendChild(m); }
+  function sendFullSync(conn) { if (conn?.open) conn.send({ type: 'SYNC_DIR', dir: meshDir }); }
+  function broadcastFullSync() { Object.values(peer.connections).flat().forEach(conn => sendFullSync(conn)); }
+  function renderPortals() {
+    const container = document.getElementById('ar-portal');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.values(meshDir).forEach((biz, i) => {
+      const el = document.createElement('a-plane');
+      el.setAttribute('position', `${(i * 1.8) - 1.5} 0.6 -2.5`);
+      el.setAttribute('material', { src: biz.thumb, side: 'double', transparent: true });
+      el.addEventListener('click', () => { renderReviews(biz.name); });
+      container.appendChild(el);
+    });
+  }
+
+  function renderReviews(storeName) {
+    currentTargetStore = storeName;
+    const biz = Object.values(meshDir).find(b => b.name === storeName);
+    if (!biz) return;
+    const container = document.getElementById('chat-container');
+    container.innerHTML = `<div style="color:var(--electric-blue); font-size:10px;">${biz.name}</div>`;
+    (biz.reviews || []).forEach(r => { const d = document.createElement('div'); d.textContent = "> " + r.msg; container.appendChild(d); });
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function handleIncomingData(id, data) {
+    if (data.type === 'SYNC_DIR') { Object.assign(meshDir, data.dir || {}); renderPortals(); saveMeshDir(); }
+    else if (data.type === 'PRESENCE') { activePeers[id] = data.name; renderOnlineList(); }
+    else if (data.type === 'REVIEW') { const s = Object.values(meshDir).find(b => b.name === data.storeName); if(s) { s.reviews.push({ msg: data.msg }); if(currentTargetStore === data.storeName) renderReviews(data.storeName); } }
+  }
+
+  function connectToPeer(targetId, name) {
+    const conn = peer.connect(targetId);
+    conn.on('open', () => { activePeers[targetId] = name; sendFullSync(conn); renderOnlineList(); });
+    conn.on('data', (d) => handleIncomingData(conn.peer, d));
+  }
+
+  function deployStore() {
+    if (!checkKYC()) { showKYCModal(); return; }
+    const name = document.getElementById('name-input').value, hFile = document.getElementById('html-input').files[0];
+    const fr = new FileReader();
+    fr.onload = (e) => { meshDir[peer.id] = { id: peer.id, name, html: e.target.result, thumb: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', reviews: [] }; saveMeshDir(); broadcastFullSync(); renderPortals(); };
+    fr.readAsText(hFile);
+  }
+
+  function searchMesh() { const query = document.getElementById('search-bar').value.toLowerCase(); const f = Object.values(meshDir).find(b => b.name?.toLowerCase().includes(query)); if(f) renderReviews(f.name); }
+  function loadHome() { document.getElementById('projector-lens').src = 'https://tiffyai-usd.github.io/Web-Store-App/v6.html'; }
+  function clearViewer() { document.getElementById('projector-lens').src = ''; }
+  function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
+  function showDeployModal() { document.getElementById('upload-modal').classList.remove('hidden'); }
+
+  window.onload = async () => {
+    peer.on('open', (id) => { myPeerId = id; setInterval(broadcastPresence, 10000); });
+    const db = await getDB();
+    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('MESH_DIR');
+    req.onsuccess = () => { meshDir = req.result || {}; renderPortals(); };
+    loadHome();
+  };
+</script>
+</body>
+</html>
