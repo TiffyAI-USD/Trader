@@ -1,139 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <meta charset="UTF-8">
+  <title>DEBUG MESH</title>
+  <!-- Loading ONLY essentials -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
-  <style>
-    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.55); --glass-border: rgba(0, 240, 255, 0.45); }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
-    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
-    #ui-panel { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--glass); backdrop-filter: blur(24px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px; z-index: 100; width: 340px; max-height: 92vh; overflow-y: auto; box-shadow: 0 0 50px rgba(0, 240, 255, 0.2); }
-    button { background: rgba(0, 240, 255, 0.18); border: 1px solid var(--glass-border); color: #fff; padding: 13px; margin: 6px 0; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; }
-    .stat-row { font-family: 'Orbitron', sans-serif; text-align: center; margin: 12px 0; color: var(--electric-blue); font-size: 1.3rem; }
-    #projector-lens { width: 100%; height: 235px; background: #000; border: 1px solid var(--glass-border); border-radius: 12px; margin: 12px 0; }
-    #chat-container { height: 135px; overflow-y: scroll; background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); padding: 10px; font-size: 12.5px; margin: 10px 0; }
-    #upload-modal { position: fixed; top: 18%; left: 35%; width: 360px; background: rgba(8,10,40,0.95); border: 2px solid var(--electric-blue); z-index: 300; padding: 25px; border-radius: 18px; }
-    .hidden { display: none !important; }
-  </style>
 </head>
-<body>
+<body style="background: #000; color: #fff;">
 
-  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')" style="position:fixed; top:20px; left:20px; z-index:101; width:50px; height:50px; border-radius:50%; background:#ff00aa; border:none; font-size:26px;">☰</button>
-
-  <div id="scene-container">
-    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
-      <a-assets>
-        <video id="bg-video" autoplay loop muted playsinline src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
-      </a-assets>
-      <a-sky src="#bg-video" rotation="0 -90 0"></a-sky>
-      <a-camera position="0 1.6 0"></a-camera>
-      <a-entity id="ar-portal" position="0 1.2 -3.2"></a-entity>
-    </a-scene>
+  <div id="debug-log" style="padding: 20px;">
+    <h1>INITIALIZING...</h1>
+    <div id="status">Loading Database...</div>
   </div>
 
-  <div id="ui-panel">
-    <div style="text-align:center; color:var(--electric-blue); font-family:'Orbitron';">TIFFY MESH TERMINAL</div>
-    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
-    <iframe id="projector-lens"></iframe>
-    <button onclick="showDeployModal()">UPLOAD STORE</button>
-  </div>
+  <script>
+    const DB_NAME = 'TiffyStoreDB';
+    const STORE_NAME = 'StoreData';
 
-  <div id="upload-modal" class="hidden">
-    <h3 style="color:var(--electric-blue);">DEPLOY STORE</h3>
-    <input type="text" id="name-input" placeholder="Store Name" style="width:100%; padding:10px;">
-    <input type="file" id="thumb-input" style="width:100%;">
-    <input type="file" id="html-input" style="width:100%;">
-    <button onclick="deployStore()">CONFIRM & DEPLOY</button>
-  </div>
-
-<script>
-  const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData', NITRO_KEY = 'TUSD_Nitro_Storage';
-  let meshDir = {}, peer = new Peer();
-
-  // --- SIDECAR PAYMENT ENGINE ---
-  function processSidecarSale(sellerId, itemName, price) {
-    let balance = parseFloat(localStorage.getItem(NITRO_KEY) || '0.00');
-    localStorage.setItem(NITRO_KEY, (balance + parseFloat(price)).toFixed(2));
-    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${parseFloat(localStorage.getItem(NITRO_KEY)).toFixed(2)}`;
-    
-    let seller = meshDir[sellerId];
-    if (seller) {
-      if (!seller.transactions) seller.transactions = [];
-      seller.transactions.push({ itemName, price, timestamp: Date.now() });
-      saveMeshDir();
-      window.dispatchEvent(new CustomEvent('issue-receipt', { detail: { businessName: seller.name, itemName, price } }));
+    async function init() {
+      const log = document.getElementById('status');
+      try {
+        const request = indexedDB.open(DB_NAME, 1);
+        
+        request.onerror = () => log.innerText = "Error opening DB";
+        request.onsuccess = (e) => {
+          const db = e.target.result;
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const getReq = tx.objectStore(STORE_NAME).get('MESH_DIR');
+          
+          getReq.onsuccess = () => {
+            const data = getReq.result;
+            const count = data ? Object.keys(data).length : 0;
+            log.innerText = "SUCCESS! Found " + count + " shops in database.";
+            console.log("Data found:", data);
+          };
+        };
+      } catch (e) {
+        log.innerText = "CRITICAL ERROR: " + e.message;
+      }
     }
-  }
-
-  // --- RECEIPT SYSTEM ---
-  window.addEventListener('issue-receipt', (e) => {
-    const { businessName, itemName, price } = e.detail;
-    const overlay = document.createElement('div');
-    overlay.style.cssText = "position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:9999; padding:20px; background:#000; border:2px solid #00f0ff; color:#fff; font-family:'Orbitron'; text-align:center;";
-    overlay.innerHTML = `<h3>RECEIPT</h3><p>${businessName}</p><p>${itemName}</p><h2>$${parseFloat(price).toFixed(2)}</h2>`;
-    document.body.appendChild(overlay);
-    setTimeout(() => overlay.remove(), 5000);
-  });
-
-  // --- DATABASE & MESH LOGIC ---
-  async function getDB() {
-    return new Promise(r => {
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
-      req.onsuccess = e => r(e.target.result);
-    });
-  }
-
-  async function saveMeshDir() {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(meshDir, 'MESH_DIR');
-  }
-
-  function renderPortals() {
-    const container = document.getElementById('ar-portal');
-    container.innerHTML = '';
-    Object.values(meshDir).forEach((biz, i) => {
-      const el = document.createElement('a-plane');
-      el.setAttribute('position', `${(i * 1.8) - 1.5} 0.6 -2.5`);
-      el.setAttribute('material', { src: biz.thumb, side: 'double' });
-      el.addEventListener('click', () => {
-        const blob = new Blob([biz.html], {type: 'text/html'});
-        window.open(URL.createObjectURL(blob), '_blank');
-      });
-      container.appendChild(el);
-    });
-  }
-
-  async function deployStore() {
-    const name = document.getElementById('name-input').value;
-    const hFile = document.getElementById('html-input').files[0];
-    const tFile = document.getElementById('thumb-input').files[0];
-    if (!hFile || !tFile) return alert("Files required");
-    const html = await hFile.text();
-    const thumb = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(tFile); });
-    meshDir[peer.id] = { id: peer.id, name, html, thumb, reviews: [], timestamp: Date.now() };
-    await saveMeshDir();
-    renderPortals();
-    alert("Deployed!");
-  }
-
-  function showDeployModal() { document.getElementById('upload-modal').classList.remove('hidden'); }
-
-  window.onload = async () => {
-    const db = await getDB();
-    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('MESH_DIR');
-    req.onsuccess = () => { 
-      meshDir = req.result || {}; 
-      renderPortals(); 
-    };
-    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem(NITRO_KEY) || '0.00'}`;
-  };
-</script>
+    init();
+  </script>
 </body>
 </html>
