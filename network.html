@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesh Sync Sidecar</title>
+    <style>
+        body { background: #000; color: #00f0ff; font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        button { padding: 40px 80px; font-size: 24px; background: rgba(0, 240, 255, 0.2); border: 2px solid #00f0ff; color: #fff; cursor: pointer; border-radius: 20px; }
+        button:hover { background: rgba(0, 240, 255, 0.4); }
+    </style>
+</head>
+<body>
+
+    <!-- One button, one job -->
+    <button id="sync-btn" onclick="triggerGossipHandshake()">SYNC TO NETWORK</button>
+
+    <script>
+        const DB_NAME = 'TiffyStoreDB';
+        const STORE_NAME = 'StoreData';
+        const MESH_KEY = 'MESH_DIR';
+
+        async function triggerGossipHandshake() {
+            // 1. KYC Gate: Same as your main terminal
+            if (!localStorage.getItem("KYC_Verified_Hash")) {
+                alert("KYC NOT VERIFIED");
+                return;
+            }
+
+            // 2. Open DB to get local registry
+            const db = await new Promise(r => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = e => r(e.target.result);
+            });
+
+            const meshDir = await new Promise(r => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).get(MESH_KEY);
+                req.onsuccess = () => r(req.result || {});
+            });
+
+            // 3. P2P Gossip
+            // We use window.opener to talk to your main terminal's Peer object 
+            // if this is a popup, or assume access to your global 'peer' object.
+            const peer = window.opener ? window.opener.peer : window.peer;
+            
+            if (!peer) {
+                alert("Peer network not found. Is the terminal open?");
+                return;
+            }
+
+            // 4. Broadcast the 'Gossip' to everyone
+            // This pushes your 11 stores and asks for theirs in return
+            let connectionsSent = 0;
+            Object.values(peer.connections).flat().forEach(conn => {
+                if (conn.open) {
+                    conn.send({ type: 'SYNC_DIR', dir: meshDir });
+                    conn.send({ type: 'REQUEST_DIR' });
+                    connectionsSent++;
+                }
+            });
+
+            alert(`Gossip broadcasted to ${connectionsSent} peers. Registry merging...`);
+        }
+    </script>
+</body>
+</html>
