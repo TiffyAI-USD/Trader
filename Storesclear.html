@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body style="background:#000; color:#ff0055; font-family:monospace; padding:20px;">
+    <div id="status-log"></div>
+    <script>
+        const log = (msg) => {
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            document.getElementById('status-log').appendChild(div);
+        };
+
+        const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData', KEY = 'MESH_DIR';
+
+        async function purgeDatabase() {
+            log("Targeting Database: " + DB_NAME);
+            
+            // Delete the entire IndexedDB database directly via code
+            const req = indexedDB.deleteDatabase(DB_NAME);
+
+            req.onsuccess = () => {
+                log("Database completely wiped and destroyed.");
+                
+                // Also clear local storage for good measure
+                localStorage.removeItem(KEY);
+                log("Local storage MESH_DIR cleared.");
+                
+                log("Purge Complete. Ready for clean deploy.");
+            };
+
+            req.onerror = () => {
+                log("Error: Failed to delete database.");
+            };
+
+            req.onblocked = () => {
+                log("Warning: Database deletion blocked. Close other tabs using it.");
+            };
+        }
+
+        purgeDatabase();
+    </script>
+</body>
+</html>
