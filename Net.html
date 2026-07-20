@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<body style="background: #111; color: #0f0; font-family: monospace; padding: 20px;">
+    <div id="log">Initializing Bridge...</div>
+    <script>
+        const log = (msg) => document.getElementById('log').innerHTML += `<br>${msg}`;
+
+        async function bridgeCompile() {
+            try {
+                const DB_NAME = 'TiffyStoreDB';
+                const STORE_NAME = 'StoreData';
+
+                const db = await new Promise((resolve, reject) => {
+                    const req = indexedDB.open(DB_NAME, 1);
+                    req.onerror = () => reject("Could not open DB");
+                    req.onsuccess = (e) => resolve(e.target.result);
+                });
+                log("Database opened.");
+
+                const tx = db.transaction([STORE_NAME], 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+
+                const getReq = store.get('MESH_DIR');
+                getReq.onsuccess = (e) => {
+                    let currentMesh = e.target.result || {};
+                    log(`Found current mesh: ${JSON.stringify(currentMesh)}`);
+
+                    // Merge logic
+                    const updatedMesh = { ...currentMesh, "last_updated": new Date().toISOString() };
+                    
+                    const putReq = store.put(updatedMesh, 'MESH_DIR');
+                    putReq.onsuccess = () => {
+                        log("SUCCESS: MESH_DIR updated.");
+                        log(`Final state: ${JSON.stringify(updatedMesh)}`);
+                    };
+                };
+            } catch (err) {
+                log(`ERROR: ${err}`);
+            }
+        }
+        bridgeCompile();
+    </script>
+</body>
+</html>
