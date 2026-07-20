@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesh Direct Local Sync</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 30px; }
+        .box { border: 1px solid #0f0; padding: 20px; max-width: 600px; margin-bottom: 20px; background: #111; }
+        button { background: #0f0; color: #000; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; margin-right: 10px; font-family: monospace; }
+        button:hover { background: #0ff; }
+        pre { background: #050505; border: 1px solid #333; padding: 10px; overflow-x: auto; color: #ff0; max-height: 250px; }
+        #status { margin-top: 15px; font-weight: bold; color: #0ff; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h2>Local Storage -> MESH_DIR Bridge</h2>
+        <p>This script reads your existing local storage, wraps it, and writes it directly to <code>MESH_DIR</code> so your app finds it instantly on load without hitting blanks or breaking deploys.</p>
+        
+        <button onclick="executeBridge()">Run Local-to-Mesh Sync</button>
+        <button onclick="clearMesh()" style="background: #f00; color: #fff;">Clear MESH_DIR</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <div class="box">
+        <h3>Live MESH_DIR Content Preview:</h3>
+        <pre id="preview">Checking...</pre>
+    </div>
+
+    <script>
+        const KEY = 'MESH_DIR';
+
+        function logStatus(msg, isErr = false) {
+            const el = document.getElementById('status');
+            el.style.color = isErr ? '#f00' : '#0ff';
+            el.textContent = msg;
+            refreshPreview();
+        }
+
+        function refreshPreview() {
+            const data = localStorage.getItem(KEY);
+            const prev = document.getElementById('preview');
+            if (!data) {
+                prev.textContent = "MESH_DIR is currently empty.";
+                return;
+            }
+            try {
+                prev.textContent = JSON.stringify(JSON.parse(data), null, 2);
+            } catch (e) {
+                prev.textContent = data;
+            }
+        }
+
+        function executeBridge() {
+            try {
+                let storeSnapshot = {};
+
+                // Read all current keys in localStorage
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k !== KEY) {
+                        const val = localStorage.getItem(k);
+                        try {
+                            storeSnapshot[k] = JSON.parse(val);
+                        } catch (err) {
+                            storeSnapshot[k] = val;
+                        }
+                    }
+                }
+
+                // If MESH_DIR already has a structure, preserve it and merge
+                const existing = localStorage.getItem(KEY);
+                if (existing) {
+                    try {
+                        const parsedExisting = JSON.parse(existing);
+                        storeSnapshot = Object.assign({}, parsedExisting, storeSnapshot);
+                    } catch (e) {
+                        // ignore if unparsable
+                    }
+                }
+
+                // Write directly back to MESH_DIR
+                const finalPayload = JSON.stringify(storeSnapshot);
+                localStorage.setItem(KEY, finalPayload);
+
+                logStatus("SUCCESS: Local storage pulled, packed, and written directly to MESH_DIR.");
+            } catch (err) {
+                logStatus("ERROR: " + err.message, true);
+            }
+        }
+
+        function clearMesh() {
+            if (confirm("Clear MESH_DIR?")) {
+                localStorage.removeItem(KEY);
+                logStatus("MESH_DIR cleared from storage.");
+            }
+        }
+
+        window.onload = refreshPreview;
+    </script>
+</body>
+</html>
