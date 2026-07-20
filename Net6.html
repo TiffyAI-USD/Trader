@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
+    <div id="status-log"></div>
+    <script>
+        const log = (msg) => {
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            document.getElementById('status-log').appendChild(div);
+        };
+
+        const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData', KEY = 'MESH_DIR';
+
+        async function runNetworkGrowthLoop() {
+            log("Initializing Network Growth Loop...");
+            const db = await new Promise((r) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = () => r(req.result);
+            });
+
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            
+            store.get(KEY).onsuccess = (e) => {
+                log("Reading Master Directory...");
+                let dbMesh = e.target.result || {}; 
+                
+                log("Copying Local Storage...");
+                const localData = localStorage.getItem(KEY);
+                let localMesh = localData ? JSON.parse(localData) : {};
+
+                log("Merging Mesh State...");
+                let combinedMesh = Object.assign({}, dbMesh, localMesh);
+
+                log("Writing to Master Directory...");
+                store.put(combinedMesh, KEY);
+
+                log("Updating Local Storage...");
+                localStorage.setItem(KEY, JSON.stringify(combinedMesh));
+
+                if (typeof broadcastFullSync === 'function') {
+                    log("Triggering Network Broadcast...");
+                    broadcastFullSync();
+                } else {
+                    log("Warning: No broadcast function detected.");
+                }
+                
+                log("Loop Executed: Network Unified.");
+            };
+        }
+
+        runNetworkGrowthLoop();
+    </script>
+</body>
+</html>
