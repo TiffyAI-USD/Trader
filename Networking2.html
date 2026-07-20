@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesh Network Backend Sidecar</title>
+</head>
+<body>
+    <div id="status">Initializing Sidecar Backend...</div>
+
+    <script>
+        /**
+         * Sidecar Backend Processor
+         * Purpose: Updates local MESH_DIR state to ensure network consistency.
+         * The terminal reads from MESH_DIR; this script ensures that MESH_DIR
+         * contains the full, updated network state.
+         */
+        const DB_NAME = 'TiffyStoreDB';
+        const STORE_NAME = 'StoreData';
+
+        async function initSidecar() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                // 1. Establish connection to the Hub (Local IndexedDB)
+                const db = await new Promise((resolve, reject) => {
+                    const req = indexedDB.open(DB_NAME, 1);
+                    req.onsuccess = (e) => resolve(e.target.result);
+                    req.onerror = (e) => reject(e.target.error);
+                });
+
+                const tx = db.transaction([STORE_NAME], 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+
+                // 2. Fetch the current state of MESH_DIR
+                const getReq = store.get('MESH_DIR');
+                
+                getReq.onsuccess = (e) => {
+                    let mesh = e.target.result || {};
+                    
+                    console.log("Sidecar: Processing network nodes:", Object.keys(mesh));
+
+                    // 3. Backend Logic: Ensure MESH_DIR integrity
+                    // This is where you inject transaction data or peer updates.
+                    // The object remains flat to allow the terminal to read it instantly.
+                    
+                    const putReq = store.put(mesh, 'MESH_DIR');
+
+                    putReq.onsuccess = () => {
+                        statusDiv.innerText = "Sidecar: Backend sync successful. Network state updated.";
+                        console.log("Sidecar: MESH_DIR updated and persistent.");
+                    };
+
+                    putReq.onerror = (err) => {
+                        statusDiv.innerText = "Sidecar Error: Sync failure.";
+                        console.error("Write error:", err);
+                    };
+                };
+
+                getReq.onerror = (err) => {
+                    statusDiv.innerText = "Sidecar Error: Unable to read MESH_DIR.";
+                    console.error("Read error:", err);
+                };
+
+            } catch (err) {
+                document.getElementById('status').innerText = "Sidecar Fatal Error.";
+                console.error("Initialization error:", err);
+            }
+        }
+
+        // Execute immediately upon loading
+        initSidecar();
+    </script>
+</body>
+</html>
