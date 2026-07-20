@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesh Network Hub Bridge</title>
+</head>
+<body>
+    <h1 id="status">Syncing with Network Hub...</h1>
+
+    <script>
+        const HUB_FILE = 'mesh_master.json';
+        const DB_NAME = 'TiffyStoreDB';
+        const STORE_NAME = 'StoreData';
+
+        async function syncNetwork() {
+            const status = document.getElementById('status');
+            
+            const db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+
+            const tx = db.transaction([STORE_NAME], 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            try {
+                const response = await fetch(HUB_FILE);
+                if (!response.ok) throw new Error("File missing");
+                
+                const masterMesh = await response.json();
+                
+                // PULL: Update local MESH_DIR from Hub
+                const putReq = store.put(masterMesh, 'MESH_DIR');
+                putReq.onsuccess = () => {
+                    status.innerText = "Sync complete: Local MESH_DIR updated from Hub.";
+                };
+            } catch (err) {
+                // PUSH: If Hub is missing, pull local and display for export
+                console.warn("Hub not found. Preparing local data for export...");
+                const getReq = store.get('MESH_DIR');
+                getReq.onsuccess = (e) => {
+                    const localMesh = e.target.result;
+                    if(localMesh) {
+                        status.innerText = "Hub empty or unreachable. Please manually save your local MESH_DIR to mesh_master.json.";
+                        console.log("Current Mesh State:", localMesh);
+                    } else {
+                        status.innerText = "No local MESH_DIR found to sync.";
+                    }
+                };
+            }
+        }
+
+        syncNetwork();
+    </script>
+</body>
+</html>
