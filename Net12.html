@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Terminal Mesh Restorer</title>
+    <style>
+        body { background: #0a0a0c; color: #00ff66; font-family: monospace; padding: 40px; }
+        .wrapper { max-width: 700px; margin: 0 auto; background: #121216; border: 1px solid #22222c; padding: 25px; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        h2 { margin-bottom: 10px; color: #fff; font-size: 1.2rem; }
+        p { font-size: 0.85rem; color: #888899; margin-bottom: 20px; line-height: 1.4; }
+        button { background: #00ff66; color: #000; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; font-family: monospace; border-radius: 4px; }
+        button:hover { background: #00cc52; }
+        #log { margin-top: 20px; background: #050507; border: 1px solid #1a1a22; padding: 15px; font-size: 0.8rem; color: #ffcc00; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <h2>Terminal Mesh Directory Restorer</h2>
+        <p>This script executes the exact restoration sequence to align your browser's local storage <code>MESH_DIR</code> schema directly with what your terminal expects, preserving your underlying data structures without throwing quota errors.</p>
+        
+        <button onclick="executeRestoration()">Restore MESH_DIR Now</button>
+        
+        <div id="log">Status: Ready to execute...</div>
+    </div>
+
+    <script>
+        function logMessage(text, isError = false) {
+            const logEl = document.getElementById('log');
+            logEl.style.color = isError ? '#ff4444' : '#00ff66';
+            logEl.textContent = text;
+        }
+
+        function executeRestoration() {
+            const MESH_KEY = 'MESH_DIR';
+            
+            try {
+                let existingDirectories = [];
+                let existingFiles = [];
+                let existingConfig = {
+                    "mode": "production",
+                    "target": "render_sync"
+                };
+
+                const rawStore = localStorage.getItem(MESH_KEY);
+                if (rawStore) {
+                    try {
+                        const parsed = JSON.parse(rawStore);
+                        if (parsed.directories) existingDirectories = parsed.directories;
+                        if (parsed.files) existingFiles = parsed.files;
+                        if (parsed.config) existingConfig = parsed.config;
+                    } catch (parseErr) {
+                        console.warn("Could not parse existing MESH_DIR, initializing fresh structure.");
+                    }
+                }
+
+                const validTerminalMesh = {
+                    "mesh": {
+                        "active": true,
+                        "sync": "terminal_master",
+                        "timestamp": new Date().toISOString()
+                    },
+                    "directories": existingDirectories,
+                    "files": existingFiles,
+                    "config": existingConfig
+                };
+
+                localStorage.setItem(MESH_KEY, JSON.stringify(validTerminalMesh));
+                logMessage("SUCCESS: MESH_DIR successfully restored and aligned with terminal schema.\n\nPayload written:\n" + JSON.stringify(validTerminalMesh, null, 2));
+            } catch (err) {
+                logMessage("ERROR restoring storage: " + err.message, true);
+            }
+        }
+    </script>
+</body>
+</html>
