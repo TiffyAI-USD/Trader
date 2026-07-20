@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Browser 2 Direct File Payload Force-Inject</title>
+    <style>
+        body { background: #0a0a0c; color: #00ff66; font-family: monospace; padding: 40px; }
+        .wrapper { max-width: 750px; margin: 0 auto; background: #121216; border: 1px solid #22222c; padding: 25px; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        h2 { margin-bottom: 10px; color: #fff; font-size: 1.2rem; }
+        p { font-size: 0.85rem; color: #888899; margin-bottom: 20px; line-height: 1.4; }
+        textarea { width: 100%; height: 160px; background: #050507; color: #00ff66; border: 1px solid #1a1a22; padding: 12px; font-family: monospace; font-size: 0.8rem; border-radius: 4px; margin-bottom: 15px; resize: vertical; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        button { background: #00ff66; color: #000; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; font-family: monospace; border-radius: 4px; flex: 1; }
+        button:hover { background: #00cc52; }
+        button.secondary { background: #22222c; color: #fff; border: 1px solid #444455; }
+        button.secondary:hover { background: #333342; }
+        #log { background: #050507; border: 1px solid #1a1a22; padding: 15px; font-size: 0.8rem; color: #ffcc00; white-space: pre-wrap; max-height: 250px; overflow-y: auto; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <h2>Direct File Payload Force-Inject</h2>
+        <p>This bypasses builder default overrides by forcefully injecting your raw uploaded file strings directly into the terminal <code>MESH_DIR</code> schema, overriding any empty template fallbacks.</p>
+        
+        <textarea id="rawPayloadInput" placeholder="Paste your raw file content or exported JSON payload here..."></textarea>
+        
+        <div class="btn-group">
+            <button onclick="injectRawFiles()">Force-Inject Files to MESH_DIR</button>
+            <button class="secondary" onclick="inspectCurrentMesh()">Inspect Current MESH_DIR</button>
+        </div>
+        
+        <div id="log">Status: Ready...</div>
+    </div>
+
+    <script>
+        const MESH_KEY = 'MESH_DIR';
+
+        function logMessage(text, isError = false) {
+            const logEl = document.getElementById('log');
+            logEl.style.color = isError ? '#ff4444' : '#00ff66';
+            logEl.textContent = text;
+        }
+
+        function inspectCurrentMesh() {
+            try {
+                const data = localStorage.getItem(MESH_KEY);
+                if (!data) {
+                    logMessage("MESH_DIR is currently empty in this browser.", true);
+                    return;
+                }
+                const parsed = JSON.parse(data);
+                logMessage("Current MESH_DIR content:\n" + JSON.stringify(parsed, null, 2));
+            } catch (err) {
+                logMessage("Error reading MESH_DIR: " + err.message, true);
+            }
+        }
+
+        function injectRawFiles() {
+            const inputVal = document.getElementById('rawPayloadInput').value.trim();
+            if (!inputVal) {
+                logMessage("ERROR: Input area is empty. Provide the file payload data.", true);
+                return;
+            }
+
+            try {
+                let parsedInput;
+                try {
+                    parsedInput = JSON.parse(inputVal);
+                } catch (e) {
+                    // If it's a raw string/HTML block, wrap it directly into a file array structure
+                    parsedInput = {
+                        "files": [
+                            {
+                                "name": "uploaded_file.html",
+                                "content": inputVal,
+                                "type": "text/html",
+                                "timestamp": new Date().toISOString()
+                            }
+                        ]
+                    };
+                }
+
+                // Construct strict terminal-expected format ensuring files override templates
+                let directories = parsedInput.directories || [];
+                let files = parsedInput.files || [];
+
+                // If user pasted raw key-value store or direct map, normalize it into files array
+                if (!parsedInput.files && !parsedInput.directories) {
+                    files = Object.keys(parsedInput).map(k => ({
+                        "name": k,
+                        "content": parsedInput[k],
+                        "timestamp": new Date().toISOString()
+                    }));
+                }
+
+                const forcedPayload = {
+                    "mesh": {
+                        "active": true,
+                        "sync": "force_inject",
+                        "timestamp": new Date().toISOString()
+                    },
+                    "directories": directories,
+                    "files": files,
+                    "config": parsedInput.config || {
+                        "mode": "production",
+                        "target": "render_sync"
+                    }
+                };
+
+                localStorage.setItem(MESH_KEY, JSON.stringify(forcedPayload));
+                logMessage("SUCCESS: Files successfully force-injected into MESH_DIR. Terminal will now read your uploaded content instead of default templates.");
+            } catch (err) {
+                logMessage("CRITICAL INJECTION ERROR: " + err.message, true);
+            }
+        }
+    </script>
+</body>
+</html>
