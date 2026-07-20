@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Inspect IndexedDB Data</title>
+</head>
+<body>
+    <h1>Check Console (F12) for Data Dump</h1>
+    <script>
+        const DB_NAME = 'TiffyStoreDB';
+        const STORE_NAME = 'StoreData';
+
+        async function inspectData() {
+            const db = await new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject("Could not open DB: " + e.target.error);
+            });
+
+            const transaction = db.transaction(STORE_NAME, 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            
+            console.log("--- STARTING DUMP OF ALL KEYS ---");
+            
+            store.openCursor().onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    console.log("Key found:", cursor.key);
+                    console.log("Data value:", cursor.value);
+                    console.log("---");
+                    cursor.continue();
+                } else {
+                    console.log("--- DUMP COMPLETE ---");
+                    alert("Dump complete. Check F12 Console for structure.");
+                }
+            };
+        }
+
+        inspectData().catch(console.error);
+    </script>
+</body>
+</html>
