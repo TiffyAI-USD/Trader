@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Reset Tool</title>
+  <style>
+    body { font-family: sans-serif; background: #000; color: #fff; padding: 20px; text-align: center; }
+    button { background: #00f0ff; color: #000; border: none; padding: 15px 25px; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: 20px; font-size: 16px; }
+    pre { background: rgba(0,240,255,0.1); border: 1px solid #00f0ff; padding: 15px; border-radius: 8px; text-align: left; margin-top: 20px; overflow-x: auto; color: #00f0ff; }
+  </style>
+</head>
+<body>
+
+  <h2>MESH_DIR REPAIR & RESTORE UTILITY</h2>
+  <p>This utility directly cleans out corrupted wrappers from IndexedDB and initializes your clean MESH_DIR structure on your phone browser.</p>
+  
+  <button onclick="fixMeshDir()">WIPE & RESTORE MESH_DIR NOW</button>
+  
+  <pre id="log">Status: Waiting for action...</pre>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+
+  function logMsg(msg) {
+    document.getElementById('log').textContent += '\n' + msg;
+  }
+
+  async function fixMeshDir() {
+    logMsg("Opening IndexedDB: " + DB_NAME);
+    
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+        logMsg("Created missing object store: " + STORE_NAME);
+      }
+    };
+
+    request.onsuccess = (e) => {
+      const db = e.target.result;
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+
+      // Clean valid structure matching your terminal's exact expectation (Record object indexed by peer ID keys, no wrappers)
+      const cleanMeshDir = {};
+
+      const putRequest = store.put(cleanMeshDir, 'MESH_DIR');
+
+      putRequest.onsuccess = () => {
+        logMsg("SUCCESS: MESH_DIR has been completely wiped of wrappers and reset to a clean state.");
+        logMsg("You can now open your terminal and your code will read a pristine MESH_DIR.");
+      };
+
+      putRequest.onerror = (err) => {
+        logMsg("ERROR writing MESH_DIR: " + err);
+      };
+    };
+
+    request.onerror = (e) => {
+      logMsg("ERROR opening IndexedDB: " + e.target.error);
+    };
+  }
+</script>
+
+</body>
+</html>
