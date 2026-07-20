@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
+    <div id="status-log"></div>
+    <script>
+        const log = (msg) => {
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            document.getElementById('status-log').appendChild(div);
+        };
+
+        const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData', KEY = 'MESH_DIR';
+
+        async function runMeshGrowth() {
+            log("Opening Database...");
+            const db = await new Promise((r) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = () => r(req.result);
+            });
+
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            
+            store.get(KEY).onsuccess = (e) => {
+                log("Reading Master Mesh Directory...");
+                let masterMesh = e.target.result || {}; 
+                
+                log("Reading Browser Local Storage...");
+                const localData = localStorage.getItem(KEY);
+                let localMesh = localData ? JSON.parse(localData) : {};
+
+                log("Pasting Local Storage into Master Mesh...");
+                for (let storeKey in localMesh) {
+                    masterMesh[storeKey] = localMesh[storeKey];
+                }
+
+                log("Saving updated Master Mesh to Database...");
+                store.put(masterMesh, KEY);
+
+                log("Pasting Master Mesh back into Local Storage...");
+                localStorage.setItem(KEY, JSON.stringify(masterMesh));
+                
+                log("Mesh Updated and Grown. Done.");
+            };
+        }
+
+        runMeshGrowth();
+    </script>
+</body>
+</html>
