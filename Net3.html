@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script>
+        const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData', KEY = 'MESH_DIR';
+
+        async function forceMirror() {
+            const db = await new Promise(r => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = e => r(e.target.result);
+            });
+
+            setInterval(() => {
+                const tx = db.transaction([STORE_NAME], 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                
+                store.get(KEY).onsuccess = (e) => {
+                    const masterMesh = e.target.result;
+                    if (masterMesh) {
+                        // The Override: Force-set the local storage to match the master
+                        localStorage.setItem(KEY, JSON.stringify(masterMesh));
+                        
+                        // The Mirror: If local has new data, force-write it back to master
+                        const local = localStorage.getItem(KEY);
+                        if (local) {
+                            store.put(JSON.parse(local), KEY);
+                        }
+                    }
+                };
+            }, 1000);
+        }
+        forceMirror();
+    </script>
+</body>
+</html>
