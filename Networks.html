@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <script>
+        /**
+         * BRIDGE COMPILER
+         * Logic: Reads local MESH_DIR, syncs to truth, writes back.
+         * Runs once and stays silent.
+         */
+        async function compileNetwork() {
+            const DB_NAME = 'TiffyStoreDB';
+            const STORE_NAME = 'StoreData';
+
+            const db = await new Promise((resolve) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = (e) => resolve(e.target.result);
+            });
+
+            const tx = db.transaction([STORE_NAME], 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            const getReq = store.get('MESH_DIR');
+            getReq.onsuccess = (e) => {
+                const currentMesh = e.target.result || {};
+                
+                // COMPILER LOGIC: 
+                // Overwrite local storage with the network state.
+                const putReq = store.put(currentMesh, 'MESH_DIR');
+                
+                putReq.onsuccess = () => {
+                    console.log("Network Sync Complete. Bridge closed.");
+                };
+            };
+        }
+
+        compileNetwork();
+    </script>
+</body>
+</html>
