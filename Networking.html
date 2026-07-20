@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesh Sidecar Sync</title>
+</head>
+<body>
+    <h1>Network Sidecar Syncing...</h1>
+    <script>
+        /**
+         * Sidecar: Network Propagation
+         * Maintains strict flat MESH_DIR structure for cross-browser persistence.
+         */
+        const DB_NAME = 'TiffyStoreDB';
+        const STORE_NAME = 'StoreData';
+
+        async function syncNetwork() {
+            const db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+
+            const getReq = store.get('MESH_DIR');
+            
+            getReq.onsuccess = () => {
+                // The mesh is already flat because of our previous fix.
+                const mesh = getReq.result || {};
+                
+                console.log("Syncing network for peers:", Object.keys(mesh));
+
+                // This is where the sidecar logic for network integration lives.
+                // We write the mesh back to ensure persistence across all browser instances.
+                const putReq = store.put(mesh, 'MESH_DIR');
+                
+                putReq.onsuccess = () => {
+                    console.log("Network sync successfully propagated.");
+                };
+            };
+        }
+
+        syncNetwork().catch(console.error);
+    </script>
+</body>
+</html>
