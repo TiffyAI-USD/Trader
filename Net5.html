@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
+        #log { border: 1px solid #333; padding: 10px; height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Sync Machine</h1>
+    <div id="log"></div>
+
+    <script>
+        const log = (msg) => {
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('log').prepend(div);
+        };
+
+        const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData', KEY = 'MESH_DIR';
+
+        const openDB = () => new Promise((resolve, reject) => {
+            log('Opening database...');
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onsuccess = () => { log('DB open success.'); resolve(req.result); };
+            req.onerror = () => { log('DB error.'); reject(req.error); };
+        });
+
+        async function performSync() {
+            log('Starting synchronization cycle...');
+            const db = await openDB();
+            
+            // 1. LocalStorage -> Master Directory (IndexedDB)
+            const localData = localStorage.getItem(KEY);
+            if (localData) {
+                log('Copying LocalStorage to Master Directory...');
+                const writeTx = db.transaction([STORE_NAME], 'readwrite');
+                writeTx.objectStore(STORE_NAME).put(JSON.parse(localData), KEY);
+                log('LocalStorage data copied to Master Directory.');
+            } else {
+                log('No LocalStorage data found to copy.');
+            }
+
+            // 2. Master Directory (IndexedDB) -> LocalStorage
+            log('Copying Master Directory to LocalStorage...');
+            const readTx = db.transaction([STORE_NAME], 'readonly');
+            const getReq = readTx.objectStore(STORE_NAME).get(KEY);
+            
+            getReq.onsuccess = () => {
+                if (getReq.result) {
+                    localStorage.setItem(KEY, JSON.stringify(getReq.result));
+                    log('Master Directory copied to LocalStorage.');
+                    log('Sync cycle complete.');
+                } else {
+                    log('No Master Directory data found to copy.');
+                }
+            };
+        }
+
+        performSync();
+    </script>
+</body>
+</html>
