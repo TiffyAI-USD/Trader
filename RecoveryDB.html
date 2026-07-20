@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <button onclick="recoverMesh()" style="padding: 40px; font-size: 24px;">RECOVER DATABASE ENTRY</button>
+
+    <script>
+        async function recoverMesh() {
+            const DB_NAME = 'TiffyStoreDB';
+            const STORE_NAME = 'StoreData';
+            
+            const db = await new Promise(r => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = e => r(e.target.result);
+            });
+
+            // Try to pull the raw object directly from the DB StoreData store
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const getReq = store.get('MESH_DIR');
+
+            getReq.onsuccess = () => {
+                const data = getReq.result;
+                if (!data) {
+                    alert("MESH_DIR key is missing from IndexedDB! The data was wiped.");
+                    console.log("Database entries found:", store.getAllKeys());
+                } else {
+                    console.log("Found data, re-syncing...", data);
+                    // Force it back into localStorage to fix the link
+                    localStorage.setItem('MESH_DIR', JSON.stringify(data));
+                    alert("Recovery complete! MESH_DIR has been restored to LocalStorage.");
+                }
+            };
+        }
+    </script>
+</body>
+</html>
