@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesh Direct Sync Utility</title>
+    <style>
+        :root {
+            --bg: #09090b;
+            --surface: #18181b;
+            --border: #27272a;
+            --text: #f4f4f5;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-mono);
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 650px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            letter-spacing: -0.025em;
+        }
+
+        p.subtitle {
+            font-size: 0.85rem;
+            color: #a1a1aa;
+            margin-bottom: 1.5rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        button {
+            flex: 1;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        #status-box {
+            margin-bottom: 1.5rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        #status-box.active {
+            display: block;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+
+        #status-box.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .ledger-view {
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #a1a1aa;
+            margin-bottom: 0.5rem;
+        }
+
+        pre {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            color: #34d399;
+            max-height: 250px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Mesh Storage Direct Bridge</h1>
+        <p class="subtitle">Extracts current application state, maps it directly into MESH_DIR, and preserves your working directory structure.</p>
+
+        <div class="actions">
+            <button onclick="syncStorageToMesh()">Sync & Write MESH_DIR</button>
+            <button class="danger" onclick="clearMesh()">Clear MESH_DIR</button>
+        </div>
+
+        <div id="status-box"></div>
+
+        <div class="ledger-view">
+            <label>Current MESH_DIR State</label>
+            <pre id="meshOutput">Checking state...</pre>
+        </div>
+    </div>
+
+    <script>
+        const MESH_KEY = 'MESH_DIR';
+
+        function showStatus(message, isError = false) {
+            const box = document.getElementById('status-box');
+            box.className = isError ? 'error active' : 'active';
+            box.textContent = message;
+        }
+
+        function refreshView() {
+            const currentData = localStorage.getItem(MESH_KEY);
+            const output = document.getElementById('meshOutput');
+            
+            if (!currentData) {
+                output.textContent = "MESH_DIR is currently empty.";
+                output.style.color = "#71717a";
+                return;
+            }
+
+            output.style.color = "#34d399";
+            try {
+                const parsed = JSON.parse(currentData);
+                output.textContent = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                output.textContent = currentData;
+            }
+        }
+
+        function syncStorageToMesh() {
+            try {
+                // Gather existing application keys from localStorage to ensure we don't drop runtime context
+                let aggregatedData = {};
+                
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key !== MESH_KEY) {
+                        try {
+                            aggregatedData[key] = JSON.parse(localStorage.getItem(key));
+                        } catch (err) {
+                            aggregatedData[key] = localStorage.getItem(key);
+                        }
+                    }
+                }
+
+                // If MESH_DIR already exists, merge cleanly without stripping original properties
+                const existingMesh = localStorage.getItem(MESH_KEY);
+                if (existingMesh) {
+                    try {
+                        const parsedMesh = JSON.parse(existingMesh);
+                        aggregatedData = { ...parsedMesh, ...aggregatedData };
+                    } catch (e) {
+                        // Keep raw if not JSON
+                    }
+                }
+
+                const serialized = JSON.stringify(aggregatedData);
+                localStorage.setItem(MESH_KEY, serialized);
+
+                showStatus("Success: Local storage successfully mirrored and synchronized to MESH_DIR.");
+                refreshView();
+            } catch (err) {
+                showStatus("Error syncing storage: " + err.message, true);
+            }
+        }
+
+        function clearMesh() {
+            if (confirm("Are you sure you want to clear MESH_DIR?")) {
+                localStorage.removeItem(MESH_KEY);
+                showStatus("MESH_DIR cleared.");
+                refreshView();
+            }
+        }
+
+        window.onload = refreshView;
+    </script>
+</body>
+</html>
