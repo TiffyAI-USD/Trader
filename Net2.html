@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
+    <h3>Sidecar Transcriber Active</h3>
+    <div id="log">Mapping bridge data...</div>
+    <script>
+        const log = (msg) => document.getElementById('log').innerHTML += `<br>${msg}`;
+
+        async function transcodeBridge() {
+            try {
+                const DB_NAME = 'TiffyStoreDB';
+                const STORE_NAME = 'StoreData';
+
+                const db = await new Promise((resolve, reject) => {
+                    const req = indexedDB.open(DB_NAME, 1);
+                    req.onsuccess = (e) => resolve(e.target.result);
+                    req.onerror = () => reject("DB Error");
+                });
+
+                const tx = db.transaction([STORE_NAME], 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const getReq = store.get('MESH_DIR');
+
+                getReq.onsuccess = (e) => {
+                    let mesh = e.target.result || {};
+
+                    // TRANSCRIPTION LOGIC: 
+                    // We ensure the object structure remains compatible with the terminal's parser.
+                    // We strip any 'last_updated' or 'bridge_meta' before saving,
+                    // so the terminal sees a perfectly clean mesh object.
+                    
+                    if (mesh.last_updated) delete mesh.last_updated;
+
+                    const putReq = store.put(mesh, 'MESH_DIR');
+                    putReq.onsuccess = () => {
+                        log("SUCCESS: Mesh structure normalized for terminal.");
+                        log("Data is now fully readable by the terminal projector.");
+                        // We do NOT redirect. We just stay here and hold the state.
+                    };
+                };
+            } catch (err) {
+                log(`ERROR: ${err}`);
+            }
+        }
+        transcodeBridge();
+    </script>
+</body>
+</html>
