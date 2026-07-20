@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<body style="background: #111; color: #ff007f; font-family: monospace; padding: 20px;">
+    <h3>Cleaning Mesh...</h3>
+    <div id="status">Working...</div>
+    <script>
+        async function cleanMesh() {
+            const log = (msg) => document.getElementById('status').innerHTML += `<br>${msg}`;
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const req = indexedDB.open('TiffyStoreDB', 1);
+                    req.onerror = () => reject("Could not open DB");
+                    req.onsuccess = (e) => resolve(e.target.result);
+                });
+                
+                const tx = db.transaction(['StoreData'], 'readwrite');
+                const store = tx.objectStore('StoreData');
+                const getReq = store.get('MESH_DIR');
+                
+                getReq.onsuccess = () => {
+                    let mesh = getReq.result || {};
+                    // Remove the entry that the bridge created
+                    delete mesh['last_updated']; 
+                    
+                    const putReq = store.put(mesh, 'MESH_DIR');
+                    putReq.onsuccess = () => {
+                        log("Cleanup complete. Redirecting to Terminal...");
+                        // Redirects back to your terminal to refresh the UI
+                        setTimeout(() => { window.location.href = 'Net.html'; }, 1500);
+                    };
+                };
+            } catch (err) {
+                log(`ERROR: ${err}`);
+            }
+        }
+        cleanMesh();
+    </script>
+</body>
+</html>
