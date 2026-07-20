@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<body style="background: #111; color: #0f0; font-family: monospace; padding: 20px;">
+    <div id="log">Initializing Bridge...</div>
+    <script>
+        const log = (msg) => document.getElementById('log').innerHTML += `<br>${msg}`;
+
+        async function bridgeCompile() {
+            try {
+                const DB_NAME = 'TiffyStoreDB';
+                const STORE_NAME = 'StoreData';
+
+                const db = await new Promise((resolve, reject) => {
+                    const req = indexedDB.open(DB_NAME, 1);
+                    req.onerror = () => reject("Could not open DB");
+                    req.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
+                    req.onsuccess = (e) => resolve(e.target.result);
+                });
+                log("Database opened.");
+
+                const tx = db.transaction([STORE_NAME], 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+
+                const getReq = store.get('MESH_DIR');
+                getReq.onsuccess = (e) => {
+                    let currentMesh = e.target.result || {};
+                    log(`Found current mesh: ${Object.keys(currentMesh).length} entries.`);
+
+                    // Logic: Update the timestamp and trigger the sync state
+                    const updatedMesh = { ...currentMesh, "last_updated": new Date().toISOString() };
+                    
+                    const putReq = store.put(updatedMesh, 'MESH_DIR');
+                    putReq.onsuccess = () => {
+                        log("SUCCESS: MESH_DIR state synchronized.");
+                        log("Bridge ready. Data is now accessible for retrieval.");
+                        
+                        // Force a state refresh so the terminal recognizes the new update
+                        window.dispatchEvent(new Event('storage'));
+                    };
+                };
+            } catch (err) {
+                log(`ERROR: ${err}`);
+            }
+        }
+        bridgeCompile();
+    </script>
+</body>
+</html>
