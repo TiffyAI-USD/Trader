@@ -8,86 +8,70 @@
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
   <style>
-    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.8); }
-    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
-    #ui-panel { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--electric-blue); border-radius: 20px; padding: 18px; z-index: 100; width: 340px; }
-    button { background: rgba(0, 240, 255, 0.2); border: 1px solid var(--electric-blue); color: #fff; padding: 12px; margin: 5px 0; border-radius: 10px; width: 100%; cursor: pointer; font-weight: bold; }
-    .hidden { display: none !important; }
+    :root { --electric-blue: #00f0ff; --glass: rgba(6, 10, 35, 0.55); --glass-border: rgba(0, 240, 255, 0.45); }
+    /* ... (KEEP ALL YOUR ORIGINAL STYLES HERE) ... */
   </style>
 </head>
 <body>
-
-  <div id="ui-panel">
-    <div style="font-family:'Orbitron'; text-align:center; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
-    <div id="tusd-display" style="text-align:center; margin:10px 0; font-family:'Orbitron';">TUSD Nitro: 0.00</div>
-    <button onclick="syncNetwork()">FORCE MESH SYNC</button>
-  </div>
-
-  <a-scene embedded vr-mode-ui="enabled: false">
-    <a-camera position="0 1.6 0"></a-camera>
-    <a-entity id="ar-portal" position="0 1.2 -3.2"></a-entity>
-  </a-scene>
+  <!-- ... (KEEP ALL YOUR ORIGINAL HTML STRUCTURE HERE) ... -->
 
 <script>
-  const MESH_KEY = 'MESH_DIR';
+  // ... (KEEP ALL YOUR EXISTING CONSTANTS AND VARIABLES) ...
   const NITRO_KEY = 'TUSD_Nitro_Storage';
 
-  // --- 1. SIDECAR ENGINE (TRANSACTIONS & LEDGER) ---
-  async function processSidecarSale(sellerId, itemName, price) {
-    try {
-      let meshDir = JSON.parse(localStorage.getItem(MESH_KEY) || '{}');
-      let seller = meshDir[sellerId];
-      if (!seller) throw new Error("Seller not in Mesh");
+  // --- NEW: SIDECAR TRANSACTION ENGINE ---
+  function processSidecarSale(sellerId, itemName, price) {
+    let seller = meshDir[sellerId];
+    if (!seller) return console.error("Seller not found");
 
-      // Update Nitro Balance
-      let balance = parseFloat(localStorage.getItem(NITRO_KEY) || '0.00');
-      let newBalance = balance + parseFloat(price);
-      localStorage.setItem(NITRO_KEY, newBalance.toFixed(2));
-      document.getElementById('tusd-display').textContent = `TUSD Nitro: ${newBalance.toFixed(2)}`;
+    // 1. Update Nitro Balance
+    let balance = parseFloat(localStorage.getItem(NITRO_KEY) || '0.00');
+    let newBalance = balance + parseFloat(price);
+    localStorage.setItem(NITRO_KEY, newBalance.toFixed(2));
+    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${newBalance.toFixed(2)}`;
 
-      // Update Ledger
-      if (!seller.transactions) seller.transactions = [];
-      seller.transactions.push({ itemName, price, timestamp: Date.now() });
-      localStorage.setItem(MESH_KEY, JSON.stringify(meshDir));
+    // 2. Log to Ledger
+    if (!seller.transactions) seller.transactions = [];
+    seller.transactions.push({ itemName, price, timestamp: Date.now() });
+    saveMeshDir();
 
-      // Trigger Receipt
-      window.dispatchEvent(new CustomEvent('issue-receipt', { 
-        detail: { businessName: seller.name, itemName, price } 
-      }));
-    } catch (e) { console.error(e); }
+    // 3. Trigger Visual Receipt
+    window.dispatchEvent(new CustomEvent('issue-receipt', { 
+      detail: { businessName: seller.name, itemName, price } 
+    }));
   }
 
-  // --- 2. RECEIPT SYSTEM ---
+  // --- NEW: RECEIPT OVERLAY ---
   window.addEventListener('issue-receipt', (e) => {
     const { businessName, itemName, price } = e.detail;
     const overlay = document.createElement('div');
-    overlay.style.cssText = "position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:9999; padding:20px; background:#000; border:2px solid #00f0ff; border-radius:10px; color:#fff; font-family:'Orbitron'; text-align:center;";
-    overlay.innerHTML = `<h3>RECEIPT</h3><p>${businessName}</p><p>${itemName}</p><h2>$${parseFloat(price).toFixed(2)}</h2>`;
+    overlay.style.cssText = "position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:9999; padding:20px; background:rgba(0,0,0,0.95); border:2px solid var(--electric-blue); border-radius:10px; color:#fff; font-family:'Orbitron'; text-align:center; width:280px;";
+    overlay.innerHTML = `
+        <h3 style="color:var(--electric-blue);">TXN RECEIPT</h3>
+        <p style="font-size:12px; opacity:0.7;">${businessName}</p>
+        <p style="font-size:14px; margin:10px 0;">${itemName}</p>
+        <h2 style="font-size:20px;">$${parseFloat(price).toFixed(2)}</h2>
+    `;
     document.body.appendChild(overlay);
     setTimeout(() => overlay.remove(), 5000);
   });
 
-  // --- 3. MESH SYNC ENGINE ---
-  async function syncNetwork() {
-    try {
-      const db = await openTiffyDB();
-      const tx = db.transaction('StoreData', 'readwrite');
-      const meshDir = JSON.parse(localStorage.getItem(MESH_KEY) || '{}');
-      tx.objectStore('StoreData').put(meshDir, MESH_KEY);
-      alert("Mesh Registry Synchronized.");
-    } catch (e) { console.error(e); }
-  }
+  // ... (KEEP ALL YOUR ORIGINAL FUNCTIONS: getDB, saveMeshDir, renderPortals, etc.) ...
 
-  function openTiffyDB() {
-    return new Promise(r => {
-      const req = indexedDB.open('TiffyStoreDB', 1);
-      req.onupgradeneeded = e => e.target.result.createObjectStore('StoreData');
-      req.onsuccess = e => r(e.target.result);
-    });
-  }
-
-  window.onload = () => {
-    document.getElementById('tusd-display').textContent = `TUSD Nitro: ${localStorage.getItem(NITRO_KEY) || '0.00'}`;
+  // UPDATE: Ensure your window.onload calls everything correctly
+  window.onload = async () => {
+    // ... (Your original onload logic) ...
+    const db = await getDB();
+    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('MESH_DIR');
+    req.onsuccess = () => { 
+      meshDir = req.result || {}; 
+      renderPortals(); // This renders your 11 shops
+      // ... (rest of your logic)
+    };
+    
+    // Set initial counters
+    document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
   };
 </script>
 </body>
