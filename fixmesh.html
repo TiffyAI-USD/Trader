@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesh Direct Writer</title>
+    <style>
+        body { background: #111; color: #0f0; font-family: monospace; padding: 40px; }
+        textarea { width: 100%; height: 200px; background: #000; color: #0f0; border: 1px solid #0f0; padding: 10px; font-family: monospace; }
+        button { background: #0f0; color: #000; border: none; padding: 12px 24px; font-weight: bold; cursor: pointer; margin-top: 15px; margin-right: 10px; }
+        #log { margin-top: 15px; color: #ff0055; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h2>Direct Mesh Payload Writer & Formatter</h2>
+    <p>Paste your raw text, object, or JSON below. This tool will automatically format it into the exact structure required to read your files and write it to <code>MESH_DIR</code>:</p>
+    
+    <input type="file" id="fileInput" style="margin-bottom: 15px; color: #0f0;" onchange="loadFromFile(event)"><br>
+    
+    <textarea id="payload" placeholder="Paste data here or load a file above..."></textarea><br>
+    
+    <button onclick="formatAndWrite()">Format & Write to MESH_DIR</button>
+    <button onclick="verifyStorage()" style="background: #0ff;">Verify Current MESH_DIR</button>
+    
+    <div id="log"></div>
+
+    <script>
+        const KEY = 'MESH_DIR';
+
+        const log = (msg, isError = false) => {
+            const logEl = document.getElementById('log');
+            logEl.style.color = isError ? "#ff0055" : "#0f0";
+            logEl.textContent = msg;
+        };
+
+        function loadFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('payload').value = e.target.result;
+                log("File loaded into text box. Click 'Format & Write' to apply.");
+            };
+            reader.readAsText(file);
+        }
+
+        function formatAndWrite() {
+            let raw = document.getElementById('payload').value.trim();
+            if (!raw) {
+                log("Error: Payload text box is empty.", true);
+                return;
+            }
+
+            let parsedData;
+            try {
+                // Step 1: Parse what was provided
+                parsedData = JSON.parse(raw);
+            } catch (err) {
+                // If it's not raw JSON, check if it's a serialized string representation that needs double-parsing
+                try {
+                    parsedData = JSON.parse(JSON.parse(raw));
+                } catch (e2) {
+                    log("Error: Could not parse input as JSON. Check syntax.", true);
+                    return;
+                }
+            }
+
+            // Step 2: Ensure the data structure strictly matches what your file-reader expects.
+            // If your app expects an object containing file paths/contents, we ensure it's structured as a valid object/map.
+            let formattedObject;
+            if (Array.isArray(parsedData)) {
+                // If it came in as an array, map it into a directory/store object key-value format
+                formattedObject = {};
+                parsedData.forEach((item, index) => {
+                    const pathKey = item.path || item.name || `file_${index}`;
+                    formattedObject[pathKey] = item;
+                });
+            } else if (typeof parsedData === 'object' && parsedData !== null) {
+                // Already an object/map structure
+                formattedObject = parsedData;
+            } else {
+                log("Error: Parsed data is not a valid object or array format.", true);
+                return;
+            }
+
+            // Step 3: Serialize cleanly and write directly to localStorage under MESH_DIR
+            const finalString = JSON.stringify(formattedObject);
+            localStorage.setItem(KEY, finalString);
+
+            // Display confirmation of what was successfully stored
+            log(`Success! Formatted and written to MESH_DIR.\nKeys stored: ${Object.keys(formattedObject).length}\n\nData preview:\n${finalString.substring(0, 300)}...`);
+        }
+
+        function verifyStorage() {
+            const current = localStorage.getItem(KEY);
+            if (!current) {
+                log("Verification: MESH_DIR is currently EMPTY in localStorage.", true);
+                return;
+            }
+            try {
+                const parsed = JSON.parse(current);
+                log(`Verification Passed: MESH_DIR exists in localStorage.\nTotal entries/files mapped: ${Object.keys(parsed).length}\n\nRaw Content:\n${current}`);
+            } catch (err) {
+                log("Verification Warning: MESH_DIR exists but contains invalid JSON string.", true);
+            }
+        }
+    </script>
+</body>
+</html>
