@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Direct Mesh Sync</title>
+</head>
+<body>
+    <button onclick="directSync()" style="padding: 40px; font-size: 24px;">SYNC MESH NOW</button>
+
+    <script>
+        async function directSync() {
+            // 1. KYC Check
+            if (!localStorage.getItem("KYC_Verified_Hash")) {
+                alert("KYC NOT VERIFIED");
+                return;
+            }
+
+            // 2. Grab MESH_DIR directly from LocalStorage (No permission needed)
+            const meshData = localStorage.getItem('MESH_DIR');
+            if (!meshData) {
+                alert("No MESH_DIR found in LocalStorage.");
+                return;
+            }
+            const meshDir = JSON.parse(meshData);
+
+            // 3. Open IndexedDB directly
+            const db = await new Promise(r => {
+                const req = indexedDB.open('TiffyStoreDB', 1);
+                req.onsuccess = e => r(e.target.result);
+            });
+
+            // 4. Force the update to IndexedDB (The terminal's source of truth)
+            const tx = db.transaction('StoreData', 'readwrite');
+            tx.objectStore('StoreData').put(meshDir, 'MESH_DIR');
+            
+            tx.oncomplete = () => {
+                alert("Mesh synchronized from LocalStorage to DB. Terminal updated.");
+                // If you have a broadcast function in your main app, call it here:
+                // window.opener.broadcastFullSync(); 
+            };
+        }
+    </script>
+</body>
+</html>
