@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hub Synchronizer</title>
+</head>
+<body>
+    <h1 id="status">Syncing with hub...</h1>
+    <script>
+        // The master hub file path. 
+        // This is the file all terminals read from.
+        const HUB_FILE = 'mesh_master.json'; 
+        const DB_NAME = 'TiffyStoreDB';
+        const STORE_NAME = 'StoreData';
+
+        async function syncWithHub() {
+            const db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+
+            // 1. Read the current flat MESH_DIR from the local node
+            const getReq = store.get('MESH_DIR');
+            
+            getReq.onsuccess = async () => {
+                const localMesh = getReq.result;
+                
+                if (!localMesh) {
+                    document.getElementById('status').innerText = "No data found.";
+                    return;
+                }
+
+                // 2. Push the local state to the Hub
+                // This updates the master file so all other terminals read the new state.
+                try {
+                    await fetch(HUB_FILE, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(localMesh)
+                    });
+                    document.getElementById('status').innerText = "Hub synchronized.";
+                } catch (err) {
+                    console.error("Hub Sync Error:", err);
+                    document.getElementById('status').innerText = "Sync failed.";
+                }
+            };
+        }
+
+        syncWithHub().catch(console.error);
+    </script>
+</body>
+</html>
