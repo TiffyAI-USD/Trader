@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesh Sync Sidecar</title>
+    <style>
+        body { background: #000; color: #00f0ff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        button { padding: 40px 80px; font-size: 24px; background: rgba(0, 240, 255, 0.2); border: 2px solid #00f0ff; color: #fff; cursor: pointer; border-radius: 20px; transition: 0.3s; }
+        button:hover { background: rgba(0, 240, 255, 0.4); }
+    </style>
+</head>
+<body>
+
+    <button id="sync-btn" onclick="executeMeshHandshake()">SYNC MESH</button>
+
+    <script>
+        const DB_NAME = 'TiffyStoreDB';
+        const STORE_NAME = 'StoreData';
+        const MESH_KEY = 'MESH_DIR';
+
+        async function executeMeshHandshake() {
+            // 1. KYC Check (Uses the same key your main file uses)
+            if (!localStorage.getItem("KYC_Verified_Hash")) {
+                alert("KYC NOT VERIFIED");
+                return;
+            }
+
+            // 2. Open your existing TiffyStoreDB
+            const db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = e => resolve(e.target.result);
+                req.onerror = e => reject(e.target.error);
+            });
+
+            // 3. Extract your current stores (The 11 stores)
+            const localRegistry = await new Promise(resolve => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).get(MESH_KEY);
+                req.onsuccess = () => resolve(req.result || {});
+            });
+
+            // 4. Handshake with Master Mesh
+            // Replace 'YOUR_MASTER_MESH_ENDPOINT' with your actual backend sync URL
+            try {
+                const response = await fetch('YOUR_MASTER_MESH_ENDPOINT', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(localRegistry)
+                });
+
+                if (!response.ok) throw new Error("Network sync failed");
+
+                const masterRegistry = await response.json();
+
+                // 5. Atomic Update
+                // Writes the complete unified mesh back to the DB so your main app inherits it
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).put(masterRegistry, MESH_KEY);
+                localStorage.setItem(MESH_KEY, JSON.stringify(masterRegistry));
+
+                alert("Klaar. Network updated.");
+            } catch (err) {
+                console.error(err);
+                alert("Sync error. Check connection.");
+            }
+        }
+    </script>
+</body>
+</html>
