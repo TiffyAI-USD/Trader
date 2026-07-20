@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Restore Mesh Dir</title>
+</head>
+<body>
+    <h1>Restoring MESH_DIR...</h1>
+    <script>
+        (function() {
+            const DB_NAME = 'TiffyStoreDB';
+            const STORE_NAME = 'StoreData';
+
+            const request = indexedDB.open(DB_NAME, 1);
+
+            request.onerror = (event) => {
+                console.error("Database error:", event.target.error);
+            };
+
+            request.onsuccess = (event) => {
+                const db = event.target.result;
+
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    console.error("Store not found:", STORE_NAME);
+                    return;
+                }
+
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+
+                const getRequest = objectStore.get('MESH_DIR');
+
+                getRequest.onsuccess = (e) => {
+                    const data = e.target.result;
+                    
+                    // Flattening the structure if it was layered, otherwise keeping raw
+                    const flatStructure = (data && data.data) ? data.data : data;
+
+                    if (flatStructure) {
+                        const putRequest = objectStore.put(flatStructure, 'MESH_DIR');
+
+                        putRequest.onsuccess = () => {
+                            console.log("MESH_DIR successfully re-mapped to flat structure.");
+                        };
+
+                        putRequest.onerror = (err) => {
+                            console.error("Failed to update MESH_DIR:", err);
+                        };
+                    } else {
+                        console.log("No existing MESH_DIR data found to restore.");
+                    }
+                };
+
+                getRequest.onerror = (err) => {
+                    console.error("Error fetching MESH_DIR:", err);
+                };
+            };
+        })();
+    </script>
+</body>
+</html>
