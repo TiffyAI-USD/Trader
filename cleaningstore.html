@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <script>
+        (async function forceCleanup() {
+            const req = indexedDB.open('TiffyStoreDB', 1);
+            req.onsuccess = (e) => {
+                const db = e.target.result;
+                const tx = db.transaction(['StoreData'], 'readwrite');
+                const store = tx.objectStore('StoreData');
+                const getReq = store.get('MESH_DIR');
+                getReq.onsuccess = () => {
+                    let mesh = getReq.result || {};
+                    if (mesh.last_updated) {
+                        delete mesh.last_updated;
+                        store.put(mesh, 'MESH_DIR');
+                        alert("Cleanup applied. Refresh your terminal.");
+                    }
+                };
+            };
+        })();
+    </script>
+</body>
+</html>
