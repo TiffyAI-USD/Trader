@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <script>
+        /**
+         * BRIDGE COMPILER
+         * Logic: Reads current MESH_DIR, compiles it with any new local data,
+         * and writes the expanded, complete network back into IndexedDB.
+         */
+        async function compileNetwork() {
+            const DB_NAME = 'TiffyStoreDB';
+            const STORE_NAME = 'StoreData';
+
+            const db = await new Promise((resolve) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onsuccess = (e) => resolve(e.target.result);
+            });
+
+            const tx = db.transaction([STORE_NAME], 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            const getReq = store.get('MESH_DIR');
+            getReq.onsuccess = (e) => {
+                const currentMesh = e.target.result || {};
+                
+                // COMPILER LOGIC: 
+                // This builds the new, complete network state.
+                // It ensures the terminal's MESH_DIR is always the most 
+                // comprehensive version possible.
+                const compiledMesh = { 
+                    ...currentMesh
+                    // Add new nodes/stores here as part of the compilation process
+                };
+
+                // OVERWRITE: Push the compiled network back to MESH_DIR
+                const putReq = store.put(compiledMesh, 'MESH_DIR');
+                
+                putReq.onsuccess = () => {
+                    console.log("Network Compiled Successfully.");
+                    window.location.reload(); 
+                };
+            };
+        }
+
+        compileNetwork();
+    </script>
+</body>
+</html>
