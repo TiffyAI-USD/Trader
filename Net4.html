@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script>
+        const DB_NAME = 'TiffyStoreDB', STORE_NAME = 'StoreData', KEY = 'MESH_DIR';
+
+        const openDB = () => new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+
+        async function initSync() {
+            const db = await openDB();
+            
+            // Sync from IDB to LocalStorage
+            const tx = db.transaction([STORE_NAME], 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const getReq = store.get(KEY);
+            
+            getReq.onsuccess = () => {
+                if (getReq.result) {
+                    localStorage.setItem(KEY, JSON.stringify(getReq.result));
+                }
+            };
+
+            // Sync from LocalStorage to IDB
+            window.addEventListener('storage', (e) => {
+                if (e.key === KEY && e.newValue) {
+                    const writeTx = db.transaction([STORE_NAME], 'readwrite');
+                    writeTx.objectStore(STORE_NAME).put(JSON.parse(e.newValue), KEY);
+                }
+            });
+        }
+
+        initSync();
+    </script>
+</body>
+</html>
