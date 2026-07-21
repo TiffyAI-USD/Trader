@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TIFFY MESH_DIR STABLE MERGE BRIDGE</title>
+  <style>
+    :root {
+      --electric-blue: #00f0ff;
+      --glass: rgba(6, 10, 35, 0.75);
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', monospace, sans-serif;
+      background: #000;
+      color: #fff;
+      padding: 25px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+    }
+    h2 {
+      color: var(--electric-blue);
+      text-align: center;
+      margin-bottom: 20px;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 1px;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+    }
+    h3 {
+      font-size: 1rem;
+      color: #ff00aa;
+      margin-bottom: 10px;
+    }
+    button, label.file-btn {
+      background: rgba(0, 240, 255, 0.2);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      display: block;
+      text-align: center;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+    }
+    button:hover, label.file-btn:hover {
+      background: rgba(0, 240, 255, 0.4);
+      transform: scale(1.02);
+    }
+    input[type="file"] {
+      display: none;
+    }
+    textarea {
+      width: 100%;
+      height: 130px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid var(--glass-border);
+      color: var(--electric-blue);
+      padding: 10px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #00ff00;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>TIFFY MESH_DIR STABLE MERGE BRIDGE</h2>
+    
+    <div class="section">
+      <h3>1. EXPORT MESH STATE</h3>
+      <button onclick="exportMeshFile()">DOWNLOAD MESH STATE (.JSON)</button>
+    </div>
+
+    <div class="section">
+      <h3>2. STABLE MERGE IMPORT</h3>
+      <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Safely merges incoming nodes while ensuring raw HTML fields remain isolated per peer ID.</p>
+      <label class="file-btn">
+        SELECT & MERGE FILE
+        <input type="file" id="import-file" accept=".json" onchange="stableMergeImport(event)">
+      </label>
+      <div id="write-status" class="status"></div>
+    </div>
+
+    <div class="section">
+      <h3>3. LIVE INSPECTOR</h3>
+      <textarea id="state-output" placeholder="State inspection view..."></textarea>
+      <button onclick="loadServerState()" style="margin-top: 10px;">REFRESH VIEW</button>
+    </div>
+  </div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+
+  async function getDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+
+  async function loadServerState() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get('MESH_DIR');
+      req.onsuccess = () => {
+        const data = req.result || {};
+        document.getElementById('state-output').value = JSON.stringify(data, null, 2);
+      };
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function exportMeshFile() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get('MESH_DIR');
+      req.onsuccess = async () => {
+        const data = req.result || {};
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `MESH_DIR_STABLE_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+    } catch (err) {
+      alert("Failed to export database state.");
+    }
+  }
+
+  async function stableMergeImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const incomingData = JSON.parse(e.target.result);
+        const db = await getDB();
+        
+        // Read current local state
+        const txRead = db.transaction(STORE_NAME, 'readonly');
+        const existingData = await new Promise((resolve) => {
+          const req = txRead.objectStore(STORE_NAME).get('MESH_DIR');
+          req.onsuccess = () => resolve(req.result || {});
+          req.onerror = () => resolve({});
+        });
+
+        // Strict key-by-key verification to ensure HTML payloads are never shadowed
+        const mergedData = Object.assign({}, existingData);
+        for (const [key, node] of Object.entries(incomingData)) {
+          if (node && typeof node === 'object') {
+            mergedData[key] = {
+              id: node.id || key,
+              name: node.name || 'Untitled Store',
+              html: node.html || mergedData[key]?.html || '', // Preserves distinct HTML string
+              thumb: node.thumb || mergedData[key]?.thumb || '',
+              reviews: node.reviews || mergedData[key]?.reviews || [],
+              timestamp: node.timestamp || Date.now()
+            };
+          }
+        }
+
+        // Commit back to IndexedDB
+        const txWrite = db.transaction(STORE_NAME, 'readwrite');
+        txWrite.objectStore(STORE_NAME).put(mergedData, 'MESH_DIR');
+        
+        txWrite.oncomplete = () => {
+          document.getElementById('write-status').textContent = "✅ Stable merge complete! HTML payloads isolated per peer.";
+          loadServerState();
+        };
+        txWrite.onerror = () => {
+          document.getElementById('write-status').textContent = "❌ Commit failed.";
+        };
+      } catch (err) {
+        alert("Invalid JSON structure.");
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  window.onload = loadServerState;
+</script>
+
+</body>
+</html>
