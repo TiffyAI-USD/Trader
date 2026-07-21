@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TIFFY MARKETPLACE CATEGORY & MESH MERGE HUB</title>
+  <style>
+    :root {
+      --electric-blue: #00f0ff;
+      --neon-pink: #ff00aa;
+      --glass: rgba(6, 10, 35, 0.85);
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', monospace, sans-serif;
+      background: #000;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      max-width: 950px;
+      margin: 0 auto;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+    }
+    h2 {
+      color: var(--electric-blue);
+      text-align: center;
+      margin-bottom: 20px;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 1px;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+    }
+    h3 {
+      font-size: 1rem;
+      color: var(--neon-pink);
+      margin-bottom: 10px;
+    }
+    select, button, label.file-btn {
+      background: rgba(0, 240, 255, 0.2);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      padding: 12px 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      display: block;
+      text-align: center;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+      font-family: monospace;
+    }
+    select {
+      background: #050b1a;
+      color: var(--electric-blue);
+    }
+    select option {
+      background: #050b1a;
+      color: #fff;
+    }
+    button:hover, label.file-btn:hover {
+      background: rgba(0, 240, 255, 0.4);
+      transform: scale(1.01);
+    }
+    input[type="file"] { display: none; }
+    textarea {
+      width: 100%;
+      height: 120px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid var(--glass-border);
+      color: var(--electric-blue);
+      padding: 10px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #00ff00;
+      text-align: center;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>TIFFY MARKETPLACE CATEGORY & ROOM MESH HUB</h2>
+    
+    <div class="section">
+      <h3>1. SELECT MARKETPLACE ROOM / CATEGORY TARGET</h3>
+      <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Choose which MESH room/partition database to write or merge into.</p>
+      <select id="room-selector" onchange="switchRoomTarget()">
+        <option value="MESH_DIR">MESH_DIR (Default / Main)</option>
+        <option value="MESH_DIR_CLASSIFIEDS">MESH_DIR_CLASSIFIEDS (Classifieds)</option>
+        <option value="MESH_DIR_JOBS">MESH_DIR_JOBS (Job Placements)</option>
+        <option value="MESH_DIR_GARDEN">MESH_DIR_GARDEN (Garden and Home)</option>
+        <option value="MESH_DIR_SOFTWARE">MESH_DIR_SOFTWARE (Software)</option>
+        <option value="MESH_DIR_SERVICES">MESH_DIR_SERVICES (Services)</option>
+        <option value="MESH_DIR_SOLUTIONS">MESH_DIR_SOLUTIONS (Solutions)</option>
+        <option value="MESH_DIR_RESTAURANTS">MESH_DIR_RESTAURANTS (Restaurants)</option>
+        <option value="MESH_DIR_TAKEAWAYS">MESH_DIR_TAKEAWAYS (Take aways)</option>
+      </select>
+    </div>
+
+    <div class="section grid-2">
+      <div>
+        <h3>2. EXPORT CURRENT ROOM</h3>
+        <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Export selected room's data file.</p>
+        <button onclick="exportSelectedRoom()">DOWNLOAD ROOM FILE</button>
+      </div>
+      <div>
+        <h3>3. MERGE & COMBINE ROOMS</h3>
+        <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Merge external browser store file into this room.</p>
+        <label class="file-btn">
+          UPLOAD & MERGE FILE
+          <input type="file" id="import-file" accept=".json" onchange="mergeExternalRoomFile(event)">
+        </label>
+      </div>
+    </div>
+    <div id="write-status" class="status"></div>
+
+    <div class="section">
+      <h3>4. ACTIVE ROOM LIVE INSPECTOR</h3>
+      <textarea id="state-output" placeholder="Room registry data..."></textarea>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button onclick="loadActiveRoomState()">REFRESH ROOM VIEW</button>
+        <button onclick="initializeStarterStores()" style="background: rgba(255,0,170,0.2);">POPULATE INITIAL STARTER STORES</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+  let activeRoomKey = 'MESH_DIR';
+
+  function switchRoomTarget() {
+    activeRoomKey = document.getElementById('room-selector').value;
+    loadActiveRoomState();
+  }
+
+  async function getDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+      };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+
+  async function loadActiveRoomState() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(activeRoomKey);
+      req.onsuccess = () => {
+        const data = req.result || {};
+        document.getElementById('state-output').value = JSON.stringify(data, null, 2);
+        document.getElementById('write-status').textContent = `Loaded partition: ${activeRoomKey}`;
+      };
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function exportSelectedRoom() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(activeRoomKey);
+      req.onsuccess = async () => {
+        const data = req.result || {};
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${activeRoomKey}_EXPORT_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+    } catch (err) {
+      alert("Failed to export room state.");
+    }
+  }
+
+  async function mergeExternalRoomFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const incomingData = JSON.parse(e.target.result);
+        const db = await getDB();
+        
+        // 1. Read current room data from IndexedDB
+        const txRead = db.transaction(STORE_NAME, 'readonly');
+        const existingData = await new Promise((resolve) => {
+          const req = txRead.objectStore(STORE_NAME).get(activeRoomKey);
+          req.onsuccess = () => resolve(req.result || {});
+          req.onerror = () => resolve({});
+        });
+
+        // 2. Deep combine/merge keys from incoming file with existing room keys
+        const mergedData = Object.assign({}, existingData);
+        for (const [key, node] of Object.entries(incomingData)) {
+          if (node && typeof node === 'object') {
+            mergedData[key] = {
+              id: node.id || key,
+              name: node.name || 'Marketplace Store',
+              html: node.html || mergedData[key]?.html || '',
+              thumb: node.thumb || mergedData[key]?.thumb || '',
+              reviews: node.reviews || mergedData[key]?.reviews || [],
+              timestamp: node.timestamp || Date.now()
+            };
+          }
+        }
+
+        // 3. Write combined multi-store registry back to partition key
+        const txWrite = db.transaction(STORE_NAME, 'readwrite');
+        txWrite.objectStore(STORE_NAME).put(mergedData, activeRoomKey);
+        
+        txWrite.oncomplete = () => {
+          document.getElementById('write-status').textContent = `✅ Successfully merged stores into ${activeRoomKey}!`;
+          loadActiveRoomState();
+        };
+        txWrite.onerror = () => {
+          document.getElementById('write-status').textContent = "❌ Failed to write merged room state.";
+        };
+      } catch (err) {
+        alert("Invalid JSON format.");
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  async function initializeStarterStores() {
+    const starterKey = `starter-node-${activeRoomKey.toLowerCase()}`;
+    const starterStore = {
+      [starterKey]: {
+        id: starterKey,
+        name: `Featured ${activeRoomKey.replace('MESH_DIR_', '')} Hub`,
+        html: `<!DOCTYPE html><html><head><title>${activeRoomKey}</title></head><body style="background:#000;color:#00f0ff;text-align:center;padding-top:50px;font-family:sans-serif;"><h1>WELCOME TO ${activeRoomKey}</h1><p>Marketplace node online and ready for commerce.</p></body></html>`,
+        thumb: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        reviews: [{ msg: "Starter store verified." }],
+        timestamp: Date.now()
+      }
+    };
+
+    try {
+      const db = await getDB();
+      const txRead = db.transaction(STORE_NAME, 'readonly');
+      const existingData = await new Promise((resolve) => {
+        const req = txRead.objectStore(STORE_NAME).get(activeRoomKey);
+        req.onsuccess = () => resolve(req.result || {});
+        req.onerror = () => resolve({});
+      });
+
+      const mergedData = Object.assign({}, existingData, starterStore);
+
+      const txWrite = db.transaction(STORE_NAME, 'readwrite');
+      txWrite.objectStore(STORE_NAME).put(mergedData, activeRoomKey);
+      txWrite.oncomplete = () => {
+        document.getElementById('write-status').textContent = `✅ Initialized starter store for ${activeRoomKey}!`;
+        loadActiveRoomState();
+      };
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  window.onload = loadActiveRoomState;
+</script>
+
+</body>
+</html>
