@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesh Directory Import/Export Engine</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #121212;
+            color: #00ff66;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        h2 {
+            margin-top: 0;
+            color: #ffffff;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        .log-box {
+            background: #000;
+            border: 1px solid #333;
+            padding: 12px;
+            height: 180px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .log-entry { margin-bottom: 6px; }
+        .log-info { color: #00ccff; }
+        .log-success { color: #00ff66; }
+        .log-error { color: #ff3333; }
+        
+        .panel {
+            background: #252525;
+            border: 1px solid #444;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .panel h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: #00ccff;
+        }
+        button, label.file-btn {
+            background: #00ff66;
+            color: #121212;
+            border: none;
+            padding: 12px 18px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border-radius: 4px;
+            text-transform: uppercase;
+            display: inline-block;
+            text-align: center;
+        }
+        button:hover, label.file-btn:hover {
+            background: #00cc52;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .action-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .preview-pane {
+            background: #181818;
+            border: 1px dashed #444;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            word-break: break-all;
+            max-height: 100px;
+            overflow-y: auto;
+            color: #aaa;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Mesh Directory Import / Export Node</h2>
+        
+        <div id="logBox" class="log-box">
+            <div class="log-entry log-info">[Init] System ready. Waiting for operation...</div>
+        </div>
+
+        <!-- EXPORT PANEL -->
+        <div class="panel">
+            <h3>1. Export Engine (Cache & Local Storage -> File)</h3>
+            <p style="font-size: 0.85rem; color: #ccc;">Extracts current local storage and cache memory, bundling them into a complete file for the next browser/user.</p>
+            <button id="exportBtn">Export Next Generation File</button>
+        </div>
+
+        <!-- IMPORT PANEL -->
+        <div class="panel">
+            <h3>2. Import Engine (File -> Cache & Local Storage)</h3>
+            <p style="font-size: 0.85rem; color: #ccc;">Upload or open a previously exported mesh file to inject its memory straight into this browser's local storage.</p>
+            <div class="action-row">
+                <label for="importFile" class="file-btn">Import Mesh File</label>
+                <input type="file" id="importFile" accept=".html">
+            </div>
+        </div>
+
+        <div class="preview-pane" id="previewPane">
+            Active Ledger State: Initializing...
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const box = document.getElementById('logBox');
+            const div = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.textContent = `> ${message}`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        const MESH_KEY = 'mesh_directory_ledger';
+        const LOCAL_KEY = 'app_local_user_data';
+
+        // 1. HARDCODED CACHE MEMORY (Embedded baseline)
+        let cacheMemory = {
+            version: "1.0.0",
+            nodes: [
+                {
+                    nodeId: "genesis_node",
+                    storeData: { id: "genesis_node", name: "Original Seed Store", items: [] },
+                    timestamp: 1718000000000
+                }
+            ]
+        };
+
+        // BOOT SEQUENCE: Run the 4-section flow on load using embedded cache + local storage
+        (function bootFlow() {
+            try {
+                log("Flow Section 1: Reading browser local storage...", "info");
+                const existingMeshJSON = localStorage.getItem(MESH_KEY);
+                if (existingMeshJSON) {
+                    const parsedMesh = JSON.parse(existingMeshJSON);
+                    if (parsedMesh && Array.isArray(parsedMesh.nodes) && parsedMesh.nodes.length >= cacheMemory.nodes.length) {
+                        cacheMemory = parsedMesh;
+                        log(`Loaded mesh ledger from local storage with ${cacheMemory.nodes.length} nodes.`, "success");
+                    }
+                } else {
+                    log("No prior local storage ledger found. Using embedded cache memory baseline.", "info");
+                }
+
+                // Grab current user's local store data
+                const rawUserStore = localStorage.getItem(LOCAL_KEY);
+                let currentUserStore = rawUserStore ? JSON.parse(rawUserStore) : {
+                    id: "user_store_" + Math.random().toString(36).substring(2, 7),
+                    name: "Local User Shop",
+                    created: Date.now()
+                };
+                log(`Loaded local user store ID: ${currentUserStore.id}`, "success");
+
+                // Flow Section 2: Cache Memory Integration
+                log("Flow Section 2: Integrating local data into cache memory...", "info");
+                if (!Array.isArray(cacheMemory.nodes)) {
+                    cacheMemory.nodes = [];
+                }
+
+                const existingIndex = cacheMemory.nodes.findIndex(n => n.nodeId === currentUserStore.id);
+                const entry = {
+                    nodeId: currentUserStore.id,
+                    storeData: currentUserStore,
+                    timestamp: Date.now()
+                };
+
+                if (existingIndex > -1) {
+                    cacheMemory.nodes[existingIndex] = entry;
+                    log(`Updated node entry in cache memory for ID: ${currentUserStore.id}`, "success");
+                } else {
+                    cacheMemory.nodes.push(entry);
+                    log(`Appended new node into cache memory. Total nodes: ${cacheMemory.nodes.length}`, "success");
+                }
+
+                // Flow Section 3: Local Storage Write/Rewrite
+                log("Flow Section 3: Writing synchronized state back to local storage...", "info");
+                localStorage.setItem(MESH_KEY, JSON.stringify(cacheMemory));
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(currentUserStore));
+                log("Local storage synchronized successfully.", "success");
+
+                document.getElementById('previewPane').textContent = JSON.stringify(cacheMemory, null, 2);
+                log("Flow Section 4: Cache memory standing by for Export/Import handoff.", "success");
+
+            } catch (err) {
+                log(`Boot Flow Error: ${err.message}`, "error");
+            }
+        })();
+
+        // EXPORTER: Bundles current cache memory into a downloadable file for the next browser/user
+        document.getElementById('exportBtn').onclick = function() {
+            try {
+                log("Exporting: Packaging cache memory into next-gen app file...", "info");
+                
+                const exportableAppContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesh Directory Import/Export Node</title>
+    <style>
+        body { font-family: monospace; background: #121212; color: #00ff66; margin: 0; padding: 20px; }
+        .container { max-width: 650px; margin: 0 auto; background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 20px; }
+        h2 { margin-top: 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 1.2rem; }
+        .log-box { background: #000; border: 1px solid #333; padding: 12px; height: 180px; overflow-y: auto; font-size: 0.85rem; }
+        .log-entry { margin-bottom: 6px; }
+        .log-success { color: #00ff66; }
+        .panel { background: #252525; border: 1px solid #444; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+        .panel h3 { margin-top: 0; font-size: 1rem; color: #00ccff; }
+        button, label.file-btn { background: #00ff66; color: #121212; border: none; padding: 12px 18px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; display: inline-block; }
+        input[type="file"] { display: none; }
+        .action-row { display: flex; gap: 10px; align-items: center; }
+        .preview-pane { background: #181818; border: 1px dashed #444; padding: 10px; border-radius: 4px; font-size: 0.8rem; word-break: break-all; max-height: 100px; overflow-y: auto; color: #aaa; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Mesh Directory Import / Export Node</h2>
+        <div id="logBox" class="log-box">
+            <div class="log-entry" style="color: #00ccff;">[Init] Exported node instance booted.</div>
+        </div>
+        <div class="panel">
+            <h3>1. Export Engine</h3>
+            <button id="exportBtn">Export Next Generation File</button>
+        </div>
+        <div class="panel">
+            <h3>2. Import Engine</h3>
+            <div class="action-row">
+                <label for="importFile" class="file-btn">Import Mesh File</label>
+                <input type="file" id="importFile" accept=".html">
+            </div>
+        </div>
+        <div class="preview-pane" id="previewPane"></div>
+    </div>
+    <script>
+        function log(msg, type = 'info') {
+            const b = document.getElementById('logBox');
+            const d = document.createElement('div');
+            d.className = 'log-entry log-' + type;
+            d.textContent = '> ' + msg;
+            b.appendChild(d);
+            b.scrollTop = b.scrollHeight;
+        }
+        const M_KEY = 'mesh_directory_ledger';
+        const L_KEY = 'app_local_user_data';
+        
+        // Inherited cache memory from previous user/run
+        let cacheMemory = ${JSON.stringify(cacheMemory)};
+
+        (function() {
+            try {
+                localStorage.setItem(M_KEY, JSON.stringify(cacheMemory));
+                log("Inherited cache memory successfully written to local storage. Total nodes: " + cacheMemory.nodes.length, "success");
+                document.getElementById('previewPane').textContent = JSON.stringify(cacheMemory, null, 2);
+            } catch(e) {
+                log("Error writing inherited cache: " + e.message, "error");
+            }
+        })();
+
+        // Re-attach Export/Import logic for generated file instances
+        document.getElementById('exportBtn').onclick = function() {
+            const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mesh_app_node_' + Date.now() + '.html';
+            a.click();
+            log("Exported new mesh file successfully.", "success");
+        };
+
+        document.getElementById('importFile').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const text = evt.target.result;
+                    const match = text.match(/let cacheMemory = ({[\\s\\S]*?});/);
+                    if (match && match[1]) {
+                        const importedData = JSON.parse(match[1]);
+                        localStorage.setItem(M_KEY, JSON.stringify(importedData));
+                        log("Import successful! Mesh loaded into local storage.", "success");
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        log("Invalid file structure: Could not extract cache memory.", "error");
+                    }
+                } catch(err) {
+                    log("Import parse error: " + err.message, "error");
+                }
+            };
+            reader.readAsText(file);
+        };
+    <\/script>
+</body>
+</html>`;
+
+                const blob = new Blob([exportableAppContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mesh_app_node_' + Date.now() + '.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                log("Export complete! File downloaded and ready to pass to the next browser/user.", "success");
+            } catch (err) {
+                log(`Export Error: ${err.message}`, "error");
+            }
+        };
+
+        // IMPORTER: Reads an uploaded mesh file, extracts its cache memory, and injects it into local storage
+        document.getElementById('importFile').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            log(`Importing: Reading file "${file.name}"...`, "info");
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const fileText = evt.target.result;
+                    // Extract the embedded cacheMemory object string from the file text
+                    const match = fileText.match(/let cacheMemory = ({[\s\S]*?});/);
+                    if (match && match[1]) {
+                        const importedCache = JSON.parse(match[1]);
+                        
+                        // Inject into local storage
+                        localStorage.setItem(MESH_KEY, JSON.stringify(importedCache));
+                        
+                        log(`Import successful! Injected ${importedCache.nodes.length} nodes into local storage. Reloading...`, "success");
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1200);
+                    } else {
+                        log("Import Error: Could not locate valid cache memory structure inside the selected file.", "error");
+                    }
+                } catch (err) {
+                    log(`Import Parse Error: ${err.message}`, "error");
+                }
+            };
+            reader.readAsText(file);
+        };
+    </script>
+
+</body>
+</html>
