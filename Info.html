@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Tiffy Mesh Architecture: Decentralized Web Stores & Autonomous State Bridging</title>
+  <style>
+    :root {
+      --electric-blue: #00f0ff;
+      --neon-pink: #ff00aa;
+      --glass: rgba(6, 10, 35, 0.85);
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', monospace, sans-serif;
+      background: #000;
+      color: #fff;
+      padding: 40px 20px;
+      line-height: 1.6;
+    }
+    .article-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
+    }
+    h1 {
+      color: var(--electric-blue);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      margin-bottom: 15px;
+      text-align: center;
+      letter-spacing: 1.5px;
+    }
+    .subtitle {
+      color: var(--neon-pink);
+      text-align: center;
+      font-size: 1rem;
+      margin-bottom: 30px;
+      font-weight: bold;
+    }
+    h2 {
+      color: var(--electric-blue);
+      font-size: 1.3rem;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 5px;
+    }
+    p {
+      margin-bottom: 15px;
+      color: #ddd;
+      font-size: 0.95rem;
+    }
+    ul {
+      margin-bottom: 20px;
+      padding-left: 20px;
+      color: #ccc;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    code {
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--electric-blue);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    .highlight-box {
+      background: rgba(0, 0, 0, 0.6);
+      border-left: 4px solid var(--neon-pink);
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="article-container">
+    <h1>THE TIFFY MESH ARCHITECTURE</h1>
+    <div class="subtitle">Decentralized Web Stores, Peer State Bridging, and Autonomous Commerce</div>
+
+    <p>Modern web development often chains creators to centralized servers, restrictive databases, and rigid cloud monopolies. But what if a web store could exist entirely as an autonomous, self-contained HTML artifact, routed and synchronized through a decentralized browser mesh?</p>
+
+    <p>This is the core philosophy behind the <strong>Tiffy Architecture</strong>—a system engineered to put total sovereign control back into the hands of creators, developers, and marketplace operators.</p>
+
+    <h2>1. The MESH_DIR Protocol & IndexedDB Persistence</h2>
+    <p>At the heart of the system is <code>MESH_DIR</code>, a structured dictionary object stored locally via browser <code>IndexedDB</code>. Instead of relying on a distant backend SQL server to map applications, the terminal treats the browser itself as a node server.</p>
+    <ul>
+      <li><strong>Peer ID Mapping:</strong> Every deployed store is indexed directly by its unique Peer ID.</li>
+      <li><strong>Isolated Payloads:</strong> Each store record encapsulates its full raw HTML, base64 thumbnail assets, customer review arrays, and real-time synchronization timestamps.</li>
+      <li><strong>Zero-Loss Merging:</strong> Using deep object combination logic, subsequent browser uploads merge seamlessly—preventing data collisions and ensuring historical store nodes are never overwritten.</li>
+    </ul>
+
+    <h2>2. Cross-Browser State Bridging</h2>
+    <p>Decentralization requires fluid movement between environments. Rather than depending on live websocket handshakes that can fail behind restrictive firewalls, the Tiffy bridge utilizes <strong>State Export and Stable File Merging</strong>.</p>
+    
+    <div class="highlight-box">
+      <p><strong>How it works:</strong> Browser 1 exports its cumulative multi-store ledger into a portable <code>.json</code> state file. When imported into Browser 2, the mesh bridge reads the local database, compares keys, and aggregates all unique peer nodes together—creating an instantly synchronized, multi-browser ecosystem.</p>
+    </div>
+
+    <h2>3. Marketplace Partition Rooms</h2>
+    <p>To scale beyond a single directory, the system partitions commerce into dedicated category rooms such as <code>MESH_DIR_CLASSIFIEDS</code>, <code>MESH_DIR_JOBS</code>, <code>MESH_DIR_SOFTWARE</code>, and <code>MESH_DIR_RESTAURANTS</code>. Each category acts as an independent room on the mesh network, populated by starter stores and expandable via peer-to-peer file merging.</p>
+
+    <h2>4. The Road Ahead: Sovereign Creator Revenue</h2>
+    <p>As the network matures, the next frontier focuses on monetization. By embedding verifiable sales logging directly into the immutable runtime of each store's HTML package, creators will soon be able to inspect performance locally and claim their revenue transparently—bridging the gap between decentralized deployment and autonomous creator compensation.</p>
+
+    <p style="text-align: center; color: var(--electric-blue); margin-top: 30px; font-family: 'Orbitron', sans-serif;">
+      <em>Built for sovereignty. Designed for the decentralized web.</em>
+    </p>
+  </div>
+
+</body>
+</html>
