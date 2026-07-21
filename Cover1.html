@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MESH_DIR</title>
+  <style>
+    body { font-family: monospace; background: #000; color: #00f0ff; padding: 40px; text-align: center; }
+    h2 { margin-bottom: 10px; }
+    p { color: #888; font-size: 13px; margin-bottom: 30px; }
+    pre { background: rgba(0, 240, 255, 0.05); border: 1px solid #00f0ff; padding: 20px; border-radius: 6px; text-align: left; max-width: 700px; margin: 0 auto; color: #fff; font-size: 12px; max-height: 350px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+  </style>
+</head>
+<body>
+
+  <h2>MESH_DIR WRITER</h2>
+  <p>Accumulating stores and writing MESH_DIR into local storage...</p>
+  
+  <pre id="log">Status: Initializing MESH_DIR...</pre>
+
+<script>
+  // THE MESH_DIR FILE CONTENT (Stores, dates, thumbnails, and all metadata accumulate here)
+  const MESH_DIR = /*MESH_START*/{}/*MESH_END*/;
+
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+
+  function logMsg(msg) {
+    const logEl = document.getElementById('log');
+    logEl.textContent += '\n' + msg;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function getDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+
+  async function writeMeshDirectory() {
+    try {
+      logMsg("1. Opening local storage (TiffyStoreDB)...");
+      const db = await getDB();
+      
+      const local_MESH_DIR = await new Promise((resolve) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const req = tx.objectStore(STORE_NAME).get('MESH_DIR');
+        req.onsuccess = () => resolve(req.result || {});
+        req.onerror = () => resolve({});
+      });
+
+      logMsg("2. Accumulating stores, dates, and thumbnails into MESH_DIR...");
+      
+      const new_MESH_DIR = {};
+
+      for (const [key, value] of Object.entries(MESH_DIR)) {
+        new_MESH_DIR[key] = value;
+      }
+
+      for (const [key, value] of Object.entries(local_MESH_DIR)) {
+        new_MESH_DIR[key] = value;
+      }
+
+      logMsg("3. Writing MESH_DIR back to local storage...");
+      
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const putReq = store.put(new_MESH_DIR, 'MESH_DIR');
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e.target.error);
+      });
+
+      logMsg("SUCCESS: MESH_DIR written to local storage!");
+      logMsg("Total stores in MESH_DIR: " + Object.keys(new_MESH_DIR).length);
+      logMsg("Returning to terminal...");
+
+      setTimeout(() => {
+        if (window.opener) {
+          window.close();
+        } else {
+          window.location.href = './index.html';
+        }
+      }, 1500);
+
+    } catch (err) {
+      logMsg("ERROR: " + err.message);
+    }
+  }
+
+  window.onload = writeMeshDirectory;
+</script>
+
+</body>
+</html>
