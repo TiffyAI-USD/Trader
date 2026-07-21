@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TIFFY MESH_DIR Server & State Bridge</title>
+  <style>
+    :root {
+      --electric-blue: #00f0ff;
+      --glass: rgba(6, 10, 35, 0.75);
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', monospace, sans-serif;
+      background: #000;
+      color: #fff;
+      padding: 25px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+    }
+    h2 {
+      color: var(--electric-blue);
+      text-align: center;
+      margin-bottom: 20px;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 1px;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+    }
+    h3 {
+      font-size: 1rem;
+      color: #ff00aa;
+      margin-bottom: 10px;
+    }
+    button {
+      background: rgba(0, 240, 255, 0.2);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      background: rgba(0, 240, 255, 0.4);
+      transform: scale(1.02);
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid var(--glass-border);
+      color: var(--electric-blue);
+      padding: 10px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #00ff00;
+      text-align: center;
+    }
+    .flex-row {
+      display: flex;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>TIFFY MESH_DIR SERVER & STATE BRIDGE</h2>
+    
+    <div class="section">
+      <h3>1. SERVER STATE INSPECTOR</h3>
+      <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Reads the live `MESH_DIR` database table acting as the local server source.</p>
+      <button onclick="loadServerState()">READ LIVE SERVER STATE</button>
+      <textarea id="state-output" placeholder="Live server state will load here..."></textarea>
+    </div>
+
+    <div class="section">
+      <h3>2. STATE WRITER & BRIDGE INJECTOR</h3>
+      <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Writes modified JSON payloads directly back into IndexedDB to manage node entries and synchronization states.</p>
+      <button onclick="writeServerState()">COMMIT STATE TO SERVER DB</button>
+      <div id="write-status" class="status"></div>
+    </div>
+
+    <div class="section">
+      <h3>3. BRIDGE UTILITIES</h3>
+      <div class="flex-row">
+        <button onclick="exportMeshJson()">EXPORT MESH JSON</button>
+        <button onclick="window.location.reload()" style="background: rgba(255,0,170,0.2);">REFRESH BRIDGE</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+
+  async function getDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+
+  async function loadServerState() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get('MESH_DIR');
+      
+      req.onsuccess = () => {
+        const data = req.result || {};
+        document.getElementById('state-output').value = JSON.stringify(data, null, 2);
+        document.getElementById('write-status').textContent = "Server state successfully loaded into bridge.";
+      };
+    } catch (err) {
+      console.error(err);
+      document.getElementById('write-status').textContent = "Error reading server state.";
+    }
+  }
+
+  async function writeServerState() {
+    try {
+      const rawText = document.getElementById('state-output').value;
+      const parsedData = JSON.parse(rawText);
+      
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(parsedData, 'MESH_DIR');
+      
+      tx.oncomplete = () => {
+        document.getElementById('write-status').textContent = "✅ Server state committed and synchronized successfully!";
+      };
+      tx.onerror = () => {
+        document.getElementById('write-status').textContent = "❌ Failed to commit state to database.";
+      };
+    } catch (err) {
+      alert("Invalid JSON format in text area. Fix syntax before committing.");
+      console.error(err);
+    }
+  }
+
+  async function exportMeshJson() {
+    const rawText = document.getElementById('state-output').value;
+    if (!rawText) return alert("Load server state first.");
+    const blob = new Blob([rawText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `MESH_DIR_SERVER_EXPORT_${Date.now()}.json`;
+    a.click();
+  }
+
+  // Auto-load state on start
+  window.onload = loadServerState;
+</script>
+
+</body>
+</html>
