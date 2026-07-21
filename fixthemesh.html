@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TIFFY MESH_DIR Injector</title>
+  <style>
+    body { background: #000; color: #00f0ff; font-family: monospace; padding: 40px; text-align: center; }
+    button { background: rgba(0,240,255,0.2); border: 1px solid #00f0ff; color: #fff; padding: 15px 30px; font-size: 16px; cursor: pointer; border-radius: 8px; margin-top: 20px; }
+    button:hover { background: rgba(0,240,255,0.4); }
+    #status { margin-top: 20px; font-size: 14px; color: #ff00aa; }
+  </style>
+</head>
+<body>
+
+  <h2>TIFFY MESH_DIR LocalStorage/IndexedDB Restorer</h2>
+  <p>Clicking the button below will inject the exact required schema directly back into your IndexedDB (StoreData / MESH_DIR) to fix the upload routing and prevent fallback errors.</p>
+  
+  <button onclick="injectMeshDir()">RESTORE & INJECT MESH_DIR</button>
+  <div id="status"></div>
+
+<script>
+  async function injectMeshDir() {
+    const DB_NAME = 'TiffyStoreDB';
+    const STORE_NAME = 'StoreData';
+    
+    const exactMeshDir = {
+      "tiffy-terminal-node-genesis": {
+        "id": "tiffy-terminal-node-genesis",
+        "name": "TIFFY Sovereign Store",
+        "html": "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><title>TIFFY Sovereign Store</title><style>body{background:#000;color:#00f0ff;font-family:sans-serif;text-align:center;padding-top:50px;}h1{text-shadow:0 0 20px #00f0ff;}</style></head><body><h1>TIFFY SOVEREIGN STOREFRONT ACTIVE</h1><p>Mesh synchronized successfully.</p></body></html>",
+        "thumb": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "reviews": [
+          {
+            "msg": "Peer: Node active and synchronized."
+          }
+        ],
+        "timestamp": 1753110000000
+      }
+    };
+
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = event => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+
+    request.onsuccess = event => {
+      const db = event.target.result;
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      
+      const putRequest = store.put(exactMeshDir, 'MESH_DIR');
+      
+      putRequest.onsuccess = () => {
+        document.getElementById('status').textContent = "SUCCESS: MESH_DIR successfully restored and injected into IndexedDB!";
+      };
+      
+      putRequest.onerror = () => {
+        document.getElementById('status').textContent = "ERROR: Failed to write MESH_DIR to database.";
+      };
+    };
+
+    request.onerror = () => {
+      document.getElementById('status').textContent = "ERROR: Could not open IndexedDB TiffyStoreDB.";
+    };
+  }
+</script>
+
+</body>
+</html>
