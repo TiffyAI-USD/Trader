@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TIFFY • Cross-Browser MESH_DIR URL Bridge</title>
+  <style>
+    body { font-family: sans-serif; background: #000; color: #00f0ff; padding: 20px; text-align: center; }
+    button { background: #00f0ff; color: #000; border: none; padding: 15px 25px; font-weight: bold; border-radius: 10px; cursor: pointer; margin: 10px; font-size: 15px; }
+    textarea { width: 100%; height: 130px; background: rgba(0,0,0,0.6); border: 1px solid #00f0ff; color: #fff; padding: 10px; border-radius: 8px; margin-top: 10px; font-family: monospace; font-size: 11px; }
+    pre { background: rgba(0,240,255,0.08); border: 1px solid #00f0ff; padding: 15px; border-radius: 8px; text-align: left; margin-top: 15px; overflow-x: auto; color: #fff; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <h2>CROSS-BROWSER MESH_DIR BRIDGE</h2>
+  <p>Copies the complete multi-store MESH_DIR database, packs it into a portable URL, and injects it back into the target browser's storage exactly as the terminal demands.</p>
+
+  <button onclick="exportMeshURL()">1. GENERATE TRANSFER URL FROM CURRENT MESH</button>
+  <button onclick="importMeshURL()">2. INJECT URL MESH_DIR INTO TARGET BROWSER</button>
+
+  <textarea id="url-box" placeholder="Transfer URL with embedded multi-store MESH_DIR payload..."></textarea>
+  <pre id="log">Status: Waiting for action...</pre>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+
+  function logMsg(msg) {
+    document.getElementById('log').textContent += '\n' + msg;
+  }
+
+  async function getDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+      };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+
+  // 1. Export entire multi-store MESH_DIR from IndexedDB into a portable URL hash string
+  async function exportMeshURL() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get('MESH_DIR');
+      
+      req.onsuccess = async () => {
+        const meshData = req.result || {};
+        const jsonStr = JSON.stringify(meshData);
+        // Base64 encode the complete multi-store record cleanly
+        const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
+        const fullUrl = window.location.origin + window.location.pathname + '#mesh=' + encoded;
+        
+        document.getElementById('url-box').value = fullUrl;
+        logMsg("SUCCESS: Multi-store MESH_DIR packed into transfer URL.");
+      };
+      req.onerror = e => logMsg("Export read error: " + e.target.error);
+    } catch (err) {
+      logMsg("Export exception: " + err);
+    }
+  }
+
+  // 2. Decode URL payload and write exact MESH_DIR into both IndexedDB and localStorage
+  async function importMeshURL() {
+    try {
+      let raw = window.location.hash;
+      if (!raw || !raw.includes('#mesh=')) {
+        raw = document.getElementById('url-box').value.trim();
+      }
+      
+      if (!raw || !raw.includes('#mesh=')) {
+        logMsg("ERROR: No valid #mesh= payload found in URL or text box.");
+        return;
+      }
+
+      const encodedData = raw.split('#mesh=')[1];
+      const jsonStr = decodeURIComponent(escape(atob(encodedData)));
+      const meshObject = JSON.parse(jsonStr);
+
+      // Write directly to local storage
+      localStorage.setItem('MESH_DIR', JSON.stringify(meshObject));
+
+      // Write directly to IndexedDB under the exact 'MESH_DIR' key
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      
+      store.put(meshObject, 'MESH_DIR');
+
+      tx.oncomplete = () => {
+        logMsg("SUCCESS: Complete multi-store MESH_DIR successfully injected!");
+        logMsg("All stores, HTML documents, and thumbnails are now active. Open your terminal.");
+      };
+      tx.onerror = e => logMsg("Transaction write error: " + e.target.error);
+
+    } catch (err) {
+      logMsg("Import injection failed: " + err.message);
+    }
+  }
+
+  // Auto-execute if loaded via a transfer link
+  window.onload = () => {
+    if (window.location.hash && window.location.hash.includes('#mesh=')) {
+      logMsg("Incoming transfer detected in URL hash. Auto-injecting MESH_DIR...");
+      importMeshURL();
+    }
+  };
+</script>
+
+</body>
+</html>
