@@ -219,11 +219,11 @@
       <a-sky id="sky" src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
       <a-camera position="0 1.6 0"></a-camera>
       
-      <!-- AR Portals / Floating Store Nodes -->
-      <a-entity id="ar-portal" position="0 1.2 -3.2"></a-entity>
+      <!-- Rotating Store Portals (Cleanly centered at Z = -2.5) -->
+      <a-entity id="ar-portal" position="0 1.2 -2.5"></a-entity>
 
-      <!-- Holographic Floating AR Post Billboards Container (Moved left & up) -->
-      <a-entity id="ar-billboard-container" position="-2.2 3.3 -4.5"></a-entity>
+      <!-- AR Feed Post Billboards (Shifted to the left & elevated to prevent overlap) -->
+      <a-entity id="ar-billboard-container" position="-2.5 3.2 -2.8"></a-entity>
 
       <a-entity id="holographic-comms-console" position="-0.3 0.1 -1.1">
         <a-plane width="2.3" height="1.6" color="#03071e" material="opacity: 0.75; transparent: true; side: double; shader: flat;"></a-plane>
@@ -245,7 +245,7 @@
   <div id="ui-panel">
     <div style="font-family:'Orbitron'; text-align:center; margin-bottom:12px; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
     
-    <!-- UNIFIED ROOM SWITCHER -->
+    <!-- ROOM SWITCHER -->
     <div style="margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 10px; border: 1px solid var(--glass-border);">
       <label style="font-size: 10px; color: var(--neon-pink); font-weight: bold; display: block; margin-bottom: 4px;">MARKETPLACE ROOM</label>
       <select id="room-selector" onchange="switchRoomTarget(this.value)" style="width: 100%; padding: 8px; background: #050b1a; color: var(--electric-blue); border: 1px solid var(--glass-border); border-radius: 8px; font-family: monospace; font-size: 11px;">
@@ -348,7 +348,7 @@
   const DB_NAME = 'TiffyStoreDB';
   const STORE_NAME = 'StoreData';
   let meshDir = {};
-  let meshPosts = []; // Persistent mesh AR social posts array
+  let meshPosts = []; 
   let activeRoomKey = 'MESH_DIR';
   let myPeerId = null;
   const peer = new Peer();
@@ -381,7 +381,6 @@
       return;
     }
 
-    // Check size limit (400 MB = 400 * 1024 * 1024 bytes)
     const maxSize = 400 * 1024 * 1024;
     if (file.size > maxSize) {
       alert("File is too large! Maximum supported size for mesh video/3D uploads is 400MB.");
@@ -419,19 +418,14 @@
       timestamp: Date.now()
     };
 
-    // Save to local mesh posts array & IndexedDB persistence
     meshPosts.push(postPayload);
     await saveMeshRoomData();
-
-    // Render billboards in AR space
     renderAllARBillboards();
 
-    // Broadcast over peer mesh network to other nodes in the active room
     Object.values(peer.connections).flat().forEach(conn => {
       if (conn.open) conn.send(postPayload);
     });
 
-    // Clear input state after publishing
     document.getElementById('ar-post-textarea').value = '';
     attachedMediaFile = null;
     attachedMediaDataUrl = null;
@@ -447,84 +441,84 @@
     if (!container) return;
     container.innerHTML = '';
 
-    // Render all stored posts for this mesh room sequentially in a grid layout
     meshPosts.forEach((post, index) => {
-      const xOffset = (index % 3) * 1.8;
-      const yOffset = -Math.floor(index / 3) * 1.8;
+      const xOffset = (index % 3) * 2.1;
+      const yOffset = -Math.floor(index / 3) * 1.9;
 
       const panel = document.createElement('a-entity');
       panel.setAttribute('position', `${xOffset} ${yOffset} 0`);
       panel.setAttribute('animation', 'property: rotation; from: 0 -2 0; to: 0 2 0; dir: alternate; loop: true; dur: 4000; easing: easeInOutSine');
 
-      // Background Glass Panel
       const bgPlane = document.createElement('a-plane');
-      bgPlane.setAttribute('width', '1.6');
-      bgPlane.setAttribute('height', '1.6');
+      bgPlane.setAttribute('width', '1.8');
+      bgPlane.setAttribute('height', '1.7');
       bgPlane.setAttribute('color', '#060a23');
       bgPlane.setAttribute('material', 'opacity: 0.85; transparent: true; side: double; shader: flat;');
       panel.appendChild(bgPlane);
 
-      // Outer Neon Ring Border
       const borderRing = document.createElement('a-ring');
-      borderRing.setAttribute('radius-inner', '0.85');
-      borderRing.setAttribute('radius-outer', '0.88');
+      borderRing.setAttribute('radius-inner', '0.95');
+      borderRing.setAttribute('radius-outer', '0.98');
       borderRing.setAttribute('color', post.color || '#00f0ff');
       borderRing.setAttribute('material', 'side: double; shader: flat;');
       panel.appendChild(borderRing);
 
-      // Media attachment handling
       if (post.hasMedia && post.mediaData) {
         if (post.mediaType && post.mediaType.includes('image')) {
           const imgPlane = document.createElement('a-image');
           imgPlane.setAttribute('src', post.mediaData);
-          imgPlane.setAttribute('width', '1.1');
-          imgPlane.setAttribute('height', '0.8');
-          imgPlane.setAttribute('position', '0 0.25 0.02');
+          imgPlane.setAttribute('width', '1.2');
+          imgPlane.setAttribute('height', '0.9');
+          imgPlane.setAttribute('position', '0 0.28 0.02');
           panel.appendChild(imgPlane);
         } else if (post.mediaType && post.mediaType.includes('video')) {
-          const vidEl = document.createElement('video');
-          vidEl.setAttribute('src', post.mediaData);
-          vidEl.setAttribute('autoplay', 'true');
-          vidEl.setAttribute('loop', 'true');
-          vidEl.setAttribute('muted', 'true');
-          vidEl.setAttribute('playsinline', 'true');
-          
           const vidId = 'ar-vid-' + post.timestamp + '-' + index;
-          vidEl.id = vidId;
-          document.querySelector('a-assets').appendChild(vidEl);
+          let vidEl = document.getElementById(vidId);
+          
+          if (!vidEl) {
+            vidEl = document.createElement('video');
+            vidEl.id = vidId;
+            vidEl.setAttribute('src', post.mediaData);
+            vidEl.setAttribute('autoplay', 'true');
+            vidEl.setAttribute('loop', 'true');
+            vidEl.setAttribute('muted', 'true');
+            vidEl.setAttribute('playsinline', 'true');
+            vidEl.setAttribute('crossorigin', 'anonymous');
+            document.querySelector('a-assets').appendChild(vidEl);
+          }
+          
+          vidEl.play().catch(err => console.warn("Video playback retry needed:", err));
 
           const vidPlane = document.createElement('a-video');
           vidPlane.setAttribute('src', '#' + vidId);
-          vidPlane.setAttribute('width', '1.1');
-          vidPlane.setAttribute('height', '0.8');
-          vidPlane.setAttribute('position', '0 0.25 0.02');
+          vidPlane.setAttribute('width', '1.2');
+          vidPlane.setAttribute('height', '0.9');
+          vidPlane.setAttribute('position', '0 0.28 0.02');
           panel.appendChild(vidPlane);
         } else if (post.mediaName && (post.mediaName.endsWith('.glb') || post.mediaName.endsWith('.gltf'))) {
           const gltfEntity = document.createElement('a-gltf-model');
           gltfEntity.setAttribute('src', post.mediaData);
-          gltfEntity.setAttribute('scale', '0.4 0.4 0.4');
+          gltfEntity.setAttribute('scale', '0.35 0.35 0.35');
           gltfEntity.setAttribute('position', '0 0.2 0.05');
           panel.appendChild(gltfEntity);
         }
       }
 
-      // Text Content Overlay
       if (post.text) {
         const textEntity = document.createElement('a-text');
         textEntity.setAttribute('value', post.text);
         textEntity.setAttribute('align', 'center');
         textEntity.setAttribute('position', post.hasMedia ? '0 -0.45 0.03' : '0 0 0.03');
-        textEntity.setAttribute('width', '1.5');
+        textEntity.setAttribute('width', '1.6');
         textEntity.setAttribute('color', post.color || '#00f0ff');
         textEntity.setAttribute('font', 'mozillavr');
         panel.appendChild(textEntity);
       }
 
-      // Author Tag
       const authorTag = document.createElement('a-text');
       authorTag.setAttribute('value', `MESH POST • ${post.author ? post.author.substring(0, 4) : 'NODE'}`);
       authorTag.setAttribute('align', 'center');
-      authorTag.setAttribute('position', '0 0.72 0.03');
+      authorTag.setAttribute('position', '0 0.75 0.03');
       authorTag.setAttribute('width', '2.2');
       authorTag.setAttribute('color', '#ff00aa');
       authorTag.setAttribute('font', 'mozillavr');
@@ -534,7 +528,6 @@
     });
   }
 
-  // Sound Utility
   function playIncomingCallSound() {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = audioCtx.createOscillator();
@@ -550,10 +543,12 @@
 
   async function getDB() {
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = e => {
+      const req = indexedDB.open(DB_NAME, 2);
+      req.onupgradeneeded = async e => {
         const db = e.target.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
       };
       req.onsuccess = e => resolve(e.target.result);
       req.onerror = e => reject(e.target.error);
@@ -572,18 +567,22 @@
     activeRoomKey = roomKey;
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readonly');
-    const req = tx.objectStore(STORE_NAME).get(activeRoomKey);
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(activeRoomKey);
+    
     req.onsuccess = () => {
-      const data = req.result;
-      if (data && typeof data === 'object' && !data.id && !data.name) {
-        // New structure containing both stores and posts
-        meshDir = data.meshDir || {};
-        meshPosts = data.meshPosts || [];
-      } else {
-        // Legacy fallback format where only store data was stored
-        meshDir = data || {};
-        meshPosts = [];
+      let data = req.result;
+      meshDir = {};
+      meshPosts = [];
+      
+      if (data && typeof data === 'object') {
+        if (data.meshDir) Object.assign(meshDir, data.meshDir);
+        if (data.meshPosts && Array.isArray(data.meshPosts)) meshPosts = data.meshPosts;
+        if (!data.meshDir && !data.meshPosts && Object.keys(data).length > 0) {
+          Object.assign(meshDir, data);
+        }
       }
+      
       renderPortals();
       renderAllARBillboards();
       broadcastFullSync();
@@ -617,7 +616,7 @@
 
   function broadcastPresence() {
     if (!myPeerId) return;
-    const myStore = Object.values(meshDir).find(s => s.id === myPeerId) || { name: "Guest" };
+    const myStore = meshDir[myPeerId] || { name: "Guest" };
     const packet = { type: 'PRESENCE', id: myPeerId, name: myStore.name };
     Object.values(peer.connections).flat().forEach(conn => {
       if (conn.open) conn.send(packet);
@@ -686,7 +685,8 @@
         fr.readAsDataURL(tFile);
       });
       
-      meshDir[peer.id] = { id: peer.id, name, html, thumb, reviews: [], timestamp: Date.now() };
+      const newStore = { id: peer.id, name, html, thumb, reviews: [], timestamp: Date.now() };
+      meshDir[peer.id] = newStore;
       await saveMeshRoomData();
       
       broadcastFullSync();
@@ -702,11 +702,14 @@
     const container = document.getElementById('ar-portal');
     if (!container) return;
     container.innerHTML = '';
-    Object.values(meshDir).forEach((biz, i) => {
+    
+    const storesList = Object.values(meshDir);
+
+    storesList.forEach((biz, i) => {
       const el = document.createElement('a-plane');
-      el.setAttribute('position', `${(i * 1.8) - 1.5} 0.6 -2.5`);
-      el.setAttribute('width', '1.5');
-      el.setAttribute('height', '1.5');
+      el.setAttribute('position', `${(i * 1.8) - 1.5} 0 0`);
+      el.setAttribute('width', '1.4');
+      el.setAttribute('height', '1.4');
       el.setAttribute('material', { src: biz.thumb, side: 'double', transparent: true });
       el.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 6500; easing: linear');
       el.addEventListener('click', () => {
@@ -744,7 +747,7 @@
     currentTargetStore = storeName;
     localStorage.setItem('last_target_name', storeName);
     
-    const biz = Object.values(meshDir).find(b => b.name === storeName);
+    const biz = meshDir[Object.keys(meshDir).find(k => meshDir[k].name === storeName)];
     if (!biz) return;
     const container = document.getElementById('chat-container');
     container.innerHTML = `<div style="color:var(--electric-blue); font-size:10px;">REVIEWS: ${biz.name}</div>`;
@@ -783,7 +786,7 @@
       streamTarget.srcObject = remoteStream;
       streamTarget.play().catch(e => console.error("Playback blocked:", e));
       
-      const nodeTitle = Object.values(meshDir).find(s => s.id === call.peer)?.name || "PEER NODE";
+      const nodeTitle = meshDir[call.peer]?.name || "PEER NODE";
       document.getElementById('spatial-node-title').setAttribute('value', `LIVE CALL: ${nodeTitle.toUpperCase()}`);
       updateSpatialVideoDisplay("LIVE FEED ESTABLISHED", true);
     });
@@ -826,19 +829,18 @@
       if (conn) sendFullSync(conn);
     }
     else if (data.type === 'SYNC_ROOM') {
-      if (data.room === activeRoomKey) {
-        Object.assign(meshDir, data.dir || {});
-        // Merge mesh posts ensuring no duplicate timestamps
-        const existingTimestamps = new Set(meshPosts.map(p => p.timestamp));
-        (data.posts || []).forEach(p => {
-          if (!existingTimestamps.has(p.timestamp)) {
-            meshPosts.push(p);
-          }
-        });
-        renderPortals();
-        renderAllARBillboards();
-        saveMeshRoomData();
+      if (data.dir) {
+        Object.assign(meshDir, data.dir);
       }
+      if (data.posts && Array.isArray(data.posts)) {
+        const existingTimestamps = new Set(meshPosts.map(p => p.timestamp));
+        data.posts.forEach(p => {
+          if (!existingTimestamps.has(p.timestamp)) meshPosts.push(p);
+        });
+      }
+      renderPortals();
+      renderAllARBillboards();
+      saveMeshRoomData();
     }
     else if (data.type === 'PRESENCE') {
       activePeers[id] = data.name;
@@ -873,7 +875,7 @@
       renderOnlineList();
       sendFullSync(conn);
       conn.send({ type: 'REQUEST_DIR' });
-      conn.send({ type: 'PRESENCE', id: myPeerId, name: (Object.values(meshDir).find(s => s.id === myPeerId)?.name || 'Guest') });
+      conn.send({ type: 'PRESENCE', id: myPeerId, name: (meshDir[myPeerId]?.name || 'Guest') });
     });
     conn.on('data', (data) => handleIncomingData(conn.peer, data));
     conn.on('close', () => { delete activePeers[targetId]; updateOnlineStatus(); renderOnlineList(); });
