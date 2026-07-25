@@ -214,6 +214,9 @@
         <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous"
                src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
         <video id="remote-video-stream" autoplay playsinline></video>
+        <img id="btn-fullscreen" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/fullscreen.png" crossorigin="anonymous">
+        <img id="btn-like" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/like.png" crossorigin="anonymous">
+        <img id="btn-deleting" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/deleting.png" crossorigin="anonymous">
       </a-assets>
       
       <a-sky id="sky" src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
@@ -415,6 +418,8 @@
       mediaName: attachedMediaFile ? attachedMediaFile.name : null,
       mediaType: attachedMediaFile ? attachedMediaFile.type : null,
       mediaData: attachedMediaDataUrl,
+      likes: 0,
+      likedBy: [],
       timestamp: Date.now()
     };
 
@@ -434,6 +439,42 @@
     document.getElementById('media-attachment-indicator').style.color = "#888";
 
     alert("✅ AR Post saved to Mesh database and broadcasted!");
+  }
+
+  async function deleteARPost(timestamp) {
+    if (!confirm("Delete this AR post?")) return;
+    meshPosts = meshPosts.filter(p => p.timestamp !== timestamp);
+    await saveMeshRoomData();
+    renderAllARBillboards();
+
+    const deletePacket = { type: 'DELETE_AR_POST', timestamp };
+    Object.values(peer.connections).flat().forEach(conn => {
+      if (conn.open) conn.send(deletePacket);
+    });
+    addChatMessage("Deleted AR post.");
+  }
+
+  async function likeARPost(timestamp) {
+    const post = meshPosts.find(p => p.timestamp === timestamp);
+    if (!post) return;
+
+    if (!post.likedBy) post.likedBy = [];
+    if (post.likedBy.includes(myPeerId)) {
+      addChatMessage("You already liked this post!");
+      return;
+    }
+
+    post.likedBy.push(myPeerId);
+    post.likes = (post.likes || 0) + 1;
+    await saveMeshRoomData();
+    renderAllARBillboards();
+
+    const likePacket = { type: 'LIKE_AR_POST', timestamp, voterId: myPeerId };
+    Object.values(peer.connections).flat().forEach(conn => {
+      if (conn.open) conn.send(likePacket);
+    });
+
+    addChatMessage(`Liked post! Total likes: ${post.likes}`);
   }
 
   function renderAllARBillboards() {
@@ -479,15 +520,12 @@
             vidEl = document.createElement('video');
             vidEl.id = vidId;
             vidEl.setAttribute('src', post.mediaData);
-            vidEl.setAttribute('autoplay', 'true');
             vidEl.setAttribute('loop', 'true');
             vidEl.setAttribute('muted', 'true');
             vidEl.setAttribute('playsinline', 'true');
             vidEl.setAttribute('crossorigin', 'anonymous');
             document.querySelector('a-assets').appendChild(vidEl);
           }
-          
-          vidEl.play().catch(err => console.warn("Video playback retry needed:", err));
 
           const vidPlane = document.createElement('a-video');
           vidPlane.setAttribute('src', '#' + vidId);
@@ -495,6 +533,40 @@
           vidPlane.setAttribute('height', '0.9');
           vidPlane.setAttribute('position', '0 0.28 0.02');
           panel.appendChild(vidPlane);
+
+          panel.addEventListener('click', (evt) => {
+            if (evt.target.id === 'fs-btn-' + index || evt.target.parentNode.id === 'fs-btn-' + index) return;
+            if (vidEl.paused) {
+              vidEl.play().catch(err => console.warn("Video play error:", err));
+              addChatMessage("Playing AR video stream...");
+            } else {
+              vidEl.pause();
+              addChatMessage("Paused AR video stream.");
+            }
+          });
+
+          // Fullscreen Image Button using fullscreen.png
+          const fsBtn = document.createElement('a-entity');
+          fsBtn.id = 'fs-btn-' + index;
+          fsBtn.setAttribute('position', '0.62 -0.12 0.04');
+          fsBtn.setAttribute('class', 'clickable');
+
+          const fsImgPlane = document.createElement('a-image');
+          fsImgPlane.setAttribute('src', '#btn-fullscreen');
+          fsImgPlane.setAttribute('width', '0.36');
+          fsImgPlane.setAttribute('height', '0.16');
+          fsImgPlane.setAttribute('transparent', 'true');
+          fsBtn.appendChild(fsImgPlane);
+
+          fsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const blob = new Blob([`<html style="background:#000;margin:0;height:100%;"><body style="margin:0;height:100%;display:flex;align-items:center;justify-content:center;"><video src="${post.mediaData}" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video></body></html>`], { type: 'text/html' });
+            window.open(URL.createObjectURL(blob), '_blank');
+            addChatMessage("Opened video in Fullscreen window.");
+          });
+
+          panel.appendChild(fsBtn);
+
         } else if (post.mediaName && (post.mediaName.endsWith('.glb') || post.mediaName.endsWith('.gltf'))) {
           const gltfEntity = document.createElement('a-gltf-model');
           gltfEntity.setAttribute('src', post.mediaData);
@@ -523,6 +595,66 @@
       authorTag.setAttribute('color', '#ff00aa');
       authorTag.setAttribute('font', 'mozillavr');
       panel.appendChild(authorTag);
+
+      // --- LIKE BUTTON WITH like.png & ANIMATED SPRAYING STARS ---
+      const likeBtn = document.createElement('a-entity');
+      likeBtn.setAttribute('position', '-0.45 -0.72 0.04');
+      likeBtn.setAttribute('class', 'clickable');
+
+      const likeImgPlane = document.createElement('a-image');
+      likeImgPlane.setAttribute('src', '#btn-like');
+      likeImgPlane.setAttribute('width', '0.72');
+      likeImgPlane.setAttribute('height', '0.22');
+      likeImgPlane.setAttribute('transparent', 'true');
+      likeBtn.appendChild(likeImgPlane);
+
+      const currentLikes = post.likes || 0;
+      const likeText = document.createElement('a-text');
+      likeText.setAttribute('value', `(${currentLikes})`);
+      likeText.setAttribute('align', 'center');
+      likeText.setAttribute('position', '0.22 0 0.01');
+      likeText.setAttribute('width', '1.0');
+      likeText.setAttribute('color', '#ffff00');
+      likeText.setAttribute('font', 'mozillavr');
+      likeBtn.appendChild(likeText);
+
+      likeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        likeARPost(post.timestamp);
+
+        // Spraying stars animation particles in 3D
+        for (let s = 0; s < 6; s++) {
+          const star = document.createElement('a-text');
+          star.setAttribute('value', '★');
+          star.setAttribute('align', 'center');
+          star.setAttribute('position', `${(Math.random() - 0.5) * 0.6} ${-0.72 + (Math.random() * 0.4)} 0.08`);
+          star.setAttribute('width', '1.2');
+          star.setAttribute('color', '#ffff00');
+          star.setAttribute('animation', `property: position; to: ${(Math.random() - 0.5) * 1.5} ${-0.2 + (Math.random() * 1.2)} 0.3; dur: 800; easing: easeOutQuad;`);
+          star.setAttribute('animation__fade', 'property: opacity; from: 1; to: 0; dur: 800;');
+          panel.appendChild(star);
+          setTimeout(() => star.remove(), 850);
+        }
+      });
+      panel.appendChild(likeBtn);
+
+      // --- SMALL DELETE POST BUTTON WITH deleting.png ---
+      const delBtn = document.createElement('a-entity');
+      delBtn.setAttribute('position', '0.62 -0.72 0.04');
+      delBtn.setAttribute('class', 'clickable');
+
+      const delImgPlane = document.createElement('a-image');
+      delImgPlane.setAttribute('src', '#btn-deleting');
+      delImgPlane.setAttribute('width', '0.42');
+      delImgPlane.setAttribute('height', '0.22');
+      delImgPlane.setAttribute('transparent', 'true');
+      delBtn.appendChild(delImgPlane);
+
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteARPost(post.timestamp);
+      });
+      panel.appendChild(delBtn);
 
       container.appendChild(panel);
     });
@@ -861,6 +993,23 @@
         saveMeshRoomData();
       }
       addChatMessage(`AR Broadcast from Peer: "${data.text.substring(0, 20) || 'Media Post'}..."`);
+    }
+    else if (data.type === 'LIKE_AR_POST') {
+      const p = meshPosts.find(item => item.timestamp === data.timestamp);
+      if (p) {
+        if (!p.likedBy) p.likedBy = [];
+        if (!p.likedBy.includes(data.voterId)) {
+          p.likedBy.push(data.voterId);
+          p.likes = (p.likes || 0) + 1;
+          renderAllARBillboards();
+          saveMeshRoomData();
+        }
+      }
+    }
+    else if (data.type === 'DELETE_AR_POST') {
+      meshPosts = meshPosts.filter(item => item.timestamp !== data.timestamp);
+      renderAllARBillboards();
+      saveMeshRoomData();
     }
     else addChatMessage("Peer: " + data);
   }
