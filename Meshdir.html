@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Mesh Terminal - MESH_DIR Core</title>
+  <style>
+    :root {
+      --electric-blue: #00f0ff;
+      --glass: rgba(6, 10, 35, 0.75);
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: monospace;
+      background: #000;
+      color: var(--electric-blue);
+      padding: 20px;
+    }
+    .terminal-container {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 600px;
+      margin: 40px auto;
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+    }
+    h2 { margin-bottom: 15px; font-size: 1.2rem; }
+    select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: rgba(0, 240, 255, 0.25); }
+    #output {
+      background: #03071e;
+      border: 1px solid var(--glass-border);
+      padding: 15px;
+      border-radius: 8px;
+      height: 250px;
+      overflow-y: auto;
+      font-size: 11px;
+      margin-top: 15px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="terminal-container">
+    <h2>TIFFY MESH_DIR REPOSITORY CORE</h2>
+    
+    <label for="room-select">SELECT MESH ROOM:</label>
+    <select id="room-select" onchange="loadMeshDirForRoom(this.value)">
+      <option value="MESH_DIR">MESH_DIR</option>
+      <option value="MESH_DIR_CLASSIFIEDS">MESH_DIR_CLASSIFIEDS</option>
+      <option value="MESH_DIR_JOBS">MESH_DIR_JOBS</option>
+      <option value="MESH_DIR_SOFTWARE">MESH_DIR_SOFTWARE</option>
+      <option value="MESH_DIR_SERVICES">MESH_DIR_SERVICES</option>
+      <option value="MESH_DIR_RESTAURANTS">MESH_DIR_RESTAURANTS</option>
+    </select>
+
+    <button onclick="testInsertSampleStore()">INSERT TEST STORE INTO CURRENT ROOM</button>
+    <button onclick="loadMeshDirForRoom(activeRoomKey)">REFRESH MESH_DIR VIEW</button>
+
+    <div id="output">Initializing MESH_DIR core...</div>
+  </div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+  let meshDir = {};
+  let activeRoomKey = 'MESH_DIR';
+
+  function logToTerminal(text) {
+    const out = document.getElementById('output');
+    out.textContent += text + '\n';
+    out.scrollTop = out.scrollHeight;
+  }
+
+  function openStoreDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 2);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+          logToTerminal("[DB] Created object store: " + STORE_NAME);
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  async function loadMeshDirForRoom(roomKey) {
+    activeRoomKey = roomKey || 'MESH_DIR';
+    logToTerminal(`\n[Mesh] Loading room -> ${activeRoomKey}`);
+    try {
+      const db = await openStoreDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.openCursor();
+      
+      meshDir = {};
+
+      request.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          const key = cursor.key;
+          const val = cursor.value;
+          
+          if (key === activeRoomKey || (typeof key === 'string' && key.startsWith(activeRoomKey))) {
+            if (val && typeof val === 'object' && val.id) {
+              meshDir[val.id] = val;
+            }
+          }
+          cursor.continue();
+        } else {
+          logToTerminal(`[Mesh] Loaded successfully. Items found: ${Object.keys(meshDir).length}`);
+          logToTerminal(JSON.stringify(meshDir, null, 2));
+          if (typeof window.renderPortals === 'function') {
+            window.renderPortals();
+          }
+        }
+      };
+    } catch (err) {
+      logToTerminal(`[Error] Failed to load MESH_DIR: ${err.message}`);
+    }
+  }
+
+  async function saveMeshRoomData() {
+    try {
+      const db = await openStoreDB();
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      
+      for (const [id, storeObj] of Object.entries(meshDir)) {
+        store.put(storeObj, id);
+      }
+      
+      return new Promise((resolve, reject) => {
+        tx.oncomplete = () => {
+          logToTerminal(`[Mesh] Saved MESH_DIR state for room: ${activeRoomKey}`);
+          resolve();
+        };
+        tx.onerror = (e) => reject(tx.error);
+      });
+    } catch (err) {
+      logToTerminal(`[Error] Failed to save MESH_DIR: ${err.message}`);
+    }
+  }
+
+  async function testInsertSampleStore() {
+    const sampleId = 'store_' + Math.random().toString(36).substring(2, 8);
+    meshDir[sampleId] = {
+      id: sampleId,
+      name: `Sample Store (${activeRoomKey})`,
+      html: '<h1>Hello Sovereign Mesh</h1>',
+      thumb: '',
+      timestamp: Date.now()
+    };
+    await saveMeshRoomData();
+    await loadMeshDirForRoom(activeRoomKey);
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    logToTerminal("[Init] Opening TiffyStoreDB...");
+    await loadMeshDirForRoom('MESH_DIR');
+  });
+</script>
+</body>
+</html>
