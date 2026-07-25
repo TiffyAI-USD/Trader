@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>TIFFY Trader • Sovereign Mesh Terminal</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { 
+      --electric-blue: #00f0ff; 
+      --neon-pink: #ff00aa;
+      --neon-green: #00ff66;
+      --glass: rgba(6, 10, 35, 0.55); 
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+
+    #ui-panel { 
+      position: fixed; 
+      top: 20px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      background: var(--glass); 
+      backdrop-filter: blur(24px); 
+      border: 1px solid var(--glass-border); 
+      border-radius: 20px; 
+      padding: 18px; 
+      z-index: 100; 
+      width: 340px; 
+      max-height: 92vh; 
+      overflow-y: auto; 
+      box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
+    }
+
+    button { 
+      background: rgba(0, 240, 255, 0.18); 
+      border: 1px solid var(--glass-border); 
+      color: #fff; 
+      padding: 13px; 
+      margin: 6px 0; 
+      border-radius: 12px; 
+      width: 100%; 
+      cursor: pointer; 
+      font-weight: bold; 
+      transition: all 0.25s;
+    }
+    button:hover { background: rgba(0, 240, 255, 0.4); transform: scale(1.04); }
+
+    #toggle-ui { 
+      position: fixed; top: 20px; left: 20px; z-index: 101; 
+      background: #ff00aa; border: none; 
+      width: 52px; height: 52px; border-radius: 50%; 
+      cursor: pointer; font-size: 26px; 
+    }
+
+    .stat-row { 
+      font-family: 'Orbitron', sans-serif; 
+      text-align: center; 
+      margin: 12px 0; 
+      color: var(--electric-blue); 
+      font-size: 1.3rem; 
+      text-shadow: 0 0 15px var(--electric-blue);
+    }
+
+    #projector-lens { width: 100%; height: 235px; background: #000; border: 1px solid var(--glass-border); border-radius: 12px; margin: 12px 0; }
+
+    #chat-container { 
+      height: 135px; overflow-y: scroll; background: rgba(0,0,0,0.6); 
+      border: 1px solid var(--glass-border); padding: 10px; font-size: 12.5px; margin: 10px 0; color: #fff;
+      display: flex; flex-direction: column;
+    }
+
+    #chat-input { width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; }
+
+    #upload-modal { 
+      position: fixed; top: 18%; left: 35%; width: 360px; 
+      background: rgba(8,10,40,0.95); backdrop-filter: blur(22px); 
+      border: 2px solid var(--electric-blue); 
+      z-index: 300; color: #fff; border-radius: 18px; padding: 25px; 
+    }
+
+    .star-rating { cursor: pointer; color: #555; font-size: 1.5rem; transition: color 0.2s; }
+    .star-rating.filled { color: #ff0; }
+
+    #search-suggestions {
+      position: absolute; 
+      top: 100%; 
+      left: 0; 
+      width: 100%; 
+      background: rgba(6, 10, 35, 0.95);
+      backdrop-filter: blur(18px); 
+      border: 1px solid var(--electric-blue);
+      border-radius: 0 0 15px 15px; 
+      z-index: 250; 
+      max-height: 260px;
+      overflow-y: auto; 
+    }
+    .suggestion-item { 
+      padding: 12px 15px; 
+      cursor: pointer; 
+      border-bottom: 1px solid rgba(0,240,255,0.2); 
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .suggestion-item:hover { background: rgba(0, 240, 255, 0.3); color: var(--electric-blue); }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; margin-left: 8px; }
+    .active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+    .disconnected { background: #888; }
+    .hidden { display: none !important; }
+    
+    #online-members-container {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--glass-border);
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+
+    /* AR Social Post Composer Styling */
+    #post-composer-container {
+      background: rgba(6, 10, 35, 0.75);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 15px;
+      position: relative;
+      box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.1);
+    }
+    
+    .composer-header {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      color: var(--electric-blue);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .color-picker-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .color-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.2s;
+    }
+    .color-dot:hover { transform: scale(1.2); }
+    .color-dot.selected { border-color: #fff; box-shadow: 0 0 8px var(--electric-blue); }
+
+    .textarea-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    #ar-post-textarea {
+      width: 100%;
+      height: 85px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 10px;
+      padding-right: 40px;
+      color: #00f0ff;
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      resize: none;
+      outline: none;
+    }
+    #ar-post-textarea:focus { border-color: var(--electric-blue); box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+
+    #media-upload-trigger {
+      position: absolute;
+      bottom: 12px;
+      right: 10px;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    #media-upload-trigger:hover {
+      background: rgba(0, 240, 255, 0.4);
+      transform: scale(1.08);
+    }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">☰</button>
+  
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets>
+        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous"
+               src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+        <video id="remote-video-stream" autoplay playsinline></video>
+      </a-assets>
+      
+      <a-sky id="sky" src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+      <a-camera position="0 1.6 0"></a-camera>
+      
+      <!-- Rotating Store Portals (Cleanly centered at Z = -2.5) -->
+      <a-entity id="ar-portal" position="0 1.2 -2.5"></a-entity>
+
+      <!-- AR Feed Post Billboards (Shifted to the left & elevated to prevent overlap) -->
+      <a-entity id="ar-billboard-container" position="-2.5 3.2 -2.8"></a-entity>
+
+      <a-entity id="holographic-comms-console" position="-0.3 0.1 -1.1">
+        <a-plane width="2.3" height="1.6" color="#03071e" material="opacity: 0.75; transparent: true; side: double; shader: flat;"></a-plane>
+        <a-ring radius-inner="1.15" radius-outer="1.18" color="#00f0ff" material="side: double; shader: flat;"></a-ring>
+        
+        <a-video id="ar-caller-video" width="2.2" height="1.5" position="0 0 0.01" src="#remote-video-stream" visible="false"></a-video>
+        
+        <a-plane id="comms-standby-gfx" width="2.2" height="1.5" position="0 0 0.02" color="#050a23" material="opacity: 0.9; transparent: true; shader: flat;">
+          <a-text value="TERMINAL STANDBY\nNO ACTIVE STREAM" align="center" position="0 0 0.05" width="4" color="#00f0ff" font="mozillavr"></a-text>
+        </a-plane>
+
+        <a-text id="spatial-node-title" value="NODE: DISCONNECTED" align="center" position="0 0.9 0" width="4.5" color="#ff00aa" font="mozillavr"></a-text>
+        <a-text id="spatial-feed-monitor" value="SYSTEM ONLINE - MESH DISCOVERY ACTIVE" align="center" position="0 -0.9 0" width="3.5" color="#00f0ff" font="mozillavr"></a-text>
+      </a-entity>
+      
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:12px; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
+    
+    <!-- ROOM SWITCHER -->
+    <div style="margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 10px; border: 1px solid var(--glass-border);">
+      <label style="font-size: 10px; color: var(--neon-pink); font-weight: bold; display: block; margin-bottom: 4px;">MARKETPLACE ROOM</label>
+      <select id="room-selector" onchange="switchRoomTarget(this.value)" style="width: 100%; padding: 8px; background: #050b1a; color: var(--electric-blue); border: 1px solid var(--glass-border); border-radius: 8px; font-family: monospace; font-size: 11px;">
+        <option value="MESH_DIR">MESH_DIR (Default / Main)</option>
+        <option value="MESH_DIR_CLASSIFIEDS">MESH_DIR_CLASSIFIEDS (Classifieds)</option>
+        <option value="MESH_DIR_JOBS">MESH_DIR_JOBS (Job Placements)</option>
+        <option value="MESH_DIR_GARDEN">MESH_DIR_GARDEN (Garden and Home)</option>
+        <option value="MESH_DIR_SOFTWARE">MESH_DIR_SOFTWARE (Software)</option>
+        <option value="MESH_DIR_SERVICES">MESH_DIR_SERVICES (Services)</option>
+        <option value="MESH_DIR_SOLUTIONS">MESH_DIR_SOLUTIONS (Solutions)</option>
+        <option value="MESH_DIR_RESTAURANTS">MESH_DIR_RESTAURANTS (Restaurants)</option>
+        <option value="MESH_DIR_TAKEAWAYS">MESH_DIR_TAKEAWAYS (Take aways)</option>
+      </select>
+    </div>
+    
+    <div id="online-members-container">
+      <div style="font-size: 10px; color: #888; margin-bottom: 5px;">ONLINE MEMBERS</div>
+      <div id="online-members-list"></div>
+    </div>
+    
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+
+    <div style="position: relative; margin-bottom: 8px;">
+      <input type="text" id="search-bar" placeholder="Search Mesh..." style="width:100%; padding:10px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--glass-border); border-radius:10px;">
+      <div id="search-suggestions"></div>
+    </div>
+    
+    <button onclick="searchMesh()">SEARCH MATRIX</button>
+
+    <iframe id="projector-lens" allowfullscreen="true"></iframe>
+
+    <div style="display:flex; gap:8px;">
+      <button onclick="loadHome()">HOME</button>
+      <button onclick="clearViewer()" style="background:rgba(200,0,0,0.4);">CLEAR</button>
+    </div>
+
+    <button onclick="showDeployModal()">UPLOAD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/v6.html', '_blank')">EDIT STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')">BANKING</button>
+
+    <!-- AR Social Post & Media Feed Composer -->
+    <div id="post-composer-container">
+      <div class="composer-header">
+        <span>CREATE AR FEED POST</span>
+        <span id="media-attachment-indicator" style="font-size:9px; color:#888;">NO MEDIA ATTACHED</span>
+      </div>
+
+      <!-- Font Color Picker Palette -->
+      <div class="color-picker-row">
+        <span style="font-size:10px; color:#aaa; margin-right:4px;">FONT COLOR:</span>
+        <div class="color-dot selected" style="background: #00f0ff;" onclick="setPostFontColor('#00f0ff', this)"></div>
+        <div class="color-dot" style="background: #ffffff;" onclick="setPostFontColor('#ffffff', this)"></div>
+        <div class="color-dot" style="background: #ff00aa;" onclick="setPostFontColor('#ff00aa', this)"></div>
+        <div class="color-dot" style="background: #00ff66;" onclick="setPostFontColor('#00ff66', this)"></div>
+        <div class="color-dot" style="background: #ffaa00;" onclick="setPostFontColor('#ffaa00', this)"></div>
+      </div>
+
+      <!-- Smooth Text Field with Corner Upload Icon -->
+      <div class="textarea-wrapper">
+        <textarea id="ar-post-textarea" placeholder="Broadcast to 3D AR environment or attach 3D/Video files..."></textarea>
+        
+        <!-- Hidden File Input supporting images, 3D models (.glb, .gltf), and video up to 400MB -->
+        <input type="file" id="ar-media-file-input" accept="image/*,video/*,.glb,.gltf" class="hidden" onchange="handleMediaAttachment(event)">
+        
+        <!-- Floating Corner Upload Button -->
+        <div id="media-upload-trigger" onclick="document.getElementById('ar-media-file-input').click()" title="Attach Photo, Video (up to 400MB) or 3D Model">
+          📁
+        </div>
+      </div>
+
+      <button onclick="publishARPost()" style="margin-top:8px; background:rgba(0, 240, 255, 0.25);">🚀 BROADCAST TO AR ENVIRONMENT</button>
+    </div>
+
+    <div style="margin-top:15px; font-size:11px; color:#aaa;">LIVE CHAT + REPUTATION</div>
+    <div id="chat-container"></div>
+    <div id="star-rating-area" style="text-align:center; margin:5px 0;"></div>
+    <input type="text" id="chat-input" placeholder="Review/Message...">
+    
+    <div style="display:flex; gap:6px; margin-top:8px;">
+      <button onclick="startVideoCall()" style="flex:1;">📹 START VIDEO</button>
+      <button onclick="stopVideoCall()" style="flex:1; background:rgba(180,0,0,0.5);">⛔ STOP</button>
+    </div>
+    <button onclick="clearChat()" style="background:#333; font-size:11px;">CLEAR CHAT</button>
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3 style="color:var(--electric-blue);">DEPLOY STORE</h3>
+    <div id="kyc-notice" style="padding:12px; background:rgba(0,0,0,0.6); border-radius:10px; margin:12px 0;">
+      KYC: <span id="kyc-status-text" style="color:#ff0;">CHECKING...</span>
+    </div>
+    <input type="text" id="name-input" placeholder="Store Name" style="width:100%; padding:10px; margin:8px 0; background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); color:#fff;">
+    <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%; margin:6px 0;">
+    <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%; margin:6px 0;">
+    <button onclick="deployStore()" id="deploy-btn">CONFIRM & DEPLOY</button>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
+  </div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+  let meshDir = {};
+  let meshPosts = []; 
+  let activeRoomKey = 'MESH_DIR';
+  let myPeerId = null;
+  const peer = new Peer();
+  let currentConn = null;
+  let activePeers = {};
+  let currentTargetStore = localStorage.getItem('last_target_name') || null;
+  let localStream = null;
+
+  // AR Social Post Variables
+  let currentPostFontColor = '#00f0ff';
+  let attachedMediaFile = null;
+  let attachedMediaDataUrl = null;
+
+  function setPostFontColor(color, element) {
+    currentPostFontColor = color;
+    document.getElementById('ar-post-textarea').style.color = color;
+    document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('selected'));
+    element.classList.add('selected');
+  }
+
+  function handleMediaAttachment(event) {
+    const file = event.target.files[0];
+    const indicator = document.getElementById('media-attachment-indicator');
+    
+    if (!file) {
+      attachedMediaFile = null;
+      attachedMediaDataUrl = null;
+      indicator.textContent = "NO MEDIA ATTACHED";
+      indicator.style.color = "#888";
+      return;
+    }
+
+    const maxSize = 400 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("File is too large! Maximum supported size for mesh video/3D uploads is 400MB.");
+      event.target.value = '';
+      return;
+    }
+
+    attachedMediaFile = file;
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    indicator.textContent = `ATTACHED: ${file.name.toUpperCase()} (${sizeMB}MB)`;
+    indicator.style.color = "#00ff00";
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      attachedMediaDataUrl = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function publishARPost() {
+    const textContent = document.getElementById('ar-post-textarea').value.trim();
+    if (!textContent && !attachedMediaFile) {
+      return alert("Please enter text or attach media to broadcast into the AR environment.");
+    }
+
+    const postPayload = {
+      type: 'AR_SOCIAL_POST',
+      author: myPeerId,
+      text: textContent,
+      color: currentPostFontColor,
+      hasMedia: !!attachedMediaFile,
+      mediaName: attachedMediaFile ? attachedMediaFile.name : null,
+      mediaType: attachedMediaFile ? attachedMediaFile.type : null,
+      mediaData: attachedMediaDataUrl,
+      timestamp: Date.now()
+    };
+
+    meshPosts.push(postPayload);
+    await saveMeshRoomData();
+    renderAllARBillboards();
+
+    Object.values(peer.connections).flat().forEach(conn => {
+      if (conn.open) conn.send(postPayload);
+    });
+
+    document.getElementById('ar-post-textarea').value = '';
+    attachedMediaFile = null;
+    attachedMediaDataUrl = null;
+    document.getElementById('ar-media-file-input').value = '';
+    document.getElementById('media-attachment-indicator').textContent = "NO MEDIA ATTACHED";
+    document.getElementById('media-attachment-indicator').style.color = "#888";
+
+    alert("✅ AR Post saved to Mesh database and broadcasted!");
+  }
+
+  function renderAllARBillboards() {
+    const container = document.getElementById('ar-billboard-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    meshPosts.forEach((post, index) => {
+      const xOffset = (index % 3) * 2.1;
+      const yOffset = -Math.floor(index / 3) * 1.9;
+
+      const panel = document.createElement('a-entity');
+      panel.setAttribute('position', `${xOffset} ${yOffset} 0`);
+      panel.setAttribute('animation', 'property: rotation; from: 0 -2 0; to: 0 2 0; dir: alternate; loop: true; dur: 4000; easing: easeInOutSine');
+
+      const bgPlane = document.createElement('a-plane');
+      bgPlane.setAttribute('width', '1.8');
+      bgPlane.setAttribute('height', '1.7');
+      bgPlane.setAttribute('color', '#060a23');
+      bgPlane.setAttribute('material', 'opacity: 0.85; transparent: true; side: double; shader: flat;');
+      panel.appendChild(bgPlane);
+
+      const borderRing = document.createElement('a-ring');
+      borderRing.setAttribute('radius-inner', '0.95');
+      borderRing.setAttribute('radius-outer', '0.98');
+      borderRing.setAttribute('color', post.color || '#00f0ff');
+      borderRing.setAttribute('material', 'side: double; shader: flat;');
+      panel.appendChild(borderRing);
+
+      if (post.hasMedia && post.mediaData) {
+        if (post.mediaType && post.mediaType.includes('image')) {
+          const imgPlane = document.createElement('a-image');
+          imgPlane.setAttribute('src', post.mediaData);
+          imgPlane.setAttribute('width', '1.2');
+          imgPlane.setAttribute('height', '0.9');
+          imgPlane.setAttribute('position', '0 0.28 0.02');
+          panel.appendChild(imgPlane);
+        } else if (post.mediaType && post.mediaType.includes('video')) {
+          const vidId = 'ar-vid-' + post.timestamp + '-' + index;
+          let vidEl = document.getElementById(vidId);
+          
+          if (!vidEl) {
+            vidEl = document.createElement('video');
+            vidEl.id = vidId;
+            vidEl.setAttribute('src', post.mediaData);
+            vidEl.setAttribute('loop', 'true');
+            vidEl.setAttribute('muted', 'true');
+            vidEl.setAttribute('playsinline', 'true');
+            vidEl.setAttribute('crossorigin', 'anonymous');
+            document.querySelector('a-assets').appendChild(vidEl);
+          }
+
+          const vidPlane = document.createElement('a-video');
+          vidPlane.setAttribute('src', '#' + vidId);
+          vidPlane.setAttribute('width', '1.2');
+          vidPlane.setAttribute('height', '0.9');
+          vidPlane.setAttribute('position', '0 0.28 0.02');
+          panel.appendChild(vidPlane);
+
+          // Click interaction to toggle play/pause on the video stream
+          panel.addEventListener('click', (evt) => {
+            if (evt.target.id === 'fs-btn-' + index || evt.target.parentNode.id === 'fs-btn-' + index) return;
+            if (vidEl.paused) {
+              vidEl.play().catch(err => console.warn("Video play error:", err));
+              addChatMessage("Playing AR video stream...");
+            } else {
+              vidEl.pause();
+              addChatMessage("Paused AR video stream.");
+            }
+          });
+
+          // Styled Full-Screen Button for Video Posts (Opens the HTML Blob full-screen via window.open)
+          const fsBtn = document.createElement('a-entity');
+          fsBtn.id = 'fs-btn-' + index;
+          fsBtn.setAttribute('position', '0.62 -0.12 0.04');
+          fsBtn.setAttribute('class', 'clickable');
+
+          const fsBg = document.createElement('a-plane');
+          fsBg.setAttribute('width', '0.36');
+          fsBg.setAttribute('height', '0.16');
+          fsBg.setAttribute('color', '#050b1a');
+          fsBg.setAttribute('material', 'opacity: 0.9; transparent: true; shader: flat;');
+          fsBtn.appendChild(fsBg);
+
+          const fsRing = document.createElement('a-ring');
+          fsRing.setAttribute('radius-inner', '0.17');
+          fsRing.setAttribute('radius-outer', '0.19');
+          fsRing.setAttribute('color', post.color || '#00f0ff');
+          fsRing.setAttribute('material', 'side: double; shader: flat;');
+          fsBtn.appendChild(fsRing);
+
+          const fsText = document.createElement('a-text');
+          fsText.setAttribute('value', 'FULLSCREEN');
+          fsText.setAttribute('align', 'center');
+          fsText.setAttribute('position', '0 0 0.01');
+          fsText.setAttribute('width', '1.1');
+          fsText.setAttribute('color', post.color || '#00f0ff');
+          fsText.setAttribute('font', 'mozillavr');
+          fsBtn.appendChild(fsText);
+
+          fsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Open video directly in full screen exactly like the store thumbnails
+            const blob = new Blob([`<html style="background:#000;margin:0;height:100%;"><body style="margin:0;height:100%;display:flex;align-items:center;justify-content:center;"><video src="${post.mediaData}" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video></body></html>`], { type: 'text/html' });
+            window.open(URL.createObjectURL(blob), '_blank');
+
+            addChatMessage("Opened video in Fullscreen window.");
+          });
+
+          panel.appendChild(fsBtn);
+
+        } else if (post.mediaName && (post.mediaName.endsWith('.glb') || post.mediaName.endsWith('.gltf'))) {
+          const gltfEntity = document.createElement('a-gltf-model');
+          gltfEntity.setAttribute('src', post.mediaData);
+          gltfEntity.setAttribute('scale', '0.35 0.35 0.35');
+          gltfEntity.setAttribute('position', '0 0.2 0.05');
+          panel.appendChild(gltfEntity);
+        }
+      }
+
+      if (post.text) {
+        const textEntity = document.createElement('a-text');
+        textEntity.setAttribute('value', post.text);
+        textEntity.setAttribute('align', 'center');
+        textEntity.setAttribute('position', post.hasMedia ? '0 -0.45 0.03' : '0 0 0.03');
+        textEntity.setAttribute('width', '1.6');
+        textEntity.setAttribute('color', post.color || '#00f0ff');
+        textEntity.setAttribute('font', 'mozillavr');
+        panel.appendChild(textEntity);
+      }
+
+      const authorTag = document.createElement('a-text');
+      authorTag.setAttribute('value', `MESH POST • ${post.author ? post.author.substring(0, 4) : 'NODE'}`);
+      authorTag.setAttribute('align', 'center');
+      authorTag.setAttribute('position', '0 0.75 0.03');
+      authorTag.setAttribute('width', '2.2');
+      authorTag.setAttribute('color', '#ff00aa');
+      authorTag.setAttribute('font', 'mozillavr');
+      panel.appendChild(authorTag);
+
+      container.appendChild(panel);
+    });
+  }
+
+  function playIncomingCallSound() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 1);
+  }
+
+  async function getDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 2);
+      req.onupgradeneeded = async e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+
+  async function saveMeshRoomData() {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const roomData = { meshDir, meshPosts };
+    tx.objectStore(STORE_NAME).put(roomData, activeRoomKey);
+    return new Promise(resolve => tx.oncomplete = resolve);
+  }
+
+  async function loadMeshDirForRoom(roomKey) {
+    activeRoomKey = roomKey;
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(activeRoomKey);
+    
+    req.onsuccess = () => {
+      let data = req.result;
+      meshDir = {};
+      meshPosts = [];
+      
+      if (data && typeof data === 'object') {
+        if (data.meshDir) Object.assign(meshDir, data.meshDir);
+        if (data.meshPosts && Array.isArray(data.meshPosts)) meshPosts = data.meshPosts;
+        if (!data.meshDir && !data.meshPosts && Object.keys(data).length > 0) {
+          Object.assign(meshDir, data);
+        }
+      }
+      
+      renderPortals();
+      renderAllARBillboards();
+      broadcastFullSync();
+    };
+  }
+
+  async function switchRoomTarget(roomKey) {
+    await loadMeshDirForRoom(roomKey);
+  }
+
+  function renderOnlineList() {
+    const list = document.getElementById('online-members-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    let myDisplayName = "Me";
+    try {
+        const savedDraft = localStorage.getItem('webstore_pro_draft');
+        if (savedDraft) {
+            const data = JSON.parse(savedDraft);
+            if (data.name && data.name.trim() !== "") myDisplayName = data.name;
+        }
+    } catch (e) { console.warn("Could not load business name."); }
+    
+    list.innerHTML += `<div class="suggestion-item"><span>${myDisplayName} (You)</span><span class="status-dot active"></span></div>`;
+    
+    Object.entries(activePeers).forEach(([id, name]) => {
+      list.innerHTML += `<div class="suggestion-item" data-id="${id}"><span>${name}</span><span class="status-dot active"></span></div>`;
+    });
+  }
+
+  function broadcastPresence() {
+    if (!myPeerId) return;
+    const myStore = meshDir[myPeerId] || { name: "Guest" };
+    const packet = { type: 'PRESENCE', id: myPeerId, name: myStore.name };
+    Object.values(peer.connections).flat().forEach(conn => {
+      if (conn.open) conn.send(packet);
+    });
+    renderOnlineList();
+  }
+
+  function updateOnlineStatus() {
+    document.querySelectorAll('.suggestion-item').forEach(el => {
+      const id = el.dataset.id;
+      const dot = el.querySelector('.status-dot');
+      if (dot) {
+        const isOnline = (id === myPeerId) || !!activePeers[id];
+        dot.className = `status-dot ${isOnline ? 'active' : 'disconnected'}`;
+      }
+    });
+  }
+
+  function checkKYC() {
+    return !!localStorage.getItem("KYC_Verified_Hash");
+  }
+
+  function showKYCModal() {
+    if (document.getElementById('kyc-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'kyc-modal';
+    modal.style.cssText = 'position:fixed; top:20%; left:35%; width:340px; background:rgba(10,10,35,0.98); backdrop-filter:blur(20px); padding:25px; border:2px solid #FF007F; z-index:999; color:#fff; border-radius:16px; text-align:center;';
+    modal.innerHTML = `
+      <h3 style="margin-bottom:15px; color:#ff007f;">ACTION REQUIRED</h3>
+      <p style="font-size:13.5px; line-height:1.5; margin-bottom:20px;">
+        Top up your banking terminal with a minimum of $10 to start receiving and sending payments instantly.<br><br>
+        Complete your KYC business registration to unlock full deployment.
+      </p>
+      <button onclick="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NVPAZWBES9WAS', '_blank');" style="background:#28a745; margin:8px 0; padding:14px;">TOP UP ACCOUNT</button>
+      <button onclick="window.open('https://tiffyai-usd.github.io/KYC/', '_blank');" style="background:#007BFF; margin:8px 0; padding:14px;">DO KYC REGISTRATION</button>
+      <button onclick="this.parentElement.remove()" style="background:#444; margin-top:12px;">CLOSE</button>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  function sendFullSync(conn) {
+    if (!conn || !conn.open) return;
+    conn.send({ type: 'SYNC_ROOM', dir: meshDir, posts: meshPosts, room: activeRoomKey });
+  }
+
+  function broadcastFullSync() {
+    Object.values(peer.connections).flat().forEach(conn => sendFullSync(conn));
+  }
+
+  async function deployStore() {
+    if (!checkKYC()) {
+      showKYCModal();
+      return;
+    }
+    if (!peer.id) return alert("Connection not ready. Wait...");
+    const name = document.getElementById('name-input').value.trim() || "My Store";
+    const hFile = document.getElementById('html-input').files[0];
+    const tFile = document.getElementById('thumb-input').files[0];
+    if (!hFile || !tFile) return alert("Both files required");
+    
+    try {
+      const html = await hFile.text();
+      const thumb = await new Promise(r => {
+        const fr = new FileReader();
+        fr.onload = () => r(fr.result);
+        fr.readAsDataURL(tFile);
+      });
+      
+      const newStore = { id: peer.id, name, html, thumb, reviews: [], timestamp: Date.now() };
+      meshDir[peer.id] = newStore;
+      await saveMeshRoomData();
+      
+      broadcastFullSync();
+      renderPortals();
+      const blob = new Blob([html], {type: 'text/html'});
+      window.open(URL.createObjectURL(blob), '_blank');
+      document.getElementById('upload-modal').classList.add('hidden');
+      alert(`✅ ${name} deployed successfully to room ${activeRoomKey}!`);
+    } catch (e) { console.error(e); alert("Deploy failed"); }
+  }
+
+  function renderPortals() {
+    const container = document.getElementById('ar-portal');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const storesList = Object.values(meshDir);
+
+    storesList.forEach((biz, i) => {
+      const el = document.createElement('a-plane');
+      el.setAttribute('position', `${(i * 1.8) - 1.5} 0 0`);
+      el.setAttribute('width', '1.4');
+      el.setAttribute('height', '1.4');
+      el.setAttribute('material', { src: biz.thumb, side: 'double', transparent: true });
+      el.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 6500; easing: linear');
+      el.addEventListener('click', () => {
+        currentTargetStore = biz.name;
+        localStorage.setItem('last_target_name', biz.name);
+        
+        document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${biz.name.toUpperCase()}`);
+        document.getElementById('spatial-feed-monitor').setAttribute('value', `VIEWING PROJECTION FOR ${biz.name.toUpperCase()}`);
+        
+        const blob = new Blob([biz.html], {type: 'text/html'});
+        window.open(URL.createObjectURL(blob), '_blank');
+        renderReviews(biz.name);
+      });
+      container.appendChild(el);
+    });
+  }
+
+  function updateSpatialVideoDisplay(statusText, showVideo) {
+    const standbyGfx = document.getElementById('comms-standby-gfx');
+    const callerVideo = document.getElementById('ar-caller-video');
+    const monitorText = document.getElementById('spatial-feed-monitor');
+    
+    if (monitorText) monitorText.setAttribute('value', statusText);
+    
+    if (showVideo) {
+      if (standbyGfx) standbyGfx.setAttribute('visible', 'false');
+      if (callerVideo) callerVideo.setAttribute('visible', 'true');
+    } else {
+      if (standbyGfx) standbyGfx.setAttribute('visible', 'true');
+      if (callerVideo) callerVideo.setAttribute('visible', 'false');
+    }
+  }
+
+  function renderReviews(storeName) {
+    currentTargetStore = storeName;
+    localStorage.setItem('last_target_name', storeName);
+    
+    const biz = meshDir[Object.keys(meshDir).find(k => meshDir[k].name === storeName)];
+    if (!biz) return;
+    const container = document.getElementById('chat-container');
+    container.innerHTML = `<div style="color:var(--electric-blue); font-size:10px;">REVIEWS: ${biz.name}</div>`;
+    
+    let lastReviewText = "CONNECTED TO NODE";
+    (biz.reviews || []).forEach(r => {
+      const div = document.createElement('div');
+      div.style.cssText = "font-size:11px; margin-top:3px; color:#fff;";
+      div.textContent = "> " + r.msg;
+      container.appendChild(div);
+      lastReviewText = r.msg;
+    });
+    container.scrollTop = container.scrollHeight;
+
+    const monitorText = document.getElementById('spatial-feed-monitor');
+    if (monitorText) monitorText.setAttribute('value', lastReviewText.toUpperCase());
+    
+    const starsArea = document.getElementById('star-rating-area');
+    starsArea.innerHTML = '';
+    for(let i=1; i<=5; i++) {
+        const s = document.createElement('span');
+        s.className = 'star-rating';
+        s.innerHTML = '★';
+        s.dataset.value = i;
+        s.onclick = () => {
+            document.querySelectorAll('.star-rating').forEach((st, idx) => st.classList.toggle('filled', idx < i));
+            handleNewMessage(`Rated ${i} stars`);
+        };
+        starsArea.appendChild(s);
+    }
+  }
+
+  function setupCallListeners(call) {
+    call.on('stream', (remoteStream) => {
+      const streamTarget = document.getElementById('remote-video-stream');
+      streamTarget.srcObject = remoteStream;
+      streamTarget.play().catch(e => console.error("Playback blocked:", e));
+      
+      const nodeTitle = meshDir[call.peer]?.name || "PEER NODE";
+      document.getElementById('spatial-node-title').setAttribute('value', `LIVE CALL: ${nodeTitle.toUpperCase()}`);
+      updateSpatialVideoDisplay("LIVE FEED ESTABLISHED", true);
+    });
+    call.on('close', () => {
+      updateSpatialVideoDisplay("LIVE STREAM TERMINATED", false);
+      document.getElementById('spatial-node-title').setAttribute('value', `NODE: DISCONNECTED`);
+    });
+  }
+
+  peer.on('call', async (call) => {
+    playIncomingCallSound();
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      call.answer(localStream);
+      setupCallListeners(call);
+    } catch (err) { console.error("Call answer failed:", err); }
+  });
+
+  async function startVideoCall() {
+    const name = localStorage.getItem('last_target_name');
+    const target = Object.values(meshDir).find(s => s.name === name);
+    if (!target) return alert("Select a node first!");
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setupCallListeners(peer.call(target.id, localStream));
+    } catch (e) { alert("Camera denied"); }
+  }
+
+  function stopVideoCall() { 
+    if (localStream) { 
+      localStream.getTracks().forEach(t => t.stop()); 
+      updateSpatialVideoDisplay("STREAM DISCONNECTED BY USER", false);
+      document.getElementById('spatial-node-title').setAttribute('value', `NODE: DISCONNECTED`);
+    } 
+  }
+
+  function handleIncomingData(id, data) {
+    if (data.type === 'REQUEST_DIR') {
+      const conn = peer.connections[id]?.[0];
+      if (conn) sendFullSync(conn);
+    }
+    else if (data.type === 'SYNC_ROOM') {
+      if (data.dir) {
+        Object.assign(meshDir, data.dir);
+      }
+      if (data.posts && Array.isArray(data.posts)) {
+        const existingTimestamps = new Set(meshPosts.map(p => p.timestamp));
+        data.posts.forEach(p => {
+          if (!existingTimestamps.has(p.timestamp)) meshPosts.push(p);
+        });
+      }
+      renderPortals();
+      renderAllARBillboards();
+      saveMeshRoomData();
+    }
+    else if (data.type === 'PRESENCE') {
+      activePeers[id] = data.name;
+      updateOnlineStatus();
+      renderOnlineList();
+    }
+    else if (data.type === 'REVIEW') {
+      const targetStore = Object.values(meshDir).find(b => b.name === data.storeName);
+      if(targetStore) {
+        targetStore.reviews.push({ msg: data.msg });
+        if (currentTargetStore === data.storeName) renderReviews(data.storeName);
+      }
+    }
+    else if (data.type === 'AR_SOCIAL_POST') {
+      if (!meshPosts.some(p => p.timestamp === data.timestamp)) {
+        meshPosts.push(data);
+        renderAllARBillboards();
+        saveMeshRoomData();
+      }
+      addChatMessage(`AR Broadcast from Peer: "${data.text.substring(0, 20) || 'Media Post'}..."`);
+    }
+    else addChatMessage("Peer: " + data);
+  }
+
+  function connectToPeer(targetId, name) {
+    if (targetId === myPeerId || peer.connections[targetId]) return;
+    const conn = peer.connect(targetId);
+    conn.on('error', (err) => { console.warn("Connection failed:", targetId); delete activePeers[targetId]; });
+    conn.on('open', () => {
+      activePeers[targetId] = name;
+      updateOnlineStatus();
+      renderOnlineList();
+      sendFullSync(conn);
+      conn.send({ type: 'REQUEST_DIR' });
+      conn.send({ type: 'PRESENCE', id: myPeerId, name: (meshDir[myPeerId]?.name || 'Guest') });
+    });
+    conn.on('data', (data) => handleIncomingData(conn.peer, data));
+    conn.on('close', () => { delete activePeers[targetId]; updateOnlineStatus(); renderOnlineList(); });
+  }
+
+  peer.on('connection', (c) => {
+    c.on('data', (data) => handleIncomingData(c.peer, data));
+    c.on('open', () => { sendFullSync(c); });
+    c.on('close', () => { delete activePeers[c.peer]; updateOnlineStatus(); renderOnlineList(); });
+  });
+
+  const searchBar = document.getElementById('search-bar');
+  const suggestionsBox = document.getElementById('search-suggestions');
+
+  searchBar.addEventListener('input', () => {
+    const query = searchBar.value.toLowerCase().trim();
+    if (query.length < 1) { suggestionsBox.style.display = 'none'; return; }
+    
+    const matches = Object.values(meshDir).filter(s => s.name && s.name.toLowerCase().includes(query));
+    suggestionsBox.innerHTML = '';
+    matches.forEach(store => {
+      const div = document.createElement('div');
+      div.className = 'suggestion-item';
+      div.innerHTML = `${store.name}`;
+      div.onclick = () => {
+        currentTargetStore = store.name;
+        localStorage.setItem('last_target_name', store.name);
+        
+        document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${store.name.toUpperCase()}`);
+        
+        const blob = new Blob([store.html], {type: 'text/html'});
+        window.open(URL.createObjectURL(blob), '_blank');
+        connectToPeer(store.id, store.name);
+        suggestionsBox.style.display = 'none';
+        renderReviews(store.name);
+      };
+      suggestionsBox.appendChild(div);
+    });
+    suggestionsBox.style.display = matches.length ? 'block' : 'none';
+  });
+
+  function searchMesh() {
+    const query = searchBar.value.toLowerCase().trim();
+    const found = Object.values(meshDir).find(b => b.name?.toLowerCase().includes(query));
+    if (found) {
+      currentTargetStore = found.name;
+      localStorage.setItem('last_target_name', found.name);
+      document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${found.name.toUpperCase()}`);
+      const blob = new Blob([found.html], {type: 'text/html'});
+      window.open(URL.createObjectURL(blob), '_blank');
+      renderReviews(found.name);
+    } else { alert("Node not found."); }
+  }
+
+  function addChatMessage(msg) {
+    const container = document.getElementById('chat-container');
+    const div = document.createElement('div');
+    div.style.cssText = "font-size:11px; margin-top:3px; color:#fff;";
+    div.textContent = "> " + msg;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    
+    const monitorText = document.getElementById('spatial-feed-monitor');
+    if (monitorText) monitorText.setAttribute('value', msg.toUpperCase());
+  }
+  
+  function handleNewMessage(msg) {
+    if (currentTargetStore) {
+        const store = Object.values(meshDir).find(b => b.name === currentTargetStore);
+        if(store) {
+            store.reviews.push({ msg: "Me: " + msg });
+            renderReviews(currentTargetStore);
+            saveMeshRoomData();
+            Object.values(peer.connections).flat().forEach(conn => { if(conn.open) conn.send({ type: 'REVIEW', storeName: currentTargetStore, msg: "Peer: " + msg }); });
+        }
+    } else {
+        addChatMessage("You: " + msg);
+        if (currentConn) currentConn.send(msg);
+    }
+  }
+
+  document.getElementById('chat-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter' && e.target.value.trim()) {
+      handleNewMessage(e.target.value);
+      e.target.value = '';
+    }
+  });
+
+  function loadHome() { document.getElementById('projector-lens').src = 'https://tiffyai-usd.github.io/Web-Store-App/v6.html'; }
+  function clearViewer() { document.getElementById('projector-lens').src = ''; }
+  function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
+  
+  function showDeployModal() {
+    document.getElementById('upload-modal').classList.remove('hidden');
+    const statusEl = document.getElementById('kyc-status-text');
+    statusEl.textContent = checkKYC() ? "✅ VERIFIED" : "NOT VERIFIED";
+    statusEl.style.color = checkKYC() ? "#0f0" : "#ff0";
+  }
+
+  window.onload = async () => {
+    document.getElementById('bg-video').play().catch(() => {});
+    peer.on('open', (id) => { 
+      myPeerId = id; 
+      setInterval(broadcastPresence, 10000);
+      setTimeout(() => {
+        Object.values(meshDir).forEach(s => { if (s.id !== myPeerId) connectToPeer(s.id, s.name || 'Unknown'); });
+        broadcastFullSync();
+      }, 2000);
+    });
+
+    await loadMeshDirForRoom('MESH_DIR');
+
+    if (currentTargetStore) {
+      renderReviews(currentTargetStore);
+      document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${currentTargetStore.toUpperCase()}`);
+    }
+
+    document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+    loadHome();
+  };
+</script>
+</body>
+</html>
