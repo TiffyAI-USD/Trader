@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Blob State Bridge</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h2 { margin: 0 0 8px 0; color: #38bdf8; }
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .log-container {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            height: 180px;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #a7f3d0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2563eb; }
+        .blob-link-box {
+            margin-top: 14px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .blob-link-box a {
+            color: #38bdf8;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 13px;
+            text-decoration: none;
+        }
+        .blob-link-box a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div>
+        <h2>Direct Blob State Bridge</h2>
+        <p style="color: #94a3b8; margin: 0;">Compile app state into a raw executable Blob URL</p>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0; font-size: 16px; color: #e2e8f0;">1. Input App State / Message</h3>
+        <div class="input-group">
+            <input type="text" id="stateInput" placeholder="Type store inventory, quotation, or data...">
+            <button onclick="generateBlobState()">Generate Blob Asset</button>
+        </div>
+        
+        <div id="blobOutputArea" class="blob-link-box" style="display: none;">
+            <span style="font-size: 12px; color: #94a3b8;">Generated Asset Blob Link (Click or share to load state):</span>
+            <a id="blobLink" href="#" target="_blank"></a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="font-size: 13px; color: #94a3b8; margin-bottom: 6px;">Activity Log:</div>
+        <div id="logContainer" class="log-container"></div>
+    </div>
+
+<script>
+    const logContainer = document.getElementById('logContainer');
+    const stateInput = document.getElementById('stateInput');
+    const blobOutputArea = document.getElementById('blobOutputArea');
+    const blobLink = document.getElementById('blobLink');
+
+    function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const color = type === 'success' ? '#34d399' : type === 'error' ? '#f87171' : '#a7f3d0';
+        logContainer.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    log("Blob environment ready. Awaiting state compilation.");
+
+    function generateBlobState() {
+        const textValue = stateInput.value.trim();
+        if (!textValue) {
+            log("Error: Input box is empty.", "error");
+            return;
+        }
+
+        log("Compiling app state into raw JSON data package...");
+
+        // Construct the full state package just like your AR store / shop assets
+        const appState = {
+            version: "1.0",
+            timestamp: Date.now(),
+            payload: textValue,
+            environment: "GitHub Pages Store Front"
+        };
+
+        const jsonString = JSON.stringify(appState, null, 2);
+
+        // Create the physical Blob asset directly in memory
+        const dataBlob = new Blob([jsonString], { type: 'application/json' });
+        const blobUrl = URL.createObjectURL(dataBlob);
+
+        // Expose the Blob link instantly in the UI
+        blobLink.href = blobUrl;
+        blobLink.innerText = blobUrl;
+        blobOutputArea.style.display = 'flex';
+
+        log(`✨ Blob URL successfully generated: ${blobUrl}`, 'success');
+        log(`👉 Click the generated link above to view the exact raw data payload compiled by this instance.`, 'success');
+    }
+</script>
+
+</body>
+</html>
