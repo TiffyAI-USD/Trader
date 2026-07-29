@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Beacon & Target Bridge</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h2 { margin: 0 0 8px 0; color: #38bdf8; }
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            background: #eab308;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+        .status-badge.connected {
+            background: #22c55e;
+            color: white;
+        }
+        .log-container {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #a7f3d0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2563eb; }
+        .info-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-family: monospace;
+            color: #38bdf8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div>
+        <h2>Store Beacon & Manual Target Bridge</h2>
+        <p style="color: #94a3b8; margin: 0;">Robust P2P Handshake & Blob Sync</p>
+    </div>
+
+    <div class="card">
+        <div class="info-box">
+            <span>My Client ID: <strong id="myIdDisplay" style="color: #fff;"></strong></span>
+            <span style="font-size: 12px; color: #94a3b8;">(Copy this to the other browser)</span>
+        </div>
+        <div id="statusBadge" class="status-badge">Disconnected</div>
+        
+        <div style="margin-top: 14px; display: flex; gap: 10px;">
+            <input type="text" id="targetInput" placeholder="Paste target client ID here (e.g. Client_xxxxx)">
+            <button onclick="connectToTarget()">Connect to Peer</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="font-size: 13px; color: #94a3b8; margin-bottom: 6px;">Connection Activity Log:</div>
+        <div id="logContainer" class="log-container"></div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0; font-size: 16px; color: #e2e8f0;">Send Translated JSON Blob Message</h3>
+        <div class="input-group">
+            <input type="text" id="messageInput" placeholder="Type a message to blob and sync...">
+            <button onclick="sendBlobMessage()">Send Blob</button>
+        </div>
+    </div>
+
+<script>
+    const clientId = 'Client_' + Math.random().toString(36).substring(2, 7);
+    document.getElementById('myIdDisplay').innerText = clientId;
+
+    let isConnected = false;
+    let targetPeerId = null;
+
+    const logContainer = document.getElementById('logContainer');
+    const statusBadge = document.getElementById('statusBadge');
+    const messageInput = document.getElementById('messageInput');
+    const targetInput = document.getElementById('targetInput');
+
+    function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const color = type === 'success' ? '#34d399' : type === 'error' ? '#f87171' : '#a7f3d0';
+        logContainer.innerHTML += `<div style="color: ${color}">[${timestamp}] [${clientId}] ${message}</div>`;
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    log(`Client initialized with fresh ID: ${clientId}`);
+
+    // Dedicated keys for targeted communication to prevent event collision
+    function sendSignal(target, actionType, extraData = {}) {
+        const payload = {
+            sender: clientId,
+            target: target,
+            type: actionType,
+            ...extraData,
+            nonce: Math.random(),
+            timestamp: Date.now()
+        };
+        localStorage.setItem('store_direct_signal', JSON.stringify(payload));
+    }
+
+    function connectToTarget() {
+        const val = targetInput.value.trim();
+        if (!val) {
+            log("Error: Please enter a target client ID.", "error");
+            return;
+        }
+
+        targetPeerId = val;
+        log(`Initiating direct connection handshake with target: ${targetPeerId}...`);
+        
+        // Broadcast a continuous handshake request ping
+        sendSignal(targetPeerId, 'HANDSHAKE_REQ');
+    }
+
+    // Listen to the direct signal bus
+    window.addEventListener('storage', async (event) => {
+        if (event.key !== 'store_direct_signal' || !event.newValue) return;
+
+        let data;
+        try {
+            data = JSON.parse(event.newValue);
+        } catch (e) {
+            return;
+        }
+
+        const { sender, target, type, payload } = data;
+        
+        // If the signal is directed specifically to us
+        if (target === clientId) {
+            if (type === 'HANDSHAKE_REQ') {
+                log(`📥 Received connection request from peer: ${sender}`);
+                targetPeerId = sender;
+                targetInput.value = sender;
+
+                // Acknowledge back immediately
+                sendSignal(sender, 'HANDSHAKE_ACK');
+                lockConnection(sender);
+            }
+            else if (type === 'HANDSHAKE_ACK') {
+                log(`📥 Received connection acknowledgment from peer: ${sender}`);
+                lockConnection(sender);
+            }
+            else if (type === 'BLOB_SYNC' && isConnected) {
+                log(`📦 Received raw binary text payload from locked peer ${sender}. Unpacking Blob...`);
+                
+                const incomingBlob = new Blob([payload], { type: 'application/json' });
+                const textData = await incomingBlob.text();
+                const json = JSON.parse(textData);
+                
+                log(`✨ Successfully translated blob into JSON: "${json.text}" (Simulated IP: ${json.ip})`, 'success');
+            }
+        }
+    });
+
+    function lockConnection(peer) {
+        if (!isConnected) {
+            isConnected = true;
+            targetPeerId = peer;
+            statusBadge.className = "status-badge connected";
+            statusBadge.innerText = `Connected Directly to: ${peer}`;
+            log(`✅ Secure target bridge locked with ${peer}!`, 'success');
+        }
+    }
+
+    async function sendBlobMessage() {
+        const textVal = messageInput.value.trim();
+        if (!textVal) return;
+
+        if (!isConnected || !targetPeerId) {
+            log("Error: No target peer locked. Connect to a peer first.", "error");
+            return;
+        }
+
+        log(`OUTGOING: Packaging message into JSON structure for ${targetPeerId}...`);
+        const messageObject = {
+            sender: clientId,
+            ip: "192.168.1." + Math.floor(Math.random() * 200 + 10),
+            text: textVal,
+            sentAt: Date.now()
+        };
+
+        const jsonString = JSON.stringify(messageObject);
+        const binaryBlob = new Blob([jsonString], { type: 'application/json' });
+        const blobStringPayload = await binaryBlob.text();
+
+        log(`OUTGOING: Transmitting blob packet across targeted storage bridge...`);
+        sendSignal(targetPeerId, 'BLOB_SYNC', { payload: blobStringPayload });
+
+        log(`🚀 Blob successfully transmitted to ${targetPeerId}!`, 'success');
+        messageInput.value = '';
+    }
+</script>
+
+</body>
+</html>
