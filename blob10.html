@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Dynamic Open Graph Meta Tags -->
+    <title id="pageMetaTitle">Secure Message Bridge</title>
+    <meta property="og:title" id="ogTitleTag" content="Secure Message">
+    <meta property="og:description" id="ogDescTag" content="Connect and view message package.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tiffyai-usd.github.io/Trade/Verse6.html">
+    <meta property="og:image" id="ogImageTag" content="">
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h2 { margin: 0 0 8px 0; color: #38bdf8; }
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        label {
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        input[type="text"], input[type="file"] {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2563eb; }
+        .share-btn {
+            background: #22c55e;
+            font-size: 16px;
+        }
+        .share-btn:hover { background: #16a34a; }
+        .preview-container {
+            background: #090d16;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .preview-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #475569;
+        }
+        .link-display {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #38bdf8;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <div>
+        <h2>Multi-Share Secure Message Bridge</h2>
+        <p style="color: #94a3b8; margin: 0;">Package your store handle, meta tags, and Mesh file into an instant social share card.</p>
+    </div>
+
+    <!-- Configuration Card -->
+    <div class="card">
+        <div>
+            <span style="font-size: 12px; color: #38bdf8;">Store Handle:</span> 
+            <strong id="handleDisplay" style="color: #fff;"></strong>
+        </div>
+
+        <div>
+            <label>1. Upload Link Image / Logo</label>
+            <input type="file" id="editLogo" accept="image/*" onchange="uploadImage(this)">
+        </div>
+
+        <div>
+            <label>Heading (Meta Title - InputBox1)</label>
+            <input id="titleInput" type="text" value="Sent You 1 Ultra Secure Message" oninput="updateMetadata()">
+        </div>
+
+        <div>
+            <label>Message (Meta Description - InputBox2)</label>
+            <input id="descInput" type="text" value="Check out my latest store inventory and updates." oninput="updateMetadata()">
+        </div>
+    </div>
+
+    <!-- Live Preview Card -->
+    <div class="card">
+        <h3 style="margin: 0; font-size: 15px; color: #e2e8f0;">Social Card Preview</h3>
+        <div class="preview-container">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <img id="logo" class="preview-img" src="" alt="Logo Preview">
+                <div>
+                    <div id="previewTitle" style="font-weight: bold; color: #fff; font-size: 14px;"></div>
+                    <div id="previewDesc" style="color: #94a3b8; font-size: 12px; margin-top: 4px;"></div>
+                </div>
+            </div>
+            <div class="link-display" id="targetShareLink">https://tiffyai-usd.github.io/Trade/Verse6.html</div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="card">
+        <button onclick="downloadMeshFile()">📥 Download Latest MESH_DIR_WhatsApp JSON</button>
+        <button class="share-btn" onclick="triggerMultiShare()">🚀 Share Secure Message Card</button>
+    </div>
+
+<script>
+    // Retrieve store handle from localStorage or fallback
+    let handle = localStorage.getItem('webstore_cloud_handle') || "TiffyStore";
+    document.getElementById('handleDisplay').innerText = handle;
+
+    // Load saved logo or default state on startup
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedLogo = localStorage.getItem('logo');
+        if (savedLogo) {
+            document.getElementById('logo').src = savedLogo;
+            document.getElementById('ogImageTag').setAttribute('content', savedLogo);
+        } else {
+            // Placeholder default image if none uploaded
+            const defaultImg = "https://tiffyai-usd.github.io/Trade/assets/default-logo.png";
+            document.getElementById('logo').src = defaultImg;
+            document.getElementById('ogImageTag').setAttribute('content', defaultImg);
+        }
+
+        // Initialize default input fields
+        document.getElementById('titleInput').value = `${handle} Sent You 1 Ultra Secure Message`;
+        updateMetadata();
+    });
+
+    // Handle image upload and save to local storage drafts
+    function uploadImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Img = e.target.result;
+                document.getElementById('logo').src = base64Img;
+                document.getElementById('ogImageTag').setAttribute('content', base64Img);
+                localStorage.setItem('logo', base64Img);
+                saveDraft();
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Update dynamic meta tags and visual preview elements in real time
+    function updateMetadata() {
+        const inputTitle = document.getElementById('titleInput').value;
+        const inputDesc = document.getElementById('descInput').value;
+
+        // Update DOM meta tags for social scrapers
+        document.getElementById('pageMetaTitle').textContent = inputTitle;
+        document.getElementById('ogTitleTag').setAttribute('content', inputTitle);
+        document.getElementById('ogDescTag').setAttribute('content', inputDesc);
+
+        // Update live preview card
+        document.getElementById('previewTitle').textContent = inputTitle;
+        document.getElementById('previewDesc').textContent = inputDesc;
+
+        saveDraft();
+    }
+
+    function saveDraft() {
+        const draftData = {
+            handle: handle,
+            title: document.getElementById('titleInput').value,
+            description: document.getElementById('descInput').value,
+            updatedAt: Date.now()
+        };
+        localStorage.setItem('store_share_draft', JSON.stringify(draftData));
+    }
+
+    // Automatically generate and download the required Mesh JSON file
+    function downloadMeshFile() {
+        const meshData = {
+            version: "1.0",
+            storeHandle: handle,
+            createdTimestamp: Date.now(),
+            network: "Tiffyverse Mesh",
+            nodeEndpoint: "https://tiffyai-usd.github.io/Trade/Verse6.html"
+        };
+
+        const jsonStr = JSON.stringify(meshData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const randomId = Math.floor(Math.random() * 90000000) + 10000000;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `MESH_DIR_WhatsApp_${randomId}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Multi-Share action with pre-filled message text and link
+    function triggerMultiShare() {
+        const inputDesc = document.getElementById('descInput').value;
+        const shareUrl = "https://tiffyai-usd.github.io/Trade/Verse6.html";
+        
+        // Construct the exact pre-filled message text requested
+        const shareText = `${inputDesc}\n\nConnect with me and Grow your network by installing my Mesh File in the Tiffyverse: ${shareUrl}`;
+
+        if (navigator.share) {
+            navigator.share({
+                title: document.getElementById('titleInput').value,
+                text: shareText,
+                url: shareUrl
+            }).catch((err) => console.log('Share canceled or failed', err));
+        } else {
+            // Fallback for desktop browsers: copy text and link to clipboard
+            navigator.clipboard.writeText(shareText);
+            alert("Share text & link copied to clipboard! You can now paste it directly into Facebook, Instagram, or any chat app.");
+        }
+    }
+</script>
+
+</body>
+</html>
