@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walkie-Talkie Void Bridge</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h2 { margin: 0 0 8px 0; color: #38bdf8; }
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .log-container {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            height: 180px;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #a7f3d0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2563eb; }
+        .walkie-button {
+            background: #475569;
+            margin-top: 14px;
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            cursor: not-allowed;
+        }
+        .walkie-button.active {
+            background: #eab308;
+            color: #1e293b;
+            cursor: pointer;
+            animation: pulse 1.5s infinite;
+        }
+        .walkie-button.active:hover { background: #ca8a04; }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .output-box {
+            margin-top: 14px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 14px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #38bdf8;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div>
+        <h2>Walkie-Talkie Void Bridge</h2>
+        <p style="color: #94a3b8; margin: 0;">Push to void, light up the receiver button, compile blob on tap.</p>
+    </div>
+
+    <!-- Step 1: Send Message -->
+    <div class="card">
+        <h3 style="margin-top: 0; font-size: 16px; color: #e2e8f0;">1. Transmit Message (Over)</h3>
+        <div class="input-group">
+            <input type="text" id="messageInput" placeholder="Type transmission payload...">
+            <button onclick="transmitToVoid()">Send</button>
+        </div>
+    </div>
+
+    <!-- Step 2: The Receiver Button -->
+    <div class="card">
+        <h3 style="margin-top: 0; font-size: 16px; color: #e2e8f0;">2. Receiver Channel</h3>
+        <p style="font-size: 13px; color: #a7f3d0; margin-bottom: 0;">This button stays dark until a transmission is sitting in the void. Click it to unpack and compile the blob payload:</p>
+        
+        <button id="receiverBtn" class="walkie-button" onclick="receiveAndCompileBlob()" disabled>📻 VOID SILENT (No Transmission)</button>
+        
+        <div id="resultArea" class="output-box"></div>
+    </div>
+
+    <div class="card">
+        <div style="font-size: 13px; color: #94a3b8; margin-bottom: 6px;">Transmission Log:</div>
+        <div id="logContainer" class="log-container"></div>
+    </div>
+
+<script>
+    const logContainer = document.getElementById('logContainer');
+    const messageInput = document.getElementById('messageInput');
+    const receiverBtn = document.getElementById('receiverBtn');
+    const resultArea = document.getElementById('resultArea');
+
+    function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const color = type === 'success' ? '#34d399' : type === 'error' ? '#f87171' : '#a7f3d0';
+        logContainer.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    log("Walkie-talkie link online. Checking void status...");
+
+    // Continuously check the void (localStorage shared state across windows)
+    setInterval(() => {
+        const voidPayload = localStorage.getItem('walkie_void_payload');
+        
+        if (voidPayload) {
+            // Wake up the button!
+            receiverBtn.className = "walkie-button active";
+            receiverBtn.disabled = false;
+            receiverBtn.innerText = "🚨 TRANSMISSION WAITING — CLICK TO COMPILE BLOB";
+        } else {
+            receiverBtn.className = "walkie-button";
+            receiverBtn.disabled = true;
+            receiverBtn.innerText = "📻 VOID SILENT (No Transmission)";
+        }
+    }, 1000);
+
+    // Step 1: User types and clicks Send -> Leaves it in the background void
+    function transmitToVoid() {
+        const textVal = messageInput.value.trim();
+        if (!textVal) {
+            log("Error: Transmission box is empty.", "error");
+            return;
+        }
+
+        localStorage.setItem('walkie_void_payload', textVal);
+        log(`📡 Payload transmitted to background void: "${textVal}" (Over)`, 'success');
+        messageInput.value = '';
+    }
+
+    // Step 2: Receiver clicks the active button -> Compiles the blob payload on demand
+    function receiveAndCompileBlob() {
+        const voidData = localStorage.getItem('walkie_void_payload');
+
+        if (!voidData) {
+            log("Error: Void is silent. Nothing to receive.", "error");
+            return;
+        }
+
+        log("Receiver clicked! Compining incoming void data into a live Blob payload...");
+
+        const packet = {
+            channel: "GitHub Walkie-Talkie",
+            receivedAt: Date.now(),
+            content: voidData
+        };
+
+        const jsonString = JSON.stringify(packet, null, 2);
+
+        // Compile the blob dynamically on click
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        resultArea.style.display = 'block';
+        resultArea.innerHTML = `<strong>Incoming Blob Compiled! (Over & Out)</strong><br><br><a href="${blobUrl}" target="_blank" style="color: #38bdf8; word-break: break-all;">${blobUrl}</a>`;
+
+        log(`✨ Blob URL successfully generated on-demand: ${blobUrl}`, 'success');
+
+        // Clear the void after picking it up (walkie-talkie style handshake complete)
+        localStorage.removeItem('walkie_void_payload');
+    }
+</script>
+
+</body>
+</html>
