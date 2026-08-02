@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title id="pageMetaTitle">TIFFY Trader • Sovereign Mesh Terminal</title>
+  
+  <!-- Open Graph Social Share Meta Tags -->
+  <meta property="og:title" id="ogTitleTag" content="TIFFY Trader Sent You 1 Ultra Secure Message">
+  <meta property="og:description" id="ogDescTag" content="Connect and view message package.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://tiffyai-usd.github.io/Trade/Verse6.html">
+  <meta property="og:image" id="ogImageTag" content="">
+
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    :root { 
+      --electric-blue: #00f0ff; 
+      --neon-pink: #ff00aa;
+      --neon-green: #00ff66;
+      --glass: rgba(6, 10, 35, 0.55); 
+      --glass-border: rgba(0, 240, 255, 0.45);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #000; color: #fff; overflow: hidden; }
+
+    #scene-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+
+    #ui-panel { 
+      position: fixed; 
+      top: 20px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      background: var(--glass); 
+      backdrop-filter: blur(24px); 
+      border: 1px solid var(--glass-border); 
+      border-radius: 20px; 
+      padding: 18px; 
+      z-index: 100; 
+      width: 340px; 
+      max-height: 92vh; 
+      overflow-y: auto; 
+      box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
+    }
+
+    button { 
+      background: rgba(0, 240, 255, 0.18); 
+      border: 1px solid var(--glass-border); 
+      color: #fff; 
+      padding: 13px; 
+      margin: 6px 0; 
+      border-radius: 12px; 
+      width: 100%; 
+      cursor: pointer; 
+      font-weight: bold; 
+      transition: all 0.25s;
+    }
+    button:hover { background: rgba(0, 240, 255, 0.4); transform: scale(1.04); }
+
+    #toggle-ui { 
+      position: fixed; top: 20px; left: 20px; z-index: 101; 
+      background: #ff00aa; border: none; 
+      width: 52px; height: 52px; border-radius: 50%; 
+      cursor: pointer; font-size: 26px; 
+    }
+
+    .stat-row { 
+      font-family: 'Orbitron', sans-serif; 
+      text-align: center; 
+      margin: 12px 0; 
+      color: var(--electric-blue); 
+      font-size: 1.3rem; 
+      text-shadow: 0 0 15px var(--electric-blue);
+    }
+
+    #projector-lens { width: 100%; height: 235px; background: #000; border: 1px solid var(--glass-border); border-radius: 12px; margin: 12px 0; }
+
+    #chat-container { 
+      height: 135px; overflow-y: scroll; background: rgba(0,0,0,0.6); 
+      border: 1px solid var(--glass-border); padding: 10px; font-size: 12.5px; margin: 10px 0; color: #fff;
+      display: flex; flex-direction: column;
+    }
+
+    #chat-input { width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; }
+
+    #upload-modal { 
+      position: fixed; top: 18%; left: 35%; width: 360px; 
+      background: rgba(8,10,40,0.95); backdrop-filter: blur(22px); 
+      border: 2px solid var(--electric-blue); 
+      z-index: 300; color: #fff; border-radius: 18px; padding: 25px; 
+    }
+
+    .star-rating { cursor: pointer; color: #555; font-size: 1.5rem; transition: color 0.2s; }
+    .star-rating.filled { color: #ff0; }
+
+    #search-suggestions {
+      position: absolute; 
+      top: 100%; 
+      left: 0; 
+      width: 100%; 
+      background: rgba(6, 10, 35, 0.95);
+      backdrop-filter: blur(18px); 
+      border: 1px solid var(--electric-blue);
+      border-radius: 0 0 15px 15px; 
+      z-index: 250; 
+      max-height: 260px;
+      overflow-y: auto; 
+    }
+    .suggestion-item { 
+      padding: 12px 15px; 
+      cursor: pointer; 
+      border-bottom: 1px solid rgba(0,240,255,0.2); 
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .suggestion-item:hover { background: rgba(0, 240, 255, 0.3); color: var(--electric-blue); }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; margin-left: 8px; }
+    .active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+    .disconnected { background: #888; }
+    .hidden { display: none !important; }
+    
+    #online-members-container {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--glass-border);
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+
+    #post-composer-container {
+      background: rgba(6, 10, 35, 0.75);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 15px;
+      position: relative;
+      box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.1);
+    }
+    
+    .composer-header {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      color: var(--electric-blue);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .color-picker-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .color-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.2s;
+    }
+    .color-dot:hover { transform: scale(1.2); }
+    .color-dot.selected { border-color: #fff; box-shadow: 0 0 8px var(--electric-blue); }
+
+    .textarea-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    #ar-post-textarea {
+      width: 100%;
+      height: 85px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 10px;
+      padding-right: 40px;
+      color: #00f0ff;
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      resize: none;
+      outline: none;
+    }
+    #ar-post-textarea:focus { border-color: var(--electric-blue); box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+
+    #media-upload-trigger {
+      position: absolute;
+      bottom: 12px;
+      right: 10px;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    #media-upload-trigger:hover {
+      background: rgba(0, 240, 255, 0.4);
+      transform: scale(1.08);
+    }
+
+    #dpad-toggle-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 106;
+      background: var(--electric-blue);
+      color: #000;
+      border: none;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+    #dpad-toggle-btn:hover { transform: scale(1.1); }
+
+    #ar-dpad-drawer {
+      position: fixed;
+      bottom: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 105;
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(2, 50px);
+      gap: 8px;
+      background: rgba(6, 10, 35, 0.85);
+      backdrop-filter: blur(16px);
+      padding: 14px 18px;
+      border: 1px solid var(--glass-border);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -5px 25px rgba(0, 240, 255, 0.3);
+      transition: bottom 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #ar-dpad-drawer.open { bottom: 0; }
+    .d-btn {
+      background: rgba(0, 240, 255, 0.2);
+      border: 1px solid var(--glass-border);
+      color: var(--electric-blue);
+      font-size: 20px;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .d-btn:active { background: rgba(0, 240, 255, 0.5); transform: scale(0.92); }
+    #btn-forward { grid-column: 2; grid-row: 1; }
+    #btn-left { grid-column: 1; grid-row: 2; }
+    #btn-backward { grid-column: 2; grid-row: 2; }
+    #btn-right { grid-column: 3; grid-row: 2; }
+  </style>
+</head>
+<body>
+
+  <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">☰</button>
+  
+  <button id="dpad-toggle-btn" onclick="toggleDpadDrawer()" title="Toggle AR Walking Controls">🎮</button>
+  <div id="ar-dpad-drawer">
+    <div id="btn-forward" class="d-btn" ontouchstart="startMove('forward')" onmousedown="startMove('forward')" ontouchend="stopMove()" onmouseup="stopMove()">▲</div>
+    <div id="btn-left" class="d-btn" ontouchstart="startMove('left')" onmousedown="startMove('left')" ontouchend="stopMove()" onmouseup="stopMove()">◀</div>
+    <div id="btn-backward" class="d-btn" ontouchstart="startMove('backward')" onmousedown="startMove('backward')" ontouchend="stopMove()" onmouseup="stopMove()">▼</div>
+    <div id="btn-right" class="d-btn" ontouchstart="startMove('right')" onmousedown="startMove('right')" ontouchend="stopMove()" onmouseup="stopMove()">▶</div>
+  </div>
+
+  <div id="scene-container">
+    <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
+      <a-assets>
+        <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous"
+               src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/Terminal1.mp4"></video>
+        <video id="remote-video-stream" autoplay playsinline></video>
+        <img id="btn-fullscreen" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/fullscreen.png" crossorigin="anonymous">
+        <img id="btn-like" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/like.png" crossorigin="anonymous">
+        <img id="btn-deleting" src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/deleting.png" crossorigin="anonymous">
+      </a-assets>
+      
+      <a-sky id="sky" src="#bg-video" rotation="0 -90 0" animation="property: rotation; from: 0 -90 0; to: 0 270 0; loop: true; dur: 90000; easing: linear"></a-sky>
+      
+      <a-entity id="camera-rig" position="0 0 0">
+        <a-camera id="main-camera" position="0 1.6 0"></a-camera>
+      </a-entity>
+      
+      <a-entity id="zone-front" position="0 1.2 -3.0">
+        <a-entity id="ar-portal" position="0 0 0"></a-entity>
+      </a-entity>
+
+      <a-entity id="zone-left" position="-8.5 1.2 -1.1" rotation="0 45 0">
+        <a-entity id="ar-billboard-container"></a-entity>
+      </a-entity>
+
+      <a-entity id="zone-right" position="0.2 -0.6 -2.2" rotation="0 360 0">
+        <a-entity id="holographic-comms-console" position="0 0 0">
+          <a-plane width="2.3" height="1.6" color="#03071e" material="opacity: 0.75; transparent: true; side: double; shader: flat;"></a-plane>
+          <a-ring radius-inner="1.15" radius-outer="1.18" color="#00f0ff" material="side: double; shader: flat;"></a-ring>
+          
+          <a-video id="ar-caller-video" width="2.2" height="1.5" position="0 0 0.01" src="#remote-video-stream" visible="false"></a-video>
+          
+          <a-plane id="comms-standby-gfx" width="2.2" height="1.5" position="0 0 0.02" color="#050a23" material="opacity: 0.9; transparent: true; shader: flat;">
+            <a-text value="TERMINAL STANDBY\nNO ACTIVE STREAM" align="center" position="0 0 0.05" width="4" color="#00f0ff" font="mozillavr"></a-text>
+          </a-plane>
+
+          <a-text id="spatial-node-title" value="NODE: DISCONNECTED" align="center" position="0 0.9 0" width="4.5" color="#ff00aa" font="mozillavr"></a-text>
+          <a-text id="spatial-feed-monitor" value="SYSTEM ONLINE - MESH DISCOVERY ACTIVE" align="center" position="0 -0.9 0" width="3.5" color="#00f0ff" font="mozillavr"></a-text>
+        </a-entity>
+      </a-entity>
+
+      <a-entity id="zone-behind" position="0 2.2 3.5" rotation="0 180 0">
+        <a-plane width="3.0" height="1.8" color="#040618" material="opacity: 0.8; transparent: true; side: double; shader: flat;">
+          <a-ring radius-inner="1.45" radius-outer="1.48" color="#ff00aa" material="side: double; shader: flat;"></a-ring>
+          <a-text value="REAR MESH TELEMETRY & NODE PULSE" align="center" position="0 0.75 0.02" width="4.0" color="#ff00aa" font="mozillavr"></a-text>
+          <a-text value="SECURE P2P MESH BRIDGE ACTIVE\nALL TOKENS & TRANSACTIONS ENCRYPTED\nDECENTRALIZED STORAGE READY" align="center" position="0 0 0.02" width="3.2" color="#00f0ff" font="mozillavr"></a-text>
+        </a-plane>
+      </a-entity>
+    </a-scene>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-family:'Orbitron'; text-align:center; margin-bottom:12px; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
+    
+    <div style="margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 10px; border: 1px solid var(--glass-border);">
+      <label style="font-size: 10px; color: var(--neon-pink); font-weight: bold; display: block; margin-bottom: 4px;">MARKETPLACE ROOM</label>
+      <select id="room-selector" onchange="switchRoomTarget(this.value)" style="width: 100%; padding: 8px; background: #050b1a; color: var(--electric-blue); border: 1px solid var(--glass-border); border-radius: 8px; font-family: monospace; font-size: 11px;">
+        <option value="MESH_DIR">MESH_DIR (Default / Main)</option>
+        <option value="MESH_DIR_CLASSIFIEDS">MESH_DIR_CLASSIFIEDS (Classifieds)</option>
+        <option value="MESH_DIR_JOBS">MESH_DIR_JOBS (Job Placements)</option>
+        <option value="MESH_DIR_GARDEN">MESH_DIR_GARDEN (Garden and Home)</option>
+        <option value="MESH_DIR_SOFTWARE">MESH_DIR_SOFTWARE (Software)</option>
+        <option value="MESH_DIR_SERVICES">MESH_DIR_SERVICES (Services)</option>
+        <option value="MESH_DIR_SOLUTIONS">MESH_DIR_SOLUTIONS (Solutions)</option>
+        <option value="MESH_DIR_RESTAURANTS">MESH_DIR_RESTAURANTS (Restaurants)</option>
+        <option value="MESH_DIR_TAKEAWAYS">MESH_DIR_TAKEAWAYS (Take aways)</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 10px; border: 1px solid var(--glass-border);">
+      <label style="font-size: 10px; color: var(--neon-pink); font-weight: bold; display: block; margin-bottom: 4px;">MANAGE MESH NODES</label>
+      <select id="node-selector-dropdown" style="width: 100%; padding: 8px; background: #050b1a; color: var(--electric-blue); border: 1px solid var(--glass-border); border-radius: 8px; font-family: monospace; font-size: 11px; margin-bottom: 6px;">
+        <option value="">Select Store to Remove...</option>
+      </select>
+      <button onclick="removeSelectedStoreNode()" style="background: rgba(200,0,0,0.3); border-color: rgba(200,0,0,0.6); margin: 0; padding: 8px; font-size: 11px;">🗑️ REMOVE STORE NODE</button>
+    </div>
+    
+    <div id="online-members-container">
+      <div style="font-size: 10px; color: #888; margin-bottom: 5px;">ONLINE MEMBERS</div>
+      <div id="online-members-list"></div>
+    </div>
+    
+    <div class="stat-row" id="tiffy-counter">TIFFYAI: 0.00</div>
+    <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
+
+    <div style="position: relative; margin-bottom: 8px;">
+      <input type="text" id="search-bar" placeholder="Search Mesh..." style="width:100%; padding:10px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--glass-border); border-radius:10px;">
+      <div id="search-suggestions"></div>
+    </div>
+    
+    <button onclick="searchMesh()">SEARCH MATRIX</button>
+
+    <iframe id="projector-lens" allowfullscreen="true"></iframe>
+
+    <div style="display:flex; gap:8px;">
+      <button onclick="loadHome()">HOME</button>
+      <button onclick="clearViewer()" style="background:rgba(200,0,0,0.4);">CLEAR</button>
+    </div>
+
+    <button onclick="showDeployModal()">UPLOAD STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/v6.html', '_blank')">EDIT STORE</button>
+    <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')">BANKING</button>
+    
+    <!-- Multi-Share Social Meta Bridge Button -->
+    <button onclick="showWhatsAppBridgeModal()" style="background: rgba(37, 211, 102, 0.25); border-color: rgba(37, 211, 102, 0.5);">💬 WHATSAPP MESH BRIDGE</button>
+
+    <div id="post-composer-container">
+      <div class="composer-header">
+        <span>CREATE AR FEED POST</span>
+        <span id="media-attachment-indicator" style="font-size:9px; color:#888;">NO MEDIA ATTACHED</span>
+      </div>
+
+      <div class="color-picker-row">
+        <span style="font-size:10px; color:#aaa; margin-right:4px;">FONT COLOR:</span>
+        <div class="color-dot selected" style="background: #00f0ff;" onclick="setPostFontColor('#00f0ff', this)"></div>
+        <div class="color-dot" style="background: #ffffff;" onclick="setPostFontColor('#ffffff', this)"></div>
+        <div class="color-dot" style="background: #ff00aa;" onclick="setPostFontColor('#ff00aa', this)"></div>
+        <div class="color-dot" style="background: #00ff66;" onclick="setPostFontColor('#00ff66', this)"></div>
+        <div class="color-dot" style="background: #ffaa00;" onclick="setPostFontColor('#ffaa00', this)"></div>
+      </div>
+
+      <div class="textarea-wrapper">
+        <textarea id="ar-post-textarea" placeholder="Broadcast to 3D AR environment or attach 3D/Video files..."></textarea>
+        <input type="file" id="ar-media-file-input" accept="image/*,video/*,.glb,.gltf" class="hidden" onchange="handleMediaAttachment(event)">
+        <div id="media-upload-trigger" onclick="document.getElementById('ar-media-file-input').click()" title="Attach Photo, Video (up to 400MB) or 3D Model">📁</div>
+      </div>
+
+      <button onclick="publishARPost()" style="margin-top:8px; background:rgba(0, 240, 255, 0.25);">🚀 BROADCAST TO AR ENVIRONMENT</button>
+    </div>
+
+    <div style="margin-top:15px; font-size:11px; color:#aaa;">LIVE CHAT + REPUTATION</div>
+    <div id="chat-container"></div>
+    <div id="star-rating-area" style="text-align:center; margin:5px 0;"></div>
+    <input type="text" id="chat-input" placeholder="Review/Message...">
+    
+    <div style="display:flex; gap:6px; margin-top:8px;">
+      <button onclick="startVideoCall()" style="flex:1;">📹 START VIDEO</button>
+      <button onclick="stopVideoCall()" style="flex:1; background:rgba(180,0,0,0.5);">⛔ STOP</button>
+    </div>
+    <button onclick="clearChat()" style="background:#333; font-size:11px;">CLEAR CHAT</button>
+  </div>
+
+  <div id="upload-modal" class="hidden">
+    <h3 style="color:var(--electric-blue);">DEPLOY STORE</h3>
+    <div id="kyc-notice" style="padding:12px; background:rgba(0,0,0,0.6); border-radius:10px; margin:12px 0;">
+      KYC: <span id="kyc-status-text" style="color:#ff0;">CHECKING...</span>
+    </div>
+    <input type="text" id="name-input" placeholder="Store Name" style="width:100%; padding:10px; margin:8px 0; background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); color:#fff;">
+    <label>Thumbnail:</label><input type="file" id="thumb-input" accept="image/*" style="width:100%; margin:6px 0;">
+    <label>HTML Storefront:</label><input type="file" id="html-input" accept=".html" style="width:100%; margin:6px 0;">
+    <button onclick="deployStore()" id="deploy-btn">CONFIRM & DEPLOY</button>
+    <button onclick="document.getElementById('upload-modal').classList.add('hidden')">CANCEL</button>
+  </div>
+
+  <!-- WhatsApp & Multi-Share Social Meta Bridge Modal (Centered & Responsive) -->
+  <div id="whatsapp-bridge-modal" class="hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:92vw; max-width:440px; background:rgba(6,10,35,0.98); backdrop-filter:blur(22px); border:2px solid #25d366; z-index:350; color:#fff; border-radius:20px; padding:22px; box-shadow:0 0 40px rgba(37,211,102,0.25); max-height:85vh; overflow-y:auto;">
+    <h3 style="color:#25d366; text-align:center; margin-bottom:12px; font-family:'Orbitron'; font-size:1.1rem;">SOCIAL SHARE & MESH BRIDGE</h3>
+    
+    <!-- Meta Tag Customization Card -->
+    <div style="margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 12px;">
+      <span style="font-size:10px; color:var(--electric-blue); font-weight:bold; display:block; margin-bottom:6px;">1. CONFIGURE SOCIAL PREVIEW CARD</span>
+      
+      <label style="font-size:11px; color:#aaa; display:block; margin-top:4px;">Upload Link Logo/Image</label>
+      <input type="file" id="editLogo" accept="image/*" onchange="uploadSocialLogo(this)" style="font-size:11px; margin:4px 0 8px 0; width:100%;">
+
+      <label style="font-size:11px; color:#aaa; display:block;">Heading (InputBox1 - Meta Title)</label>
+      <input type="text" id="metaTitleInput" value="Sent You 1 Ultra Secure Message" oninput="updateSocialMetadata()" style="width:100%; padding:8px; background:#000; border:1px solid var(--glass-border); color:#fff; border-radius:6px; font-size:12px; margin:4px 0 8px 0;">
+
+      <label style="font-size:11px; color:#aaa; display:block;">Message (InputBox2 - Meta Description)</label>
+      <input type="text" id="metaDescInput" value="Check out my latest store inventory and updates." oninput="updateSocialMetadata()" style="width:100%; padding:8px; background:#000; border:1px solid var(--glass-border); color:#fff; border-radius:6px; font-size:12px; margin:4px 0;">
+    </div>
+
+    <!-- Actions: Multi-Share & Download -->
+    <div style="margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 12px;">
+      <span style="font-size:10px; color:#ff00aa; font-weight:bold; display:block; margin-bottom:6px;">2. MULTI-PLATFORM SHARE & MESH FILE</span>
+      <p style="font-size:11.5px; color:#ccc; margin-bottom:8px;">Share the customized Open Graph link directly to Facebook, Instagram, WhatsApp, or download your Mesh file.</p>
+      
+      <button onclick="triggerMultiShare()" style="background:rgba(37,211,102,0.3); border-color:#25d366; font-size:12px;">🚀 SHARE SECURE MESSAGE CARD</button>
+      <button onclick="exportMeshFileForWhatsApp()" style="background:rgba(0,240,255,0.2); border-color:var(--electric-blue); font-size:12px; margin-top:6px;">📥 DOWNLOAD MESH_DIR JSON</button>
+    </div>
+
+    <!-- Stable Merge Import -->
+    <div style="margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 12px;">
+      <span style="font-size:10px; color:#ff00aa; font-weight:bold; display:block; margin-bottom:6px;">3. STABLE MERGE IMPORT</span>
+      <label class="file-btn" style="background:rgba(37,211,102,0.2); border-color:#25d366; display:block; text-align:center; padding:10px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold;">
+        SELECT & MERGE FILE
+        <input type="file" id="whatsapp-import-file" accept=".json" onchange="stableMergeImportWhatsApp(event)" class="hidden">
+      </label>
+      <div id="whatsapp-write-status" style="margin-top:8px; font-size:11.5px; color:#00ff66; text-align:center;"></div>
+    </div>
+
+    <button onclick="document.getElementById('whatsapp-bridge-modal').classList.add('hidden')" style="background:#444;">CLOSE BRIDGE</button>
+  </div>
+
+<script>
+  const DB_NAME = 'TiffyStoreDB';
+  const STORE_NAME = 'StoreData';
+  let meshDir = {};
+  let meshPosts = []; 
+  let activeRoomKey = 'MESH_DIR';
+  let myPeerId = null;
+  const peer = new Peer();
+  let currentConn = null;
+  let activePeers = {};
+  let currentTargetStore = localStorage.getItem('last_target_name') || null;
+  let localStream = null;
+
+  let currentPostFontColor = '#00f0ff';
+  let attachedMediaFile = null;
+  let attachedMediaDataUrl = null;
+
+  let moveInterval = null;
+  const moveSpeed = 0.08;
+
+  function toggleDpadDrawer() {
+    const drawer = document.getElementById('ar-dpad-drawer');
+    drawer.classList.toggle('open');
+  }
+
+  function startMove(direction) {
+    if (moveInterval) clearInterval(moveInterval);
+    moveInterval = setInterval(() => {
+      const rig = document.getElementById('camera-rig');
+      const cam = document.getElementById('main-camera');
+      if (!rig || !cam) return;
+
+      const dirVector = new THREE.Vector3();
+      cam.object3D.getWorldDirection(dirVector);
+      dirVector.y = 0;
+      dirVector.normalize();
+
+      const sideVector = new THREE.Vector3(-dirVector.z, 0, dirVector.x);
+
+      if (direction === 'forward') {
+        rig.object3D.position.addScaledVector(dirVector, moveSpeed);
+      } else if (direction === 'backward') {
+        rig.object3D.position.addScaledVector(dirVector, -moveSpeed);
+      } else if (direction === 'left') {
+        rig.object3D.position.addScaledVector(sideVector, moveSpeed);
+      } else if (direction === 'right') {
+        rig.object3D.position.addScaledVector(sideVector, -moveSpeed);
+      }
+    }, 20);
+  }
+
+  function stopMove() {
+    if (moveInterval) {
+      clearInterval(moveInterval);
+      moveInterval = null;
+    }
+  }
+
+  function setPostFontColor(color, element) {
+    currentPostFontColor = color;
+    document.getElementById('ar-post-textarea').style.color = color;
+    document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('selected'));
+    element.classList.add('selected');
+  }
+
+  function handleMediaAttachment(event) {
+    const file = event.target.files[0];
+    const indicator = document.getElementById('media-attachment-indicator');
+    
+    if (!file) {
+      attachedMediaFile = null;
+      attachedMediaDataUrl = null;
+      indicator.textContent = "NO MEDIA ATTACHED";
+      indicator.style.color = "#888";
+      return;
+    }
+
+    const maxSize = 400 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("File is too large! Maximum supported size is 400MB.");
+      event.target.value = '';
+      return;
+    }
+
+    attachedMediaFile = file;
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    indicator.textContent = `ATTACHED: ${file.name.toUpperCase()} (${sizeMB}MB)`;
+    indicator.style.color = "#00ff00";
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      attachedMediaDataUrl = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function publishARPost() {
+    const textContent = document.getElementById('ar-post-textarea').value.trim();
+    if (!textContent && !attachedMediaFile) {
+      return alert("Please enter text or attach media to broadcast into the AR environment.");
+    }
+
+    const postPayload = {
+      type: 'AR_SOCIAL_POST',
+      author: myPeerId,
+      text: textContent,
+      color: currentPostFontColor,
+      hasMedia: !!attachedMediaFile,
+      mediaName: attachedMediaFile ? attachedMediaFile.name : null,
+      mediaType: attachedMediaFile ? attachedMediaFile.type : null,
+      mediaData: attachedMediaDataUrl,
+      likes: 0,
+      likedBy: [],
+      timestamp: Date.now()
+    };
+
+    meshPosts.push(postPayload);
+    await saveMeshRoomData();
+    renderAllARBillboards();
+
+    Object.values(peer.connections).flat().forEach(conn => {
+      if (conn.open) conn.send(postPayload);
+    });
+
+    document.getElementById('ar-post-textarea').value = '';
+    attachedMediaFile = null;
+    attachedMediaDataUrl = null;
+    document.getElementById('ar-media-file-input').value = '';
+    document.getElementById('media-attachment-indicator').textContent = "NO MEDIA ATTACHED";
+    document.getElementById('media-attachment-indicator').style.color = "#888";
+
+    alert("✅ AR Post saved and broadcasted!");
+  }
+
+  async function deleteARPost(timestamp) {
+    if (!confirm("Delete this AR post?")) return;
+    meshPosts = meshPosts.filter(p => p.timestamp !== timestamp);
+    await saveMeshRoomData();
+    renderAllARBillboards();
+
+    const deletePacket = { type: 'DELETE_AR_POST', timestamp };
+    Object.values(peer.connections).flat().forEach(conn => {
+      if (conn.open) conn.send(deletePacket);
+    });
+    addChatMessage("Deleted AR post.");
+  }
+
+  async function likeARPost(timestamp) {
+    const post = meshPosts.find(p => p.timestamp === timestamp);
+    if (!post) return;
+
+    if (!post.likedBy) post.likedBy = [];
+    if (post.likedBy.includes(myPeerId)) {
+      addChatMessage("You already liked this post!");
+      return;
+    }
+
+    post.likedBy.push(myPeerId);
+    post.likes = (post.likes || 0) + 1;
+    await saveMeshRoomData();
+    renderAllARBillboards();
+
+    const likePacket = { type: 'LIKE_AR_POST', timestamp, voterId: myPeerId };
+    Object.values(peer.connections).flat().forEach(conn => {
+      if (conn.open) conn.send(likePacket);
+    });
+
+    addChatMessage(`Liked post! Total likes: ${post.likes}`);
+  }
+
+  function renderAllARBillboards() {
+    const container = document.getElementById('ar-billboard-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    meshPosts.forEach((post, index) => {
+      const xOffset = (index % 2) * 1.9;
+      const yOffset = -Math.floor(index / 2) * 1.9;
+
+      const panel = document.createElement('a-entity');
+      panel.setAttribute('position', `${xOffset} ${yOffset} 0`);
+      panel.setAttribute('animation', 'property: rotation; from: 0 -2 0; to: 0 2 0; dir: alternate; loop: true; dur: 4000; easing: easeInOutSine');
+
+      const bgPlane = document.createElement('a-plane');
+      bgPlane.setAttribute('width', '1.8');
+      bgPlane.setAttribute('height', '1.7');
+      bgPlane.setAttribute('color', '#060a23');
+      bgPlane.setAttribute('material', 'opacity: 0.85; transparent: true; side: double; shader: flat;');
+      panel.appendChild(bgPlane);
+
+      const borderRing = document.createElement('a-ring');
+      borderRing.setAttribute('radius-inner', '0.95');
+      borderRing.setAttribute('radius-outer', '0.98');
+      borderRing.setAttribute('color', post.color || '#00f0ff');
+      borderRing.setAttribute('material', 'side: double; shader: flat;');
+      panel.appendChild(borderRing);
+
+      if (post.hasMedia && post.mediaData) {
+        if (post.mediaType && post.mediaType.includes('image')) {
+          const imgPlane = document.createElement('a-image');
+          imgPlane.setAttribute('src', post.mediaData);
+          imgPlane.setAttribute('width', '1.2');
+          imgPlane.setAttribute('height', '0.9');
+          imgPlane.setAttribute('position', '0 0.28 0.02');
+          panel.appendChild(imgPlane);
+        } else if (post.mediaType && post.mediaType.includes('video')) {
+          const vidId = 'ar-vid-' + post.timestamp + '-' + index;
+          let vidEl = document.getElementById(vidId);
+          
+          if (!vidEl) {
+            vidEl = document.createElement('video');
+            vidEl.id = vidId;
+            vidEl.setAttribute('src', post.mediaData);
+            vidEl.setAttribute('loop', 'true');
+            vidEl.setAttribute('muted', 'true');
+            vidEl.setAttribute('playsinline', 'true');
+            vidEl.setAttribute('crossorigin', 'anonymous');
+            document.querySelector('a-assets').appendChild(vidEl);
+          }
+
+          const vidPlane = document.createElement('a-video');
+          vidPlane.setAttribute('src', '#' + vidId);
+          vidPlane.setAttribute('width', '1.2');
+          vidPlane.setAttribute('height', '0.9');
+          vidPlane.setAttribute('position', '0 0.28 0.02');
+          panel.appendChild(vidPlane);
+
+          panel.addEventListener('click', (evt) => {
+            if (evt.target.id === 'fs-btn-' + index || evt.target.parentNode.id === 'fs-btn-' + index) return;
+            if (vidEl.paused) {
+              vidEl.play().catch(err => console.warn("Video play error:", err));
+              addChatMessage("Playing AR video stream...");
+            } else {
+              vidEl.pause();
+              addChatMessage("Paused AR video stream.");
+            }
+          });
+
+          const fsBtn = document.createElement('a-entity');
+          fsBtn.id = 'fs-btn-' + index;
+          fsBtn.setAttribute('position', '0.62 -0.12 0.04');
+          fsBtn.setAttribute('class', 'clickable');
+
+          const fsImgPlane = document.createElement('a-image');
+          fsImgPlane.setAttribute('src', '#btn-fullscreen');
+          fsImgPlane.setAttribute('width', '0.36');
+          fsImgPlane.setAttribute('height', '0.16');
+          fsImgPlane.setAttribute('transparent', 'true');
+          fsBtn.appendChild(fsImgPlane);
+
+          fsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const blob = new Blob([`<html style="background:#000;margin:0;height:100%;"><body style="margin:0;height:100%;display:flex;align-items:center;justify-content:center;"><video src="${post.mediaData}" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video></body></html>`], { type: 'text/html' });
+            window.open(URL.createObjectURL(blob), '_blank');
+            addChatMessage("Opened video in Fullscreen window.");
+          });
+
+          panel.appendChild(fsBtn);
+
+        } else if (post.mediaName && (post.mediaName.endsWith('.glb') || post.mediaName.endsWith('.gltf'))) {
+          const gltfEntity = document.createElement('a-gltf-model');
+          gltfEntity.setAttribute('src', post.mediaData);
+          gltfEntity.setAttribute('scale', '0.35 0.35 0.35');
+          gltfEntity.setAttribute('position', '0 0.2 0.05');
+          panel.appendChild(gltfEntity);
+        }
+      }
+
+      if (post.text) {
+        const textEntity = document.createElement('a-text');
+        textEntity.setAttribute('value', post.text);
+        textEntity.setAttribute('align', 'center');
+        textEntity.setAttribute('position', post.hasMedia ? '0 -0.45 0.03' : '0 0 0.03');
+        textEntity.setAttribute('width', '1.6');
+        textEntity.setAttribute('color', post.color || '#00f0ff');
+        textEntity.setAttribute('font', 'mozillavr');
+        panel.appendChild(textEntity);
+      }
+
+      const authorTag = document.createElement('a-text');
+      authorTag.setAttribute('value', `MESH POST • ${post.author ? post.author.substring(0, 4) : 'NODE'}`);
+      authorTag.setAttribute('align', 'center');
+      authorTag.setAttribute('position', '0 0.75 0.03');
+      authorTag.setAttribute('width', '2.2');
+      authorTag.setAttribute('color', '#ff00aa');
+      authorTag.setAttribute('font', 'mozillavr');
+      panel.appendChild(authorTag);
+
+      const likeBtn = document.createElement('a-entity');
+      likeBtn.setAttribute('position', '-0.45 -0.72 0.04');
+      likeBtn.setAttribute('class', 'clickable');
+
+      const likeImgPlane = document.createElement('a-image');
+      likeImgPlane.setAttribute('src', '#btn-like');
+      likeImgPlane.setAttribute('width', '0.72');
+      likeImgPlane.setAttribute('height', '0.22');
+      likeImgPlane.setAttribute('transparent', 'true');
+      likeBtn.appendChild(likeImgPlane);
+
+      const currentLikes = post.likes || 0;
+      const likeText = document.createElement('a-text');
+      likeText.setAttribute('value', `(${currentLikes})`);
+      likeText.setAttribute('align', 'center');
+      likeText.setAttribute('position', '0.22 0 0.01');
+      likeText.setAttribute('width', '1.0');
+      likeText.setAttribute('color', '#ffff00');
+      likeText.setAttribute('font', 'mozillavr');
+      likeBtn.appendChild(likeText);
+
+      likeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        likeARPost(post.timestamp);
+
+        for (let s = 0; s < 6; s++) {
+          const star = document.createElement('a-text');
+          star.setAttribute('value', '★');
+          star.setAttribute('align', 'center');
+          star.setAttribute('position', `${(Math.random() - 0.5) * 0.6} ${-0.72 + (Math.random() * 0.4)} 0.08`);
+          star.setAttribute('width', '1.2');
+          star.setAttribute('color', '#ffff00');
+          star.setAttribute('animation', `property: position; to: ${(Math.random() - 0.5) * 1.5} ${-0.2 + (Math.random() * 1.2)} 0.3; dur: 800; easing: easeOutQuad;`);
+          star.setAttribute('animation__fade', 'property: opacity; from: 1; to: 0; dur: 800;');
+          panel.appendChild(star);
+          setTimeout(() => star.remove(), 850);
+        }
+      });
+      panel.appendChild(likeBtn);
+
+      const delBtn = document.createElement('a-entity');
+      delBtn.setAttribute('position', '0.62 -0.72 0.04');
+      delBtn.setAttribute('class', 'clickable');
+
+      const delImgPlane = document.createElement('a-image');
+      delImgPlane.setAttribute('src', '#btn-deleting');
+      delImgPlane.setAttribute('width', '0.42');
+      delImgPlane.setAttribute('height', '0.22');
+      delImgPlane.setAttribute('transparent', 'true');
+      delBtn.appendChild(delImgPlane);
+
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteARPost(post.timestamp);
+      });
+      panel.appendChild(delBtn);
+
+      container.appendChild(panel);
+    });
+  }
+
+  function playIncomingCallSound() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 1);
+  }
+
+  async function getDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 2);
+      req.onupgradeneeded = async e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+
+  async function saveMeshRoomData() {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const roomData = { meshDir, meshPosts };
+    tx.objectStore(STORE_NAME).put(roomData, activeRoomKey);
+    return new Promise(resolve => tx.oncomplete = resolve);
+  }
+
+  async function loadMeshDirForRoom(roomKey) {
+    activeRoomKey = roomKey;
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(activeRoomKey);
+    
+    req.onsuccess = () => {
+      let data = req.result;
+      meshDir = {};
+      meshPosts = [];
+      
+      if (data && typeof data === 'object') {
+        if (data.meshDir) Object.assign(meshDir, data.meshDir);
+        if (data.meshPosts && Array.isArray(data.meshPosts)) meshPosts = data.meshPosts;
+        if (!data.meshDir && !data.meshPosts && Object.keys(data).length > 0) {
+          Object.assign(meshDir, data);
+        }
+      }
+      
+      renderPortals();
+      renderAllARBillboards();
+      updateNodeDropdown();
+      broadcastFullSync();
+    };
+  }
+
+  async function switchRoomTarget(roomKey) {
+    await loadMeshDirForRoom(roomKey);
+  }
+
+  function updateNodeDropdown() {
+    const dropdown = document.getElementById('node-selector-dropdown');
+    if (!dropdown) return;
+    dropdown.innerHTML = '<option value="">Select Store to Remove...</option>';
+    
+    Object.entries(meshDir).forEach(([id, store]) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = `${store.name || 'Untitled'} (${id.substring(0, 4)})`;
+      dropdown.appendChild(opt);
+    });
+  }
+
+  async function removeSelectedStoreNode() {
+    const dropdown = document.getElementById('node-selector-dropdown');
+    const targetId = dropdown.value;
+    if (!targetId) return alert("Please select a store node to remove.");
+    
+    if (!confirm(`Are you sure you want to remove this node from your Mesh state?`)) return;
+
+    delete meshDir[targetId];
+    await saveMeshRoomData();
+    renderPortals();
+    updateNodeDropdown();
+    broadcastFullSync();
+    
+    alert("✅ Store node successfully purged from your local Mesh.");
+  }
+
+  function renderOnlineList() {
+    const list = document.getElementById('online-members-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    let myDisplayName = "Me";
+    try {
+        const savedDraft = localStorage.getItem('webstore_pro_draft');
+        if (savedDraft) {
+            const data = JSON.parse(savedDraft);
+            if (data.name && data.name.trim() !== "") myDisplayName = data.name;
+        }
+    } catch (e) {}
+    
+    list.innerHTML += `<div class="suggestion-item"><span>${myDisplayName} (You)</span><span class="status-dot active"></span></div>`;
+    
+    Object.entries(activePeers).forEach(([id, name]) => {
+      list.innerHTML += `<div class="suggestion-item" data-id="${id}"><span>${name}</span><span class="status-dot active"></span></div>`;
+    });
+  }
+
+  function broadcastPresence() {
+    if (!myPeerId) return;
+    const myStore = meshDir[myPeerId] || { name: "Guest" };
+    const packet = { type: 'PRESENCE', id: myPeerId, name: myStore.name };
+    Object.values(peer.connections).flat().forEach(conn => {
+      if (conn.open) conn.send(packet);
+    });
+    renderOnlineList();
+  }
+
+  function updateOnlineStatus() {
+    document.querySelectorAll('.suggestion-item').forEach(el => {
+      const id = el.dataset.id;
+      const dot = el.querySelector('.status-dot');
+      if (dot) {
+        const isOnline = (id === myPeerId) || !!activePeers[id];
+        dot.className = `status-dot ${isOnline ? 'active' : 'disconnected'}`;
+      }
+    });
+  }
+
+  function checkKYC() {
+    return !!localStorage.getItem("KYC_Verified_Hash");
+  }
+
+  function showKYCModal() {
+    if (document.getElementById('kyc-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'kyc-modal';
+    modal.style.cssText = 'position:fixed; top:20%; left:35%; width:340px; background:rgba(10,10,35,0.98); backdrop-filter:blur(20px); padding:25px; border:2px solid #FF007F; z-index:999; color:#fff; border-radius:16px; text-align:center;';
+    modal.innerHTML = `
+      <h3 style="margin-bottom:15px; color:#ff007f;">ACTION REQUIRED</h3>
+      <p style="font-size:13.5px; line-height:1.5; margin-bottom:20px;">
+        Top up your banking terminal with a minimum of $10 to start receiving and sending payments instantly.<br><br>
+        Complete your KYC business registration to unlock full deployment.
+      </p>
+      <button onclick="window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NVPAZWBES9WAS', '_blank');" style="background:#28a745; margin:8px 0; padding:14px;">TOP UP ACCOUNT</button>
+      <button onclick="window.open('https://tiffyai-usd.github.io/KYC/', '_blank');" style="background:#007BFF; margin:8px 0; padding:14px;">DO KYC REGISTRATION</button>
+      <button onclick="this.parentElement.remove()" style="background:#444; margin-top:12px;">CLOSE</button>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  function sendFullSync(conn) {
+    if (!conn || !conn.open) return;
+    conn.send({ type: 'SYNC_ROOM', dir: meshDir, posts: meshPosts, room: activeRoomKey });
+  }
+
+  function broadcastFullSync() {
+    Object.values(peer.connections).flat().forEach(conn => sendFullSync(conn));
+  }
+
+  async function deployStore() {
+    if (!checkKYC()) {
+      showKYCModal();
+      return;
+    }
+    if (!peer.id) return alert("Connection not ready. Wait...");
+    const name = document.getElementById('name-input').value.trim() || "My Store";
+    const hFile = document.getElementById('html-input').files[0];
+    const tFile = document.getElementById('thumb-input').files[0];
+    if (!hFile || !tFile) return alert("Both files required");
+    
+    try {
+      const html = await hFile.text();
+      const thumb = await new Promise(r => {
+        const fr = new FileReader();
+        fr.onload = () => r(fr.result);
+        fr.readAsDataURL(tFile);
+      });
+      
+      const newStore = { id: peer.id, name, html, thumb, reviews: [], timestamp: Date.now() };
+      meshDir[peer.id] = newStore;
+      await saveMeshRoomData();
+      
+      broadcastFullSync();
+      renderPortals();
+      updateNodeDropdown();
+      const blob = new Blob([html], {type: 'text/html'});
+      window.open(URL.createObjectURL(blob), '_blank');
+      document.getElementById('upload-modal').classList.add('hidden');
+      alert(`✅ ${name} deployed successfully to room ${activeRoomKey}!`);
+    } catch (e) { alert("Deploy failed"); }
+  }
+
+  function renderPortals() {
+    const container = document.getElementById('ar-portal');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const storesList = Object.values(meshDir);
+
+    storesList.forEach((biz, i) => {
+      const el = document.createElement('a-plane');
+      el.setAttribute('position', `${(i * 1.8) - 0.9} 0 0`);
+      el.setAttribute('width', '1.4');
+      el.setAttribute('height', '1.4');
+      el.setAttribute('material', { src: biz.thumb, side: 'double', transparent: true });
+      el.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 6500; easing: linear');
+      el.addEventListener('click', () => {
+        currentTargetStore = biz.name;
+        localStorage.setItem('last_target_name', biz.name);
+        
+        document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${biz.name.toUpperCase()}`);
+        document.getElementById('spatial-feed-monitor').setAttribute('value', `VIEWING PROJECTION FOR ${biz.name.toUpperCase()}`);
+        
+        const blob = new Blob([biz.html], {type: 'text/html'});
+        window.open(URL.createObjectURL(blob), '_blank');
+        renderReviews(biz.name);
+      });
+      container.appendChild(el);
+    });
+  }
+
+  function updateSpatialVideoDisplay(statusText, showVideo) {
+    const standbyGfx = document.getElementById('comms-standby-gfx');
+    const callerVideo = document.getElementById('ar-caller-video');
+    const monitorText = document.getElementById('spatial-feed-monitor');
+    
+    if (monitorText) monitorText.setAttribute('value', statusText);
+    
+    if (showVideo) {
+      if (standbyGfx) standbyGfx.setAttribute('visible', 'false');
+      if (callerVideo) callerVideo.setAttribute('visible', 'true');
+    } else {
+      if (standbyGfx) standbyGfx.setAttribute('visible', 'true');
+      if (callerVideo) callerVideo.setAttribute('visible', 'false');
+    }
+  }
+
+  function renderReviews(storeName) {
+    currentTargetStore = storeName;
+    localStorage.setItem('last_target_name', storeName);
+    
+    const biz = meshDir[Object.keys(meshDir).find(k => meshDir[k].name === storeName)];
+    if (!biz) return;
+    const container = document.getElementById('chat-container');
+    container.innerHTML = `<div style="color:var(--electric-blue); font-size:10px;">REVIEWS: ${biz.name}</div>`;
+    
+    let lastReviewText = "CONNECTED TO NODE";
+    (biz.reviews || []).forEach(r => {
+      const div = document.createElement('div');
+      div.style.cssText = "font-size:11px; margin-top:3px; color:#fff;";
+      div.textContent = "> " + r.msg;
+      container.appendChild(div);
+      lastReviewText = r.msg;
+    });
+    container.scrollTop = container.scrollHeight;
+
+    const monitorText = document.getElementById('spatial-feed-monitor');
+    if (monitorText) monitorText.setAttribute('value', lastReviewText.toUpperCase());
+    
+    const starsArea = document.getElementById('star-rating-area');
+    starsArea.innerHTML = '';
+    for(let i=1; i<=5; i++) {
+        const s = document.createElement('span');
+        s.className = 'star-rating';
+        s.innerHTML = '★';
+        s.dataset.value = i;
+        s.onclick = () => {
+            document.querySelectorAll('.star-rating').forEach((st, idx) => st.classList.toggle('filled', idx < i));
+            handleNewMessage(`Rated ${i} stars`);
+        };
+        starsArea.appendChild(s);
+    }
+  }
+
+  function setupCallListeners(call) {
+    call.on('stream', (remoteStream) => {
+      const streamTarget = document.getElementById('remote-video-stream');
+      streamTarget.srcObject = remoteStream;
+      streamTarget.play().catch(e => console.error("Playback blocked:", e));
+      
+      const nodeTitle = meshDir[call.peer]?.name || "PEER NODE";
+      document.getElementById('spatial-node-title').setAttribute('value', `LIVE CALL: ${nodeTitle.toUpperCase()}`);
+      updateSpatialVideoDisplay("LIVE FEED ESTABLISHED", true);
+    });
+    call.on('close', () => {
+      updateSpatialVideoDisplay("LIVE STREAM TERMINATED", false);
+      document.getElementById('spatial-node-title').setAttribute('value', `NODE: DISCONNECTED`);
+    });
+  }
+
+  peer.on('call', async (call) => {
+    playIncomingCallSound();
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      call.answer(localStream);
+      setupCallListeners(call);
+    } catch (err) { console.error("Call answer failed:", err); }
+  });
+
+  async function startVideoCall() {
+    const name = localStorage.getItem('last_target_name');
+    const target = Object.values(meshDir).find(s => s.name === name);
+    if (!target) return alert("Select a node first!");
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setupCallListeners(peer.call(target.id, localStream));
+    } catch (e) { alert("Camera denied"); }
+  }
+
+  function stopVideoCall() { 
+    if (localStream) { 
+      localStream.getTracks().forEach(t => t.stop()); 
+      updateSpatialVideoDisplay("STREAM DISCONNECTED BY USER", false);
+      document.getElementById('spatial-node-title').setAttribute('value', `NODE: DISCONNECTED`);
+    } 
+  }
+
+  function handleIncomingData(id, data) {
+    if (data.type === 'REQUEST_DIR') {
+      const conn = peer.connections[id]?.[0];
+      if (conn) sendFullSync(conn);
+    }
+    else if (data.type === 'SYNC_ROOM') {
+      if (data.dir) Object.assign(meshDir, data.dir);
+      if (data.posts && Array.isArray(data.posts)) {
+        const existingTimestamps = new Set(meshPosts.map(p => p.timestamp));
+        data.posts.forEach(p => {
+          if (!existingTimestamps.has(p.timestamp)) meshPosts.push(p);
+        });
+      }
+      renderPortals();
+      renderAllARBillboards();
+      updateNodeDropdown();
+      saveMeshRoomData();
+    }
+    else if (data.type === 'PRESENCE') {
+      activePeers[id] = data.name;
+      updateOnlineStatus();
+      renderOnlineList();
+    }
+    else if (data.type === 'REVIEW') {
+      const targetStore = Object.values(meshDir).find(b => b.name === data.storeName);
+      if(targetStore) {
+        targetStore.reviews.push({ msg: data.msg });
+        if (currentTargetStore === data.storeName) renderReviews(data.storeName);
+      }
+    }
+    else if (data.type === 'AR_SOCIAL_POST') {
+      if (!meshPosts.some(p => p.timestamp === data.timestamp)) {
+        meshPosts.push(data);
+        renderAllARBillboards();
+        saveMeshRoomData();
+      }
+      addChatMessage(`AR Broadcast from Peer: "${data.text.substring(0, 20) || 'Media Post'}..."`);
+    }
+    else if (data.type === 'LIKE_AR_POST') {
+      const p = meshPosts.find(item => item.timestamp === data.timestamp);
+      if (p) {
+        if (!p.likedBy) p.likedBy = [];
+        if (!p.likedBy.includes(data.voterId)) {
+          p.likedBy.push(data.voterId);
+          p.likes = (p.likes || 0) + 1;
+          renderAllARBillboards();
+          saveMeshRoomData();
+        }
+      }
+    }
+    else if (data.type === 'DELETE_AR_POST') {
+      meshPosts = meshPosts.filter(item => item.timestamp !== data.timestamp);
+      renderAllARBillboards();
+      saveMeshRoomData();
+    }
+    else addChatMessage("Peer: " + data);
+  }
+
+  function connectToPeer(targetId, name) {
+    if (targetId === myPeerId || peer.connections[targetId]) return;
+    const conn = peer.connect(targetId);
+    conn.on('error', (err) => { delete activePeers[targetId]; });
+    conn.on('open', () => {
+      activePeers[targetId] = name;
+      updateOnlineStatus();
+      renderOnlineList();
+      sendFullSync(conn);
+      conn.send({ type: 'REQUEST_DIR' });
+      conn.send({ type: 'PRESENCE', id: myPeerId, name: (meshDir[myPeerId]?.name || 'Guest') });
+    });
+    conn.on('data', (data) => handleIncomingData(conn.peer, data));
+    conn.on('close', () => { delete activePeers[targetId]; updateOnlineStatus(); renderOnlineList(); });
+  }
+
+  peer.on('connection', (c) => {
+    c.on('data', (data) => handleIncomingData(c.peer, data));
+    c.on('open', () => { sendFullSync(c); });
+    c.on('close', () => { delete activePeers[c.peer]; updateOnlineStatus(); renderOnlineList(); });
+  });
+
+  const searchBar = document.getElementById('search-bar');
+  const suggestionsBox = document.getElementById('search-suggestions');
+
+  searchBar.addEventListener('input', () => {
+    const query = searchBar.value.toLowerCase().trim();
+    if (query.length < 1) { suggestionsBox.style.display = 'none'; return; }
+    
+    const matches = Object.values(meshDir).filter(s => s.name && s.name.toLowerCase().includes(query));
+    suggestionsBox.innerHTML = '';
+    matches.forEach(store => {
+      const div = document.createElement('div');
+      div.className = 'suggestion-item';
+      div.innerHTML = `${store.name}`;
+      div.onclick = () => {
+        currentTargetStore = store.name;
+        localStorage.setItem('last_target_name', store.name);
+        document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${store.name.toUpperCase()}`);
+        const blob = new Blob([store.html], {type: 'text/html'});
+        window.open(URL.createObjectURL(blob), '_blank');
+        connectToPeer(store.id, store.name);
+        suggestionsBox.style.display = 'none';
+        renderReviews(store.name);
+      };
+      suggestionsBox.appendChild(div);
+    });
+    suggestionsBox.style.display = matches.length ? 'block' : 'none';
+  });
+
+  function searchMesh() {
+    const query = searchBar.value.toLowerCase().trim();
+    const found = Object.values(meshDir).find(b => b.name?.toLowerCase().includes(query));
+    if (found) {
+      currentTargetStore = found.name;
+      localStorage.setItem('last_target_name', found.name);
+      document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${found.name.toUpperCase()}`);
+      const blob = new Blob([found.html], {type: 'text/html'});
+      window.open(URL.createObjectURL(blob), '_blank');
+      renderReviews(found.name);
+    } else { alert("Node not found."); }
+  }
+
+  function addChatMessage(msg) {
+    const container = document.getElementById('chat-container');
+    const div = document.createElement('div');
+    div.style.cssText = "font-size:11px; margin-top:3px; color:#fff;";
+    div.textContent = "> " + msg;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    
+    const monitorText = document.getElementById('spatial-feed-monitor');
+    if (monitorText) monitorText.setAttribute('value', msg.toUpperCase());
+  }
+  
+  function handleNewMessage(msg) {
+    if (currentTargetStore) {
+        const store = Object.values(meshDir).find(b => b.name === currentTargetStore);
+        if(store) {
+            store.reviews.push({ msg: "Me: " + msg });
+            renderReviews(currentTargetStore);
+            saveMeshRoomData();
+            Object.values(peer.connections).flat().forEach(conn => { if(conn.open) conn.send({ type: 'REVIEW', storeName: currentTargetStore, msg: "Peer: " + msg }); });
+        }
+    } else {
+        addChatMessage("You: " + msg);
+        if (currentConn) currentConn.send(msg);
+    }
+  }
+
+  document.getElementById('chat-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter' && e.target.value.trim()) {
+      handleNewMessage(e.target.value);
+      e.target.value = '';
+    }
+  });
+
+  function loadHome() { document.getElementById('projector-lens').src = 'https://tiffyai-usd.github.io/Web-Store-App/v6.html'; }
+  function clearViewer() { document.getElementById('projector-lens').src = ''; }
+  function clearChat() { document.getElementById('chat-container').innerHTML = ''; }
+  
+  function showDeployModal() {
+    document.getElementById('upload-modal').classList.remove('hidden');
+    const statusEl = document.getElementById('kyc-status-text');
+    statusEl.textContent = checkKYC() ? "✅ VERIFIED" : "NOT VERIFIED";
+    statusEl.style.color = checkKYC() ? "#0f0" : "#ff0";
+  }
+
+  function showWhatsAppBridgeModal() {
+    document.getElementById('whatsapp-bridge-modal').classList.remove('hidden');
+    document.getElementById('whatsapp-write-status').textContent = '';
+  }
+
+  // --- OPEN GRAPH SOCIAL SHARE & META ENGINE ---
+  function uploadSocialLogo(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Img = e.target.result;
+        document.getElementById('ogImageTag').setAttribute('content', base64Img);
+        localStorage.setItem('store_share_logo', base64Img);
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function updateSocialMetadata() {
+    const titleVal = document.getElementById('metaTitleInput').value;
+    const descVal = document.getElementById('metaDescInput').value;
+
+    document.getElementById('pageMetaTitle').textContent = titleVal;
+    document.getElementById('ogTitleTag').setAttribute('content', titleVal);
+    document.getElementById('ogDescTag').setAttribute('content', descVal);
+  }
+
+  function triggerMultiShare() {
+    const descVal = document.getElementById('metaDescInput').value;
+    const titleVal = document.getElementById('metaTitleInput').value;
+    const shareUrl = "https://tiffyai-usd.github.io/Trade/Verse6.html";
+    
+    // Fixed: Clean single message string so social scrapers pick up the custom Open Graph preview image correctly
+    const shareText = `${descVal}\n\n${shareUrl}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: titleVal,
+        text: shareText,
+        url: shareUrl
+      }).catch((err) => console.log('Share canceled or failed', err));
+    } else {
+      navigator.clipboard.writeText(shareText);
+      alert("Share text & link copied to clipboard! Paste directly into your chat app.");
+    }
+  }
+
+  async function exportMeshFileForWhatsApp() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(activeRoomKey);
+      req.onsuccess = () => {
+        const data = req.result || { meshDir, meshPosts };
+        const randomId = Math.floor(Math.random() * 90000000) + 10000000;
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `MESH_DIR_WhatsApp_${randomId}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById('whatsapp-write-status').textContent = "✅ Mesh JSON exported successfully!";
+      };
+    } catch (err) {
+      alert("Failed to export database state.");
+    }
+  }
+
+  async function stableMergeImportWhatsApp(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const incomingData = JSON.parse(e.target.result);
+        const db = await getDB();
+        
+        const txRead = db.transaction(STORE_NAME, 'readonly');
+        const existingData = await new Promise((resolve) => {
+          const req = txRead.objectStore(STORE_NAME).get(activeRoomKey);
+          req.onsuccess = () => resolve(req.result || { meshDir: {}, meshPosts: [] });
+          req.onerror = () => resolve({ meshDir: {}, meshPosts: [] });
+        });
+
+        let currentDir = existingData.meshDir || existingData;
+        let currentPosts = existingData.meshPosts || [];
+
+        let incomingDir = incomingData.meshDir || (incomingData.id ? incomingData : incomingData);
+        let incomingPosts = incomingData.meshPosts || [];
+
+        const mergedDir = Object.assign({}, currentDir);
+        for (const [key, node] of Object.entries(incomingDir)) {
+          if (node && typeof node === 'object' && (node.id || node.name)) {
+            mergedDir[node.id || key] = {
+              id: node.id || key,
+              name: node.name || 'Untitled Node',
+              html: node.html || mergedDir[node.id || key]?.html || '',
+              thumb: node.thumb || mergedDir[node.id || key]?.thumb || '',
+              reviews: node.reviews || mergedDir[node.id || key]?.reviews || [],
+              timestamp: node.timestamp || Date.now()
+            };
+          }
+        }
+
+        const existingPostTimestamps = new Set(currentPosts.map(p => p.timestamp));
+        incomingPosts.forEach(p => {
+          if (p && p.timestamp && !existingPostTimestamps.has(p.timestamp)) {
+            currentPosts.push(p);
+          }
+        });
+
+        meshDir = mergedDir;
+        meshPosts = currentPosts;
+
+        await saveMeshRoomData();
+        renderPortals();
+        renderAllARBillboards();
+        updateNodeDropdown();
+        broadcastFullSync();
+
+        document.getElementById('whatsapp-write-status').textContent = "✅ Stable merge complete! HTML payloads isolated.";
+      } catch (err) {
+        alert("Invalid JSON structure.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  window.onload = async () => {
+    document.getElementById('bg-video').play().catch(() => {});
+    
+    const savedLogo = localStorage.getItem('store_share_logo');
+    if (savedLogo) {
+      document.getElementById('ogImageTag').setAttribute('content', savedLogo);
+    }
+
+    peer.on('open', (id) => { 
+      myPeerId = id; 
+      setInterval(broadcastPresence, 10000);
+      setTimeout(() => {
+        Object.values(meshDir).forEach(s => { if (s.id !== myPeerId) connectToPeer(s.id, s.name || 'Unknown'); });
+        broadcastFullSync();
+      }, 2000);
+    });
+
+    await loadMeshDirForRoom('MESH_DIR');
+
+    if (currentTargetStore) {
+      renderReviews(currentTargetStore);
+      document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${currentTargetStore.toUpperCase()}`);
+    }
+
+    document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
+    loadHome();
+  };
+</script>
+</body>
+</html>
