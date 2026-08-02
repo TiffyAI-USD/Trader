@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Social Share Configurator</title>
+    
+    <!-- Dynamic Social Meta Tags (Defaults) -->
+    <meta id="meta-og-title" property="og:title" content="Default Title">
+    <meta id="meta-og-desc" property="og:description" content="Default description for your shared link.">
+    <meta id="meta-og-image" property="og:image" content="https://via.placeholder.com/1200x630.png?text=Preview+Image">
+    <meta property="og:type" content="website">
+
+    <meta id="meta-tw-card" name="twitter:card" content="summary_large_image">
+    <meta id="meta-tw-title" name="twitter:title" content="Default Title">
+    <meta id="meta-tw-desc" name="twitter:description" content="Default description for your shared link.">
+    <meta id="meta-tw-image" name="twitter:image" content="https://via.placeholder.com/1200x630.png?text=Preview+Image">
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --border-color: #334155;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5srem;
+            color: #cbd5e1;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        textarea {
+            resize: vertical;
+            height: 80px;
+        }
+
+        .preview-box {
+            margin-top: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #090d16;
+        }
+
+        .preview-image-container {
+            width: 100%;
+            height: 200px;
+            background: #111827;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .preview-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-content {
+            padding: 1rem;
+        }
+
+        .preview-domain {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .preview-title {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .preview-desc {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .actions {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        .status-msg {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            text-align: center;
+            color: #4ade80;
+            min-height: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Social Share Generator</h1>
+        
+        <div class="form-group">
+            <label for="input-title">Page Title</label>
+            <input type="text" id="input-title" placeholder="Enter title..." value="Awesome Project Showcase">
+        </div>
+
+        <div class="form-group">
+            <label for="input-desc">Description</label>
+            <textarea id="input-desc" placeholder="Enter link description...">Check out this live preview built entirely serverless with direct URL mapping.</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="input-image">Image URL</label>
+            <input type="text" id="input-image" placeholder="https://example.com/banner.jpg" value="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&h=630&fit=crop">
+        </div>
+
+        <!-- Live Visual Representation of the Social Card -->
+        <label>Live Preview Card Look</label>
+        <div class="preview-box">
+            <div class="preview-image-container">
+                <img id="preview-img-tag" src="" alt="Preview Banner">
+            </div>
+            <div class="preview-content">
+                <div id="preview-domain-tag" class="preview-domain">example.com</div>
+                <div id="preview-title-tag" class="preview-title">Awesome Project Showcase</div>
+                <div id="preview-desc-tag" class="preview-desc">Check out this live preview built entirely serverless with direct URL mapping.</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="btn-copy">Copy Meta Tags / Link</button>
+        </div>
+        <div id="status" class="status-msg"></div>
+    </div>
+
+    <script>
+        const inputTitle = document.getElementById('input-title');
+        const inputDesc = document.getElementById('input-desc');
+        const inputImage = document.getElementById('input-image');
+
+        const previewImgTag = document.getElementById('preview-img-tag');
+        const previewTitleTag = document.getElementById('preview-title-tag');
+        const previewDescTag = document.getElementById('preview-desc-tag');
+        const previewDomainTag = document.getElementById('preview-domain-tag');
+
+        const metaOgTitle = document.getElementById('meta-og-title');
+        const metaOgDesc = document.getElementById('meta-og-desc');
+        const metaOgImage = document.getElementById('meta-og-image');
+        const metaTwTitle = document.getElementById('meta-tw-title');
+        const metaTwDesc = document.getElementById('meta-tw-desc');
+        const metaTwImage = document.getElementById('meta-tw-image');
+
+        const btnCopy = document.getElementById('btn-copy');
+        const statusMsg = document.getElementById('status');
+
+        function updateEverything() {
+            const title = inputTitle.value;
+            const desc = inputDesc.value;
+            const imageUrl = inputImage.value.trim() || 'https://via.placeholder.com/1200x630.png?text=Invalid+URL';
+
+            // 1. Update live visual card mock
+            previewTitleTag.textContent = title || 'No Title';
+            previewDescTag.textContent = desc || 'No Description';
+            previewImgTag.src = imageUrl;
+            try {
+                previewDomainTag.textContent = new URL(window.location.href).hostname;
+            } catch (e) {
+                previewDomainTag.textContent = 'local-preview';
+            }
+
+            // 2. Update actual document <head> meta tags for live scrapers
+            metaOgTitle.setAttribute('content', title);
+            metaOgDesc.setAttribute('content', desc);
+            metaOgImage.setAttribute('content', imageUrl);
+
+            metaTwTitle.setAttribute('content', title);
+            metaTwDesc.setAttribute('content', desc);
+            metaTwImage.setAttribute('content', imageUrl);
+        }
+
+        // Listen for user edits
+        inputTitle.addEventListener('input', updateEverything);
+        inputDesc.addEventListener('input', updateEverything);
+        inputImage.addEventListener('input', updateEverything);
+
+        // Run initial update on load
+        updateEverything();
+
+        // Copy mechanism
+        btnCopy.addEventListener('click', () => {
+            const snippet = `<meta property="og:title" content="${inputTitle.value}" />\n` +
+                            `<meta property="og:description" content="${inputDesc.value}" />\n` +
+                            `<meta property="og:image" content="${inputImage.value}" />`;
+            
+            navigator.clipboard.writeText(snippet).then(() => {
+                statusMsg.textContent = 'Copied Open Graph tags to clipboard!';
+                setTimeout(() => { statusMsg.textContent = ''; }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>
