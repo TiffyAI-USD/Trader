@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TiffyAI Sovereign Gateway - Matchmaker Agent</title>
+    <style>
+        :root {
+            --gold-gradient: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            --shocking-pink: #ff007f;
+            --electric-blue: #00f0ff;
+            --black: #050505;
+        }
+
+        body {
+            background: var(--black);
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 60px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 0 60px rgba(191, 149, 63, 0.2);
+        }
+
+        h1, h2, h3 {
+            color: #fff;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 22px;
+            margin-top: 20px;
+            border-radius: 4px;
+            background: #111;
+            border: 1px solid #444;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 18px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            width: 100%;
+            padding: 22px;
+            margin-top: 30px;
+            border-radius: 4px;
+            background: var(--gold-gradient);
+            border: none;
+            color: var(--black);
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover { transform: scale(1.01); }
+
+        .hidden { display: none !important; }
+       
+        #statusIndicator {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #555;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+       
+        .status-pending { border: 1px solid #ff007f !important; color: #ff007f; box-shadow: 0 0 15px #ff007f; }
+        .status-verified { border: 1px solid #00ff41 !important; color: #00ff41; box-shadow: 0 0 20px #00ff41; }
+       
+        #balanceSection {
+            text-align: center;
+            margin: 40px 0;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+       
+        .glow-pink { color: var(--shocking-pink); text-shadow: 0 0 15px var(--shocking-pink); }
+        .glow-blue { color: var(--electric-blue); text-shadow: 0 0 15px var(--electric-blue); }
+       
+        video { width: 100%; border: 1px solid #444; margin-top: 20px; border-radius: 4px; background: #000; }
+        label { margin-top: 30px; display: block; color: #bf953f; font-size: 14px; }
+
+        /* AI Matchmaker Terminal & Voice Interface */
+        #aiTerminal {
+            margin-top: 40px;
+            padding: 30px;
+            background: #050505;
+            border: 1px solid var(--electric-blue);
+            border-radius: 6px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+        }
+
+        #aiOutput {
+            background: #111;
+            border: 1px solid #333;
+            padding: 20px;
+            min-height: 120px;
+            max-height: 220px;
+            overflow-y: auto;
+            color: var(--electric-blue);
+            font-family: monospace;
+            font-size: 16px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .agent-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        /* GitHub Setup Panel */
+        #githubSetupPanel {
+            margin-top: 30px;
+            padding: 25px;
+            background: #111;
+            border: 1px solid #bf953f;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body onload="initUI()">
+
+<div class="container" id="regForm">
+    <div id="statusIndicator" class="status-pending">PENDING VERIFICATION</div>
+   
+    <h1>Business Registration</h1>
+   
+    <div id="balanceSection">
+        <p>Tiffy Tokens: <span id="tokenDisplay" class="glow-pink">0.00</span></p>
+        <p>Nitro TUSD: <span id="nitroDisplay" class="glow-blue">0.00</span></p>
+    </div>
+
+    <!-- Original Base Fields -->
+    <input type="text" id="bizName" placeholder="Business Name">
+    <input type="text" id="walletAddress" placeholder="TiffyAI Token or BNB Wallet Address">
+   
+    <!-- Added AI Matchmaker Fields -->
+    <input type="text" id="userHandle" placeholder="User Handle (e.g. @StoreName)">
+    <input type="text" id="whatsappNumber" placeholder="WhatsApp Number (with country code)">
+    
+    <textarea id="productsDisplay" placeholder="Products on display (What items/goods/inventory do you offer?)"></textarea>
+    <textarea id="specialization" placeholder="What do you specialize in?"></textarea>
+    <textarea id="businessNeeds" placeholder="What would you need in business to succeed?"></textarea>
+    <textarea id="desiredConnections" placeholder="What kind of business connections do you want to make here? (For AI B2B matchmaking)"></textarea>
+
+    <h3>Identity Verification</h3>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" class="hidden"></canvas>
+    <button onclick="takeSelfie()">Capture ID Selfie</button>
+   
+    <label>Upload ID Card</label>
+    <input type="file" id="idFile" accept="image/*,application/pdf">
+   
+    <button onclick="submitRegistration()">Commit to Ledger</button>
+
+    <!-- GitHub Registry Configuration Panel (Auto-hides if token exists) -->
+    <div id="githubSetupPanel">
+        <h3>TiffyAI Network Synchronization</h3>
+        <p style="font-size: 14px; color: #aaa; text-align: center; margin-top: -15px; margin-bottom: 20px;">Enter your network access token to link your node to the TiffyAI registry.</p>
+        <input type="password" id="ghToken" placeholder="Enter Your Access Token">
+        <button onclick="saveGitHubConfig()" style="background: var(--electric-blue); color: #000;">Save Credentials</button>
+    </div>
+
+    <!-- AI Launch Button -->
+    <button id="launchAiBtn" class="hidden" onclick="openAiInterface()" style="background: var(--electric-blue); color: #000; margin-top: 30px;">Launch KY-AI Connection Agent (ARI)</button>
+
+    <!-- Local AI Matchmaker Agent Terminal -->
+    <div id="aiTerminal" class="hidden">
+        <h3>Tiffy AI Business Broker Agent (ARI)</h3>
+        <div id="aiOutput">Audio engine active. Sovereign AI broker online. Ready to poll live registry.</div>
+        <div class="agent-controls">
+            <button onclick="runLiveMatchmakerScan()" style="margin-top:0;">Scan Matrix Registry</button>
+            <button onclick="respondToMatch('YES')" style="margin-top:0; background: var(--electric-blue); color:#000;">Say YES & Connect</button>
+        </div>
+    </div>
+</div>
+
+<div id="successMessage" class="hidden">
+    <h1>Registration Successful</h1>
+    <p>Awesome! Your business identity has been fingerprinted to the local ledger. Your node is registered to feed the registry sync engine for AI trade matchmaking. If you have topped up your bank account with a minimum of $10 you good to go!</p>
+    <p style="margin-top: 20px; color: var(--electric-blue); font-weight: bold;" id="successTopupStatus"></p>
+    <button onclick="window.location.reload()">Restart to check your status</button>
+</div>
+
+<script>
+    const REGISTRY_REPO = "TiffyAI-USD/registry";
+    const REGISTRY_BRANCH = "main";
+    const REGISTRY_PATH = "matchmaker_nodes.json";
+
+    let activeMatchCandidate = null;
+    let availableVoices = [];
+
+    // --- ARI: KY-AI CONNECTION AGENT ENGINE ---
+    class ARIAgent {
+        constructor() {
+            this.version = "2.6.0-ARI";
+        }
+
+        calculateCompatibility(myProfile, peerNode) {
+            let score = 0;
+            let reasons = [];
+
+            const myNeeds = (myProfile.businessNeeds || "").toLowerCase();
+            const peerSpec = (peerNode.specialization || "").toLowerCase();
+            const peerProducts = (peerNode.productsDisplay || "").toLowerCase();
+
+            if (myNeeds && (peerSpec.includes(myNeeds) || peerProducts.includes(myNeeds) || this.fuzzyMatch(myNeeds, peerSpec))) {
+                score += 40;
+                reasons.push("Specialization aligns with your business needs.");
+            }
+
+            const myDesired = (myProfile.desiredConnections || "").toLowerCase();
+            const peerDesired = (peerNode.desiredConnections || "").toLowerCase();
+            if (myDesired && peerDesired) {
+                score += 30;
+                reasons.push("Complementary B2B connection goals detected.");
+            }
+
+            if (peerNode.topupBalanceStatus && peerNode.topupBalanceStatus.accountActive) {
+                score += 30;
+                reasons.push("Verified active sovereign bank balance.");
+            }
+
+            return { score: Math.min(score, 100), reasons };
+        }
+
+        assessTrustRating(peerNode) {
+            let trustScore = 50;
+            let ratingBadge = "STANDARD";
+
+            const nitro = peerNode.topupBalanceStatus?.nitroTUSD || 0;
+            const tokens = peerNode.topupBalanceStatus?.tiffyTokens || 0;
+
+            if (nitro >= 100) {
+                trustScore += 30;
+                ratingBadge = "GOLD ELITE";
+            } else if (nitro >= 10) {
+                trustScore += 15;
+                ratingBadge = "VERIFIED PRO";
+            }
+
+            if (tokens > 500) {
+                trustScore += 20;
+                ratingBadge = "WHALE NODE";
+            }
+
+            return {
+                trustScore: Math.min(trustScore, 100),
+                ratingBadge,
+                verifiedLedger: !!peerNode.walletAddress
+            };
+        }
+
+        generateMeshDirPackage(myProfile, peerNode) {
+            const meshDir = {
+                protocol: "TiffyAI-MESH_DIR-v1",
+                timestamp: Date.now(),
+                initiator: {
+                    handle: myProfile.userHandle,
+                    wallet: myProfile.walletAddress,
+                    whatsapp: myProfile.whatsappNumber
+                },
+                counterparty: {
+                    handle: peerNode.userHandle,
+                    wallet: peerNode.walletAddress,
+                    whatsapp: peerNode.whatsappNumber
+                },
+                exchangeTerms: {
+                    status: "PENDING_P2P_HANDSHAKE",
+                    securityHash: crypto.randomUUID()
+                }
+            };
+            return JSON.stringify(meshDir, null, 2);
+        }
+
+        fuzzyMatch(text1, text2) {
+            const words1 = text1.split(/\s+/);
+            return words1.some(word => word.length > 3 && text2.includes(word));
+        }
+    }
+
+    const ari = new ARI();
+
+    function initUI() {
+        document.getElementById('tokenDisplay').innerText = localStorage.getItem("Tiffy_Harvest_Pending") || "0.00";
+        document.getElementById('nitroDisplay').innerText = localStorage.getItem("TUSD_Nitro_Storage") || "0.00";
+        updateStatus();
+        initCamera();
+        loadVoices();
+
+        // Check if GitHub token is already stored; if so, hide setup panel seamlessly
+        const storedToken = localStorage.getItem("Tiffy_GH_Token");
+        if (storedToken) {
+            document.getElementById('ghToken').value = storedToken;
+            document.getElementById('githubSetupPanel').classList.add('hidden');
+        }
+
+        const savedProfile = JSON.parse(localStorage.getItem("Tiffy_Matchmaker_Profile") || "{}");
+        if (savedProfile.bizName) document.getElementById('bizName').value = savedProfile.bizName;
+        if (savedProfile.walletAddress) document.getElementById('walletAddress').value = savedProfile.walletAddress;
+        if (savedProfile.userHandle) document.getElementById('userHandle').value = savedProfile.userHandle;
+        if (savedProfile.whatsappNumber) document.getElementById('whatsappNumber').value = savedProfile.whatsappNumber;
+        if (savedProfile.productsDisplay) document.getElementById('productsDisplay').value = savedProfile.productsDisplay;
+        if (savedProfile.specialization) document.getElementById('specialization').value = savedProfile.specialization;
+        if (savedProfile.businessNeeds) document.getElementById('businessNeeds').value = savedProfile.businessNeeds;
+        if (savedProfile.desiredConnections) document.getElementById('desiredConnections').value = savedProfile.desiredConnections;
+
+        if (localStorage.getItem("KYC_Verified_Hash")) {
+            document.getElementById('launchAiBtn').classList.remove('hidden');
+        }
+    }
+
+    function saveGitHubConfig() {
+        const token = document.getElementById('ghToken').value.trim();
+        if (!token) {
+            alert("Please provide your Access Token.");
+            return;
+        }
+
+        localStorage.setItem("Tiffy_GH_Repo", REGISTRY_REPO);
+        localStorage.setItem("Tiffy_GH_Branch", REGISTRY_BRANCH);
+        localStorage.setItem("Tiffy_GH_Token", token);
+
+        document.getElementById('githubSetupPanel').classList.add('hidden');
+        alert("Credentials Saved! Node linked to TiffyAI network.");
+    }
+
+    function loadVoices() {
+        if (!('speechSynthesis' in window)) return;
+        availableVoices = window.speechSynthesis.getVoices();
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                availableVoices = window.speechSynthesis.getVoices();
+            };
+        }
+    }
+
+    function speakAndType(elementId, text, speed = 35) {
+        const outputBox = document.getElementById(elementId);
+        outputBox.innerText = "";
+
+        if (!('speechSynthesis' in window)) {
+            typeWriterEffect(elementId, text, speed);
+            return;
+        }
+
+        window.speechSynthesis.cancel();
+        if (availableVoices.length === 0) {
+            availableVoices = window.speechSynthesis.getVoices();
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        if (availableVoices.length > 0) {
+            const voice = availableVoices.find(v => v.lang && v.lang.toLowerCase().includes('en')) || availableVoices[0];
+            utterance.voice = voice;
+        }
+
+        typeWriterEffect(elementId, text, speed);
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function updateStatus() {
+        const statusDiv = document.getElementById('statusIndicator');
+        if (localStorage.getItem("KYC_Verified_Hash")) {
+            statusDiv.innerText = "VERIFIED";
+            statusDiv.className = "status-verified";
+        } else {
+            statusDiv.innerText = "PENDING VERIFICATION";
+            statusDiv.className = "status-pending";
+        }
+    }
+
+    async function initCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            const video = document.getElementById('video');
+            video.srcObject = stream;
+            await video.play();
+        } catch (err) {
+            console.warn("Camera stream error:", err);
+        }
+    }
+
+    async function takeSelfie() {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.classList.remove('hidden');
+            alert("Selfie Captured!");
+        } else {
+            alert("Video feed not active yet. Please wait a second for the camera to load.");
+        }
+    }
+
+    async function submitRegistration() {
+        let token = localStorage.getItem("Tiffy_GH_Token");
+        if (!token) {
+            token = document.getElementById('ghToken').value.trim();
+            if (!token) {
+                alert("Please provide your GitHub Access Token to commit to the registry.");
+                return;
+            }
+            localStorage.setItem("Tiffy_GH_Token", token);
+        }
+
+        const savedProfile = JSON.parse(localStorage.getItem("Tiffy_Matchmaker_Profile") || "{}");
+        const bizName = document.getElementById("bizName").value.trim() || savedProfile.bizName;
+        const walletAddress = document.getElementById('walletAddress').value.trim() || savedProfile.walletAddress;
+
+        if (!bizName || !walletAddress) {
+            alert("Please fill in your Business Name and Wallet Address.");
+            return;
+        }
+
+        const currentNitro = parseFloat(localStorage.getItem("TUSD_Nitro_Storage") || "0");
+        const currentTokens = parseFloat(localStorage.getItem("Tiffy_Harvest_Pending") || "0");
+
+        const matchmakerProfile = {
+            bizName,
+            walletAddress,
+            userHandle: document.getElementById("userHandle").value.trim() || savedProfile.userHandle || "",
+            whatsappNumber: document.getElementById("whatsappNumber").value.trim() || savedProfile.whatsappNumber || "",
+            productsDisplay: document.getElementById("productsDisplay").value.trim() || savedProfile.productsDisplay || "",
+            specialization: document.getElementById("specialization").value.trim() || savedProfile.specialization || "",
+            businessNeeds: document.getElementById("businessNeeds").value.trim() || savedProfile.businessNeeds || "",
+            desiredConnections: document.getElementById("desiredConnections").value.trim() || savedProfile.desiredConnections || "",
+            topupBalanceStatus: {
+                nitroTUSD: currentNitro,
+                tiffyTokens: currentTokens,
+                accountActive: currentNitro >= 10 || currentTokens > 0,
+                verifiedAt: new Date().toISOString()
+            },
+            timestamp: Date.now()
+        };
+
+        try {
+            const apiUrl = `https://api.github.com/repos/${REGISTRY_REPO}/contents/${REGISTRY_PATH}`;
+            const getRes = await fetch(`${apiUrl}?ref=${REGISTRY_BRANCH}`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Accept": "application/vnd.github+json"
+                }
+            });
+
+            let nodesList = [];
+            let fileSha = null;
+
+            if (getRes.ok) {
+                const fileData = await getRes.json();
+                fileSha = fileData.sha;
+                try {
+                    const decodedBytes = Uint8Array.from(atob(fileData.content), c => c.charCodeAt(0));
+                    nodesList = JSON.parse(new TextDecoder().decode(decodedBytes));
+                    if (!Array.isArray(nodesList)) nodesList = [];
+                } catch (e) {
+                    nodesList = [];
+                }
+            }
+
+            localStorage.setItem("Tiffy_Matchmaker_Profile", JSON.stringify(matchmakerProfile));
+            nodesList.push(matchmakerProfile);
+
+            const jsonString = JSON.stringify(nodesList, null, 4);
+            const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
+
+            const putPayload = {
+                message: `TiffyAI Ledger Commit: Registered node ${bizName} with verified financial state`,
+                content: base64Content,
+                branch: REGISTRY_BRANCH
+            };
+
+            if (fileSha) putPayload.sha = fileSha;
+
+            const putRes = await fetch(apiUrl, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Accept": "application/vnd.github+json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(putPayload)
+            });
+
+            if (!putRes.ok) {
+                const errJson = await putRes.json();
+                throw new Error(errJson.message || "Failed to commit to GitHub ledger.");
+            }
+
+            const dataStr = `${bizName}|${walletAddress}|${Date.now()}`;
+            const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(dataStr));
+            const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+           
+            localStorage.setItem("KYC_Verified_Hash", hashHex);
+           
+            document.getElementById('regForm').classList.add('hidden');
+            document.getElementById('successMessage').classList.remove('hidden');
+            document.getElementById('successTopupStatus').innerText = `Verified Financial State Committed: Nitro TUSD: $${currentNitro.toFixed(2)} | Tiffy Tokens: ${currentTokens.toFixed(2)}`;
+
+        } catch (err) {
+            console.error("Ledger commit error:", err);
+            alert("Registry sync commit failed: " + err.message);
+        }
+    }
+
+    function typeWriterEffect(elementId, text, speed = 35) {
+        const output = document.getElementById(elementId);
+        output.innerText = "";
+        let i = 0;
+        function type() {
+            if (i < text.length) {
+                output.innerText += text.charAt(i);
+                i++;
+                setTimeout(type, speed);
+            }
+        }
+        type();
+    }
+
+    function openAiInterface() {
+        document.getElementById('aiTerminal').classList.remove('hidden');
+        document.getElementById('launchAiBtn').classList.add('hidden');
+
+        const isVerified = localStorage.getItem("KYC_Verified_Hash");
+        const currentNitro = parseFloat(localStorage.getItem("TUSD_Nitro_Storage") || "0");
+
+        let greeting = "";
+        if (!isVerified || currentNitro < 10) {
+            greeting = "Attention node operator. I am ARI, your KY-AI Connection Agent. You are currently not fully KYC verified or your nitro TUSD balance is below the $10 threshold. Completing your full KYC verification and topping up your account is vital. It allows me to cross-reference your business needs accurately, assign you a high Sovereign Trust Rating, and connect you with top-tier trading partners across the network.";
+        } else {
+            greeting = "ARI online. Sovereign connection agent active. Your KYC and bank ledger credentials are fully verified. Ready to scan the matrix registry for high-precision B2B matches.";
+        }
+
+        speakAndType('aiOutput', greeting, 35);
+    }
+
+    async function runLiveMatchmakerScan() {
+        const isVerified = localStorage.getItem("KYC_Verified_Hash");
+        const currentNitro = parseFloat(localStorage.getItem("TUSD_Nitro_Storage") || "0");
+
+        if (!isVerified || currentNitro < 10) {
+            const warningMsg = `[ARI NOTICE] Unverified Node Alert! Completing your KYC verification and topping up your bank account with at least $10 is critical. Verified nodes receive higher trust ratings, priority matrix matching, and secure MESH_DIR handshakes. Please finish your registration commit.`;
+            speakAndType('aiOutput', warningMsg, 30);
+            return;
+        }
+
+        const scanningMsg = `[ARI AGENT] Initializing Matrix Search. Parsing KYC vectors across registry nodes...`;
+        speakAndType('aiOutput', scanningMsg, 30);
+
+        try {
+            const url = `https://tiffyai-usd.github.io/registry/matchmaker_nodes.json?t=${Date.now()}`;
+            const response = await fetch(url);
+
+            if (!response.ok) throw new Error("Registry unreachable.");
+
+            const registryNodes = await response.json();
+            const myProfile = JSON.parse(localStorage.getItem("Tiffy_Matchmaker_Profile") || "{}");
+
+            const candidates = registryNodes.filter(node => 
+                node.walletAddress !== myProfile.walletAddress && 
+                node.whatsappNumber && 
+                node.whatsappNumber.trim() !== ""
+            );
+
+            if (candidates.length === 0) {
+                speakAndType('aiOutput', `[ARI SCAN] No active peer nodes found in registry root.`, 30);
+                return;
+            }
+
+            let bestMatch = null;
+            let highestScore = -1;
+            let assessment = null;
+
+            for (const candidate of candidates) {
+                const matchEval = ari.calculateCompatibility(myProfile, candidate);
+                if (matchEval.score > highestScore) {
+                    highestScore = matchEval.score;
+                    bestMatch = candidate;
+                    assessment = {
+                        compatibility: matchEval,
+                        trust: ari.assessTrustRating(candidate)
+                    };
+                }
+            }
+
+            if (bestMatch && highestScore > 0) {
+                activeMatchCandidate = bestMatch;
+                const meshDirFile = ari.generateMeshDirPackage(myProfile, bestMatch);
+                localStorage.setItem("Active_MESH_DIR", meshDirFile);
+
+                const matchReport = `[ARI MATCH FOUND]\n` +
+                    `Peer: ${bestMatch.bizName} (${bestMatch.userHandle || '@Peer'})\n` +
+                    `Specialization: ${bestMatch.specialization}\n` +
+                    `Compatibility Score: ${highestScore}%\n` +
+                    `Trust Rating: ${assessment.trust.ratingBadge} (${assessment.trust.trustScore}%)\n` +
+                    `Status: MESH_DIR file compiled. Ready for WhatsApp bridge.`;
+
+                speakAndType('aiOutput', matchReport, 25);
+            } else {
+                speakAndType('aiOutput', `[ARI SCAN] Scanned ${candidates.length} nodes, but found no strong KYC vector alignment. Try updating your Business Needs.`, 30);
+            }
+
+        } catch (err) {
+            console.error("ARI scan error:", err);
+            speakAndType('aiOutput', `[ARI ERROR] Matrix search failed to synchronize with GitHub Pages registry.`, 30);
+        }
+    }
+
+    function respondToMatch(response) {
+        if (!activeMatchCandidate) {
+            speakAndType('aiOutput', "[ARI] No active match selected. Run a Registry scan first.", 35);
+            return;
+        }
+
+        if (response === 'YES') {
+            speakAndType('aiOutput', `[ARI] Securing channel with ${activeMatchCandidate.bizName}. Packaging MESH_DIR for WhatsApp exchange...`, 30);
+
+            const cleanNumber = activeMatchCandidate.whatsappNumber.replace(/[^0-9+]/g, '');
+            const meshDirString = localStorage.getItem("Active_MESH_DIR") || "MESH_DIR_EXCHANGE";
+            
+            const message = encodeURIComponent(
+                `Hello ${activeMatchCandidate.bizName}! ARI matched our KYC profiles on TiffyAI Sovereign Gateway.\n\n` +
+                `Here is my MESH_DIR exchange token:\n\`\`\`\n${meshDirString}\n\`\`\`\n` +
+                `Let's transact!`
+            );
+
+            const whatsappUrl = `https://wa.me/${cleanNumber}?text=${message}`;
+
+            setTimeout(() => {
+                window.open(whatsappUrl, '_blank');
+            }, 1500);
+        }
+    }
+</script>
+</body>
+</html>
