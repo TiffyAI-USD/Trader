@@ -870,7 +870,17 @@
     if (!isRecordingVoice) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+                // Check for optimal cross-device audio container support
+        const possibleTypes = [
+          'audio/mp4',
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/ogg;codecs=opus'
+        ];
+        const selectedMimeType = possibleTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
+        const recorderOptions = selectedMimeType ? { mimeType: selectedMimeType } : {};
+
+        mediaRecorder = new MediaRecorder(stream, recorderOptions);
         audioChunks = [];
 
         mediaRecorder.ondataavailable = e => {
@@ -878,11 +888,18 @@
         };
 
         mediaRecorder.onstop = () => {
-          recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          let fileExtension = 'webm';
+          if (selectedMimeType.includes('mp4')) {
+            fileExtension = 'mp4';
+          } else if (selectedMimeType.includes('ogg')) {
+            fileExtension = 'ogg';
+          }
+
+          recordedAudioBlob = new Blob(audioChunks, { type: selectedMimeType || 'audio/webm' });
           const audioUrl = URL.createObjectURL(recordedAudioBlob);
           previewEl.src = audioUrl;
           previewEl.classList.remove('hidden');
-          statusEl.textContent = `✅ Voice note recorded (${(recordedAudioBlob.size / 1024).toFixed(1)} KB)`;
+          statusEl.textContent = `✅ Voice note recorded .${fileExtension} (${(recordedAudioBlob.size / 1024).toFixed(1)} KB)`;
           stream.getTracks().forEach(track => track.stop());
         };
 
