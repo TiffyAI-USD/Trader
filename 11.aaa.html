@@ -930,52 +930,51 @@
     const fileExt = window.lastRecordedAudio ? window.lastRecordedAudio.ext : 'webm';
     let shareFile = null;
 
-    if (recordedAudioBlob) {
-      shareFile = new File([recordedAudioBlob], `tiffy_mesh_voice_order.${fileExt}`, { 
-        type: recordedAudioBlob.type || 'audio/webm' 
-      });
-    }
-
-    // 1. Try native file sharing first if available
-    if (shareFile && navigator.share) {
-      try {
-        // Note: Many mobile browsers require sharing files *without* text/url to prevent security crashes
-        await navigator.share({
-          files: [shareFile]
+    if (window.recordedAudioBlob) {
+        shareFile = new File([window.recordedAudioBlob], `tiffy_mesh_voice_order.${fileExt}`, { 
+            type: window.recordedAudioBlob.type || `audio/${fileExt}` 
         });
-        statusEl.textContent = "✅ Voice note shared successfully!";
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return; // User closed the menu, stop here
-        // If the browser blocks blob files, it falls through to step 2 automatically
-      }
     }
 
-    // 2. Reliable Text & Live URL Share (Guaranteed to open mobile share menu/WhatsApp selector)
+    // 1. Try native sharing with BOTH file and text data if supported
     if (navigator.share) {
-      try {
-        await navigator.share({
-          title: titleVal,
-          text: `${descVal}\n🎙️ Listen to Voice Note here:`,
-          url: shareUrl
-        });
-        statusEl.textContent = "✅ Card & link shared successfully!";
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
+        const shareData = {
+            title: titleVal,
+            text: `${descVal}\n${shareUrl}`,
+            url: shareUrl
+        };
+
+        // Attach file if browser supports file sharing
+        if (shareFile && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+            shareData.files = [shareFile];
+        }
+
+        try {
+            await navigator.share(shareData);
+            statusEl.textContent = "✅ Voice note & card shared successfully!";
+            return;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                statusEl.textContent = "⚠️ Share cancelled.";
+                return;
+            }
+            console.warn("Native share with files failed, trying fallback:", err);
+        }
     }
 
-        // 3. Final clipboard fallback for strict desktop environments
+    // 2. Fallback: Direct WhatsApp intent link with text payload if native share is blocked/desktop
     const clipboardPayload = `${titleVal}\n${descVal}\n${shareUrl}`;
-    navigator.clipboard.writeText(clipboardPayload);
+    try {
+        await navigator.clipboard.writeText(clipboardPayload);
+    } catch (clipErr) {
+        console.warn("Clipboard write skipped:", clipErr);
+    }
     
-    // Fallback: Force a direct intent link if Web Share API didn't open the module
     const fallbackWhatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(clipboardPayload)}`;
     window.open(fallbackWhatsappUrl, '_blank');
 
-    statusEl.textContent = "✅ WhatsApp Bridge & Share Module Triggered!";
-  }
+    statusEl.textContent = "✅ WhatsApp Bridge Triggered (Text & Link Copied)!";
+}
 
   async function publishARPost() {
     const textContent = document.getElementById('ar-post-textarea').value.trim();
