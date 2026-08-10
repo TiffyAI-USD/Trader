@@ -921,7 +921,7 @@
     }
   }
 
-      async function triggerVoiceNoteMultiShare() {
+  async function triggerVoiceNoteMultiShare() {
     const descVal = document.getElementById('metaDescInput').value;
     const titleVal = document.getElementById('metaTitleInput').value;
     const shareUrl = "https://tiffyai-usd.github.io/Trade/Verse6.html";
@@ -936,22 +936,23 @@
       });
     }
 
-    // 1. Try sharing ONLY the file first (Most reliable way to force the mobile share sheet open for WhatsApp)
-    if (shareFile && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+    // 1. Force attempt native file share directly without pre-checking canShare()
+    if (shareFile && navigator.share) {
       try {
         await navigator.share({
           files: [shareFile],
           title: titleVal,
-          text: descVal // Keep it minimal so mobile OS accepts it
+          text: descVal
         });
         statusEl.textContent = "✅ Voice note shared successfully!";
         return;
       } catch (err) {
-        if (err.name === 'AbortError') return; // User closed the share menu
+        if (err.name === 'AbortError') return; // User cancelled the share window, stop here
+        console.warn("File share failed, falling back to text share:", err);
       }
     }
 
-    // 2. If file sharing isn't supported, share the rich text card & live link
+    // 2. Fallback to sharing card text & live link if file sharing isn't supported by the device
     if (navigator.share) {
       try {
         await navigator.share({
@@ -965,7 +966,7 @@
       }
     }
 
-    // 3. Final clipboard fallback only if navigator.share completely fails
+    // 3. Final clipboard fallback for strict desktop environments
     const clipboardPayload = `${titleVal}\n${descVal}\n${shareUrl}`;
     navigator.clipboard.writeText(clipboardPayload);
     statusEl.textContent = "📋 Share link & text copied to clipboard!";
