@@ -966,10 +966,15 @@
       }
     }
 
-    // 3. Final clipboard fallback for strict desktop environments
+        // 3. Final clipboard fallback for strict desktop environments
     const clipboardPayload = `${titleVal}\n${descVal}\n${shareUrl}`;
     navigator.clipboard.writeText(clipboardPayload);
-    statusEl.textContent = "📋 Share link & text copied to clipboard!";
+    
+    // Fallback: Force a direct intent link if Web Share API didn't open the module
+    const fallbackWhatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(clipboardPayload)}`;
+    window.open(fallbackWhatsappUrl, '_blank');
+
+    statusEl.textContent = "✅ WhatsApp Bridge & Share Module Triggered!";
   }
 
   async function publishARPost() {
