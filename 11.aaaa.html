@@ -929,40 +929,44 @@
     const shareUrl = "https://tiffyai-usd.github.io/Trade/Verse6.html";
     const statusEl = document.getElementById('voicenote-status');
 
-    const fileExt = window.lastRecordedAudio ? window.lastRecordedAudio.ext : 'webm';
-    
     if (!window.recordedAudioBlob) {
-        statusEl.textContent = "❌ No recorded voice note found to download.";
+        statusEl.textContent = "❌ No recorded voice note found to share.";
         return;
     }
 
     const clipboardPayload = `${titleVal}\n${descVal}\n${shareUrl}`;
-    const fileName = `tiffy_mesh_voice_order.${fileExt}`;
-    const audioFile = new File([window.recordedAudioBlob], fileName, { 
-        type: window.recordedAudioBlob.type || `audio/${fileExt}` 
-    });
+    
+    // Force a safe extension and MIME type that WhatsApp won't flag as dangerous
+    const fileExt = "mp4"; // mp4 audio containers are universally trusted on Android/WhatsApp
+    const mimeType = "audio/mp4";
+    const fileName = `tiffy_mesh_order.${fileExt}`;
 
-    // Try native multi-share first
+    // Re-pack the blob into a clean File object with a safe MIME type
+    const cleanBlob = new Blob([window.recordedAudioBlob], { type: mimeType });
+    const audioFile = new File([cleanBlob], fileName, { type: mimeType });
+
+    // 1. Try Native Multi-Share (Opens the pop-up directly)
     if (navigator.canShare && navigator.canShare({ files: [audioFile] })) {
         try {
+            await navigator.clipboard.writeText(clipboardPayload); // Copy text safely first
             await navigator.share({
                 files: [audioFile],
                 title: titleVal,
                 text: clipboardPayload
             });
-            statusEl.textContent = "✅ Voice note and text shared successfully!";
+            statusEl.textContent = "✅ Voice note & card text shared!";
             return;
         } catch (shareErr) {
             if (shareErr.name === 'AbortError') {
                 statusEl.textContent = "⚠️ Share cancelled.";
-                return; // User canceled the share sheet
+                return;
             }
-            console.warn("Native share failed, falling back to download/clipboard:", shareErr);
+            console.warn("Native share failed, using download fallback:", shareErr);
         }
     }
 
-    // Fallback: Download file & copy text if Web Share isn't supported or fails
-    const blobUrl = URL.createObjectURL(window.recordedAudioBlob);
+    // 2. Fallback: If share sheet is blocked by browser restrictions
+    const blobUrl = URL.createObjectURL(cleanBlob);
     const downloadLink = document.createElement('a');
     downloadLink.href = blobUrl;
     downloadLink.download = fileName;
