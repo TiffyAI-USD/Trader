@@ -921,31 +921,38 @@
     }
   }
 
-  async function triggerVoiceNoteMultiShare() {
+    async function triggerVoiceNoteMultiShare() {
     const descVal = document.getElementById('metaDescInput').value;
     const titleVal = document.getElementById('metaTitleInput').value;
     const shareUrl = "https://tiffyai-usd.github.io/Trade/Verse6.html";
     const statusEl = document.getElementById('voicenote-status');
 
-    let shareFiles = [];
+    // Use the dynamic file extension captured during recording (defaults to webm/mp4)
+    const fileExt = window.lastRecordedAudio ? window.lastRecordedAudio.ext : 'webm';
+    let shareFile = null;
+
     if (recordedAudioBlob) {
-      const audioFile = new File([recordedAudioBlob], "tiffy_mesh_voice_order.webm", { type: 'audio/webm' });
-      shareFiles.push(audioFile);
+      shareFile = new File([recordedAudioBlob], `tiffy_mesh_voice_order.${fileExt}`, { 
+        type: recordedAudioBlob.type || 'audio/webm' 
+      });
     }
 
-    if (navigator.canShare && navigator.canShare({ files: shareFiles })) {
+    // 1. Try native file sharing first (Best for mobile WhatsApp audio insertion)
+    if (shareFile && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
       try {
         await navigator.share({
+          files: [shareFile],
           title: titleVal,
-          text: descVal,
-          url: shareUrl,
-          files: shareFiles
+          text: `${descVal} - ${shareUrl}`
         });
         statusEl.textContent = "✅ Voice note & card shared successfully!";
         return;
-      } catch (err) {}
+      } catch (err) {
+        if (err.name === 'AbortError') return; // User canceled the share window
+      }
     }
 
+    // 2. Fallback to Open Graph card / text share if files aren't supported on this device/app
     if (navigator.share) {
       try {
         await navigator.share({
@@ -954,9 +961,12 @@
         });
         statusEl.textContent = "✅ Card & link shared via text!";
         return;
-      } catch (err) {}
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
     }
 
+    // 3. Final clipboard fallback for strict desktop environments or messengers
     const clipboardPayload = `${titleVal}\n${descVal}\n${shareUrl}`;
     navigator.clipboard.writeText(clipboardPayload);
     statusEl.textContent = "📋 Share link & text copied to clipboard!";
