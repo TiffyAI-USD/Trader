@@ -936,20 +936,22 @@
 
     const clipboardPayload = `${titleVal}\n${descVal}\n${shareUrl}`;
     
-    // Force a safe extension and MIME type that WhatsApp won't flag as dangerous
-    const fileExt = "mp4"; // mp4 audio containers are universally trusted on Android/WhatsApp
-    const mimeType = "audio/mp4";
-    const fileName = `tiffy_mesh_order.${fileExt}`;
+    // Use Ogg/Opus which WhatsApp natively supports for voice payloads
+    const mimeType = MediaRecorder.isTypeSupported('audio/ogg; codecs=opus') 
+        ? 'audio/ogg; codecs=opus' 
+        : (window.recordedAudioBlob.type || 'audio/webm');
+        
+    const fileExt = mimeType.includes('ogg') ? 'ogg' : 'webm';
+    const fileName = `tiffy_mesh_voice_order.${fileExt}`;
 
-    // Re-pack the blob into a clean File object with a safe MIME type
     const cleanBlob = new Blob([window.recordedAudioBlob], { type: mimeType });
     const audioFile = new File([cleanBlob], fileName, { type: mimeType });
 
-    // 1. Try Native Multi-Share (Opens the pop-up directly)
+    // 1. Try Native Multi-Share
     if (navigator.canShare && navigator.canShare({ files: [audioFile] })) {
         try {
-            await navigator.clipboard.writeText(clipboardPayload); // Copy text safely first
-            await navigator.share({
+            await navigator.clipboard.writeText(clipboardPayload);
+            await navigator.navigator.share({
                 files: [audioFile],
                 title: titleVal,
                 text: clipboardPayload
@@ -961,27 +963,27 @@
                 statusEl.textContent = "⚠️ Share cancelled.";
                 return;
             }
-            console.warn("Native share failed, using download fallback:", shareErr);
+            console.warn("Native share failed, falling back to download:", shareErr);
         }
     }
 
-    // 2. Fallback: If share sheet is blocked by browser restrictions
-    const blobUrl = URL.createObjectURL(cleanBlob);
-    const downloadLink = document.createElement('a');
-    downloadLink.href = blobUrl;
-    downloadLink.download = fileName;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-
+    // 2. Safe Fallback Download
     try {
-        await navigator.clipboard.writeText(clipboardPayload);
-    } catch (clipErr) {
-        console.warn("Clipboard copy skipped:", clipErr);
-    }
+        const blobUrl = URL.createObjectURL(cleanBlob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = blobUrl;
+        downloadLink.download = fileName;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
-    statusEl.textContent = "📥 Voice note downloaded & card text copied! Ready to attach.";
+        await navigator.clipboard.writeText(clipboardPayload);
+        statusEl.textContent = "📥 Voice note downloaded & card text copied! Ready to attach.";
+    } catch (fallbackErr) {
+        console.error("Fallback execution failed:", fallbackErr);
+        statusEl.textContent = "❌ Error processing download.";
+    }
 }
 
   async function publishARPost() {
