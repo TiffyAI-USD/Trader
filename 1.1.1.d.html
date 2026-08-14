@@ -2557,77 +2557,66 @@
   }
 
   window.onload = async () => {
-    document.getElementById('bg-video').play().catch(() => {});
-    
-    await initializeGatewayState();
+  // 1. Show balances immediately from localStorage (zero network)
+  document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
+  document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
 
-    const savedImgUrl = localStorage.getItem('store_share_img_url');
-    if (savedImgUrl) {
-      document.getElementById('metaImgUrlInput').value = savedImgUrl;
-      document.getElementById('ogImageTag').setAttribute('content', savedImgUrl);
-    }
+  // 2. Try to play background video (fails gracefully offline)
+  document.getElementById('bg-video').play().catch(() => {});
 
-    peer.on('open', (id) => { 
-      myPeerId = id; 
-      setInterval(broadcastPresence, 10000);
-      setTimeout(() => {
-        Object.values(meshDir).forEach(s => { if (s.id !== myPeerId) connectToPeer(s.id, s.name || 'Unknown'); });
-        broadcastFullSync();
-      }, 2000);
-    });
+  // 3. Load social meta from localStorage
+  const savedImgUrl = localStorage.getItem('store_share_img_url');
+  if (savedImgUrl) {
+    document.getElementById('metaImgUrlInput').value = savedImgUrl;
+    document.getElementById('ogImageTag').setAttribute('content', savedImgUrl);
+  }
 
-    // Always load whatever the user already has first
-    await loadMeshDirForRoom('MESH_DIR');
+  // 4. Peer connection
+  peer.on('open', (id) => { 
+    myPeerId = id; 
+    setInterval(broadcastPresence, 10000);
+    setTimeout(() => {
+      Object.values(meshDir).forEach(s => { if (s.id !== myPeerId) connectToPeer(s.id, s.name || 'Unknown'); });
+      broadcastFullSync();
+    }, 2000);
+  });
 
-    const flowResult = await ariEngine.initializeStoreFlow();
+  // 5. Always load local mesh first (no network)
+  await loadMeshDirForRoom('MESH_DIR');
 
-    // If the user is not verified, install / merge the official starter MESH_DIR
-    if (!checkKYC()) {
-      console.log('[SYSTEM] User not verified – installing starter MESH_DIR...');
-      
-      try {
-        const response = await fetch(ARI_CONFIG.MESH_DIR_URL + '?t=' + Date.now());
-        if (response.ok) {
-          const data = await response.json();
+  // 6. Only fetch remote starter package if local mesh is empty AND user is not KYC
+  if (!checkKYC() && Object.keys(meshDir).length === 0) {
+    console.log('[SYSTEM] Local mesh empty – attempting one-time starter download...');
+    try {
+      const response = await fetch(ARI_CONFIG.MESH_DIR_URL + '?t=' + Date.now());
+      if (response.ok) {
+        const data = await response.json();
+        let stores = [];
+        if (Array.isArray(data)) stores = data;
+        else if (data.stores) stores = data.stores;
+        else if (data.meshDir) stores = Object.values(data.meshDir);
+        else stores = Object.values(data).filter(item => item && (item.html || item.name));
 
-          let stores = [];
-          if (Array.isArray(data)) {
-            stores = data;
-          } else if (data.stores) {
-            stores = data.stores;
-          } else if (data.meshDir) {
-            stores = Object.values(data.meshDir);
-          } else {
-            stores = Object.values(data).filter(item => item && (item.html || item.name));
-          }
-
-          await installAndMergeMeshDir(stores);
-
-          if (document.getElementById('ari-banner-msg')) {
-            document.getElementById('ari-banner-msg').textContent = 
-              'STARTER MESH LOADED • COMPLETE KYC + $10 TOP-UP TO UNLOCK FULL SYSTEM';
-          }
-        }
-      } catch (err) {
-        console.error('[SYSTEM] Failed to install starter MESH_DIR:', err);
+        await installAndMergeMeshDir(stores);
+        document.getElementById('ari-banner-msg').textContent = 
+          'STARTER MESH LOADED • COMPLETE KYC + $10 TOP-UP TO UNLOCK FULL SYSTEM';
       }
+    } catch (err) {
+      console.log('[SYSTEM] Offline or fetch failed – continuing with local data only');
+      document.getElementById('ari-banner-msg').textContent = 'OFFLINE MODE • LOCAL MESH ACTIVE';
     }
+  } else if (Object.keys(meshDir).length > 0) {
+    document.getElementById('ari-banner-msg').textContent = 'LOCAL MESH READY • OFFLINE CAPABLE';
+  }
 
-    if (flowResult && flowResult.uiExperience && flowResult.uiExperience.bannerMessage) {
-      document.getElementById('ari-banner-msg').textContent = flowResult.uiExperience.bannerMessage.toUpperCase();
-    }
+  if (currentTargetStore) {
+    renderReviews(currentTargetStore);
+    document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${currentTargetStore.toUpperCase()}`);
+  }
 
-    if (currentTargetStore) {
-      renderReviews(currentTargetStore);
-      document.getElementById('spatial-node-title').setAttribute('value', `NODE: ${currentTargetStore.toUpperCase()}`);
-    }
-
-    document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
-    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('TUSD_Nitro_Storage') || '0.00'}`;
-    
-    initKyAiUI();
-    loadHome();
-  };
+  initKyAiUI();
+  loadHome();
+};
 </script>
 </body>
 </html>
