@@ -1106,7 +1106,7 @@
 
     attachedMediaFile = file;
     const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-    indicator.textContent = `ATTACHED: ${file.name.toUpperCase()} ( \){sizeMB}MB)`;
+    indicator.textContent = `ATTACHED: ${file.name.toUpperCase()} (${sizeMB}MB)`;
     indicator.style.color = "#00ff00";
 
     const reader = new FileReader();
@@ -1155,7 +1155,7 @@
           const audioUrl = URL.createObjectURL(recordedAudioBlob);
           previewEl.src = audioUrl;
           previewEl.classList.remove('hidden');
-          statusEl.textContent = `✅ Voice note recorded .${fileExtension} ( \){(recordedAudioBlob.size / 1024).toFixed(1)} KB)`;
+          statusEl.textContent = `✅ Voice note recorded .${fileExtension} (${(recordedAudioBlob.size / 1024).toFixed(1)} KB)`;
           stream.getTracks().forEach(track => track.stop());
         };
 
@@ -1188,7 +1188,7 @@
         return;
     }
 
-    const clipboardPayload = `${titleVal}\n \){descVal}\n${shareUrl}`;
+    const clipboardPayload = `${titleVal}\n${descVal}\n${shareUrl}`;
     
     const mimeType = MediaRecorder.isTypeSupported('audio/ogg; codecs=opus') 
         ? 'audio/ogg; codecs=opus' 
@@ -1562,7 +1562,7 @@
     Object.entries(meshDir).forEach(([id, store]) => {
       const opt = document.createElement('option');
       opt.value = id;
-      opt.textContent = `${store.name || 'Untitled'} ( \){id.substring(0, 4)})`;
+      opt.textContent = `${store.name || 'Untitled'} (${id.substring(0, 4)})`;
       dropdown.appendChild(opt);
     });
   }
@@ -1600,7 +1600,7 @@
     list.innerHTML += `<div class="suggestion-item"><span>${myDisplayName} (You)</span><span class="status-dot active"></span></div>`;
     
     Object.entries(activePeers).forEach(([id, name]) => {
-      list.innerHTML += `<div class="suggestion-item" data-id="${id}"><span> \){name}</span><span class="status-dot active"></span></div>`;
+      list.innerHTML += `<div class="suggestion-item" data-id="${id}"><span>${name}</span><span class="status-dot active"></span></div>`;
     });
   }
 
@@ -2111,8 +2111,8 @@
     };
 
     try {
-        const apiUrl = `https://api.github.com/repos/${REGISTRY_REPO}/contents/ \){REGISTRY_PATH}`;
-        const getRes = await fetch(`${apiUrl}?ref= \){REGISTRY_BRANCH}`, {
+        const apiUrl = `https://api.github.com/repos/${REGISTRY_REPO}/contents/${REGISTRY_PATH}`;
+const getRes = await fetch(`${apiUrl}?ref=${REGISTRY_BRANCH}`, {
             headers: {
                 "Authorization": `Bearer ${token}`,
                 "Accept": "application/vnd.github+json"
@@ -2158,7 +2158,7 @@
 
         if (!putRes.ok) throw new Error("Failed to commit to GitHub ledger.");
 
-        const dataStr = `${bizName}| \){walletAddress}|${Date.now()}`;
+        const dataStr = `${bizName}|${walletAddress}|${Date.now()}`;
         const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(dataStr));
         const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
        
@@ -2229,7 +2229,7 @@
         const cleanNumber = activeMatchCandidate.whatsappNumber.replace(/[^0-9+]/g, '');
         const message = encodeURIComponent(`Hello ${activeMatchCandidate.bizName}, I am reaching out via the TiffyAI Sovereign Gateway matchmaker agent.`);
         setTimeout(() => {
-            window.open(`https://wa.me/${cleanNumber}?text= \){message}`, '_blank');
+            window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
         }, 1500);
     }
   }
@@ -2247,7 +2247,7 @@
     if (whatsappNum) {
       const cleanNum = whatsappNum.replace(/[^0-9]/g, '');
       const msg = encodeURIComponent(`Hello ${store.name}, connecting via TIFFY Sovereign Mesh Terminal.`);
-      const waUrl = `https://wa.me/${cleanNum}?text= \){msg}`;
+      const waUrl = `https://wa.me/${cleanNum}?text=${msg}`;
       const repBox = document.getElementById('reputationMessageBox');
       if (repBox) {
         repBox.innerHTML = `KY-AI: Live WhatsApp Route Ready <a href="${waUrl}" target="_blank" style="color:var(--neon-green); font-weight:bold; text-decoration:underline;">[CONNECT DIRECT]</a>`;
