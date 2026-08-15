@@ -1235,6 +1235,54 @@
     }
   }
 
+async function multiShareContent(title, text, url, fileBlob = null, fileName = 'tiffy_share.bin') {
+  const statusEl = document.getElementById('voicenote-status') || document.getElementById('whatsapp-write-status');
+  const shareUrl = url || "https://tiffyai-usd.github.io/Trade/Verse6.html";
+  const clipboardPayload = `${title}\n${text}\n${shareUrl}`;
+
+  // Always copy the card text
+  try {
+    await navigator.clipboard.writeText(clipboardPayload);
+  } catch (e) {}
+
+  // Try native share with file if available
+  if (fileBlob && navigator.canShare) {
+    try {
+      const file = new File([fileBlob], fileName, { type: fileBlob.type || 'application/octet-stream' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: title,
+          text: clipboardPayload
+        });
+        if (statusEl) statusEl.textContent = "✅ Shared with media!";
+        return;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+
+  // Fallback: share text + link only
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: title,
+        text: clipboardPayload,
+        url: shareUrl
+      });
+      if (statusEl) statusEl.textContent = "✅ Shared!";
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+
+  // Last fallback
+  if (statusEl) statusEl.textContent = "📋 Card text copied. Paste it anywhere.";
+  alert("Card text copied to clipboard. You can paste it in WhatsApp, Telegram, etc.");
+}
+  
   async function publishARPost() {
     const textContent = document.getElementById('ar-post-textarea').value.trim();
     if (!textContent && !attachedMediaFile) {
