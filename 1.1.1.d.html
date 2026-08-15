@@ -1326,17 +1326,37 @@ async function shareCurrentARPost() {
     return;
   }
 
+  // Build a small package containing this one AR post
+  const postPayload = {
+    type: 'AR_SOCIAL_POST',
+    author: myPeerId || 'shared',
+    text: text,
+    color: currentPostFontColor,
+    hasMedia: !!attachedMediaFile,
+    mediaName: attachedMediaFile ? attachedMediaFile.name : null,
+    mediaType: attachedMediaFile ? attachedMediaFile.type : null,
+    mediaData: attachedMediaDataUrl || null,
+    likes: 0,
+    likedBy: [],
+    timestamp: Date.now()
+  };
+
+  const meshPackage = {
+    meshDir: {},
+    meshPosts: [postPayload],
+    exportedAt: Date.now(),
+    source: "TIFFY_AR_POST_SHARE"
+  };
+
+  const jsonString = JSON.stringify(meshPackage, null, 2);
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const fileName = `tiffy_ar_post_${Date.now()}.json`;
+
   const title = "TIFFY AR Post";
   const desc = text || "Check out this AR post on TIFFY Mesh";
 
-  if (attachedMediaFile && attachedMediaDataUrl) {
-    // Convert data URL back to blob for sharing
-    const res = await fetch(attachedMediaDataUrl);
-    const blob = await res.blob();
-    await multiShareContent(title, desc, null, blob, attachedMediaFile.name);
-  } else {
-    await multiShareContent(title, desc);
-  }
+  // If there is also a media file, we still share the JSON (media is inside the JSON as data URL)
+  await multiShareContent(title, desc, null, blob, fileName);
 }
   
   async function publishARPost() {
