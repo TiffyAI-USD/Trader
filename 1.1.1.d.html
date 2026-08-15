@@ -444,9 +444,10 @@
     <iframe id="projector-lens" allowfullscreen="true"></iframe>
 
     <div style="display:flex; gap:8px;">
-      <button onclick="loadHome()">HOME</button>
-      <button onclick="clearViewer()" style="background:rgba(200,0,0,0.4);">CLEAR</button>
-    </div>
+  <button onclick="loadHome()">HOME</button>
+  <button onclick="clearViewer()" style="background:rgba(200,0,0,0.4);">CLEAR</button>
+</div>
+<button onclick="shareCurrentStore()" style="background:rgba(37, 211, 102, 0.25); border-color:#25d366;">📤 SHARE CURRENT STORE</button>
 
     <button onclick="handleUploadStoreClick()">UPLOAD STORE</button>
     <button onclick="openKycModal()">⚡ KY-AI SOVEREIGN GATEWAY</button>
@@ -499,7 +500,10 @@
         <div id="media-upload-trigger" onclick="document.getElementById('ar-media-file-input').click()" title="Attach Photo, Video (up to 400MB) or 3D Model">📁</div>
       </div>
 
-      <button onclick="publishARPost()" style="margin-top:8px; background:rgba(0, 240, 255, 0.25);">🚀 BROADCAST TO AR ENVIRONMENT</button>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+  <button onclick="publishARPost()" style="flex:1; background:rgba(0, 240, 255, 0.25);">🚀 BROADCAST</button>
+  <button onclick="shareCurrentARPost()" style="flex:1; background:rgba(37, 211, 102, 0.25); border-color:#25d366;">📤 SHARE</button>
+</div>
     </div>
 
     <!-- Marketplace Room & Manage Mesh Nodes -->
@@ -1235,6 +1239,25 @@
     }
   }
 
+async function shareCurrentStore() {
+  if (!currentTargetStore) {
+    alert("Select a store first (click one in the AR or search for it).");
+    return;
+  }
+
+  const store = Object.values(meshDir).find(s => s.name === currentTargetStore);
+  if (!store) {
+    alert("Store not found in your mesh.");
+    return;
+  }
+
+  const title = `TIFFY Store: ${store.name}`;
+  const text = `Check out this store on the TIFFY Mesh Terminal`;
+  const url = "https://tiffyai-usd.github.io/Trade/Verse6.html";
+
+  await multiShareContent(title, text, url);
+}
+  
 async function multiShareContent(title, text, url, fileBlob = null, fileName = 'tiffy_share.bin') {
   const statusEl = document.getElementById('voicenote-status') || document.getElementById('whatsapp-write-status');
   const shareUrl = url || "https://tiffyai-usd.github.io/Trade/Verse6.html";
@@ -1281,6 +1304,26 @@ async function multiShareContent(title, text, url, fileBlob = null, fileName = '
   // Last fallback
   if (statusEl) statusEl.textContent = "📋 Card text copied. Paste it anywhere.";
   alert("Card text copied to clipboard. You can paste it in WhatsApp, Telegram, etc.");
+}
+
+async function shareCurrentARPost() {
+  const text = document.getElementById('ar-post-textarea').value.trim();
+  if (!text && !attachedMediaFile) {
+    alert("Write something or attach media first.");
+    return;
+  }
+
+  const title = "TIFFY AR Post";
+  const desc = text || "Check out this AR post on TIFFY Mesh";
+
+  if (attachedMediaFile && attachedMediaDataUrl) {
+    // Convert data URL back to blob for sharing
+    const res = await fetch(attachedMediaDataUrl);
+    const blob = await res.blob();
+    await multiShareContent(title, desc, null, blob, attachedMediaFile.name);
+  } else {
+    await multiShareContent(title, desc);
+  }
 }
   
   async function publishARPost() {
