@@ -1251,11 +1251,24 @@ async function shareCurrentStore() {
     return;
   }
 
-  const title = `TIFFY Store: ${store.name}`;
-  const text = `Check out this store on the TIFFY Mesh Terminal`;
-  const url = "https://tiffyai-usd.github.io/Trade/Verse6.html";
+  // Build a small mesh package containing only this store
+  const meshPackage = {
+    meshDir: {
+      [store.id]: store
+    },
+    meshPosts: [],
+    exportedAt: Date.now(),
+    source: "TIFFY_SHARE"
+  };
 
-  await multiShareContent(title, text, url);
+  const jsonString = JSON.stringify(meshPackage, null, 2);
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const fileName = `tiffy_store_${(store.name || "node").replace(/\s+/g, "_").substring(0, 20)}.json`;
+
+  const title = `TIFFY Store: ${store.name}`;
+  const text = `I shared a store with you. Import the attached .json file using "SELECT & MERGE FILE" in the WhatsApp Mesh Bridge to add it to your Mesh.`;
+
+  await multiShareContent(title, text, null, blob, fileName);
 }
   
 async function multiShareContent(title, text, url, fileBlob = null, fileName = 'tiffy_share.bin') {
