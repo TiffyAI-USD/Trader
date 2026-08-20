@@ -1375,7 +1375,75 @@ async function createMeshSharePackage(items = []) {
     meshPosts: posts
   };
 }
-  
+  async function shareMeshItems(items = [], shareTitle = 'TIFFY Business Showcase') {
+  if (!Array.isArray(items) || !items.length) {
+    alert('Nothing selected to share.');
+    return;
+  }
+
+  try {
+    const meshPackage =
+      await createMeshSharePackage(items);
+
+    const json = JSON.stringify(meshPackage, null, 2);
+
+    const file = new File(
+      [json],
+      `tiffy-mesh-share-${Date.now()}.json`,
+      {
+        type: 'application/json'
+      }
+    );
+
+    const shareData = {
+      title: shareTitle,
+      text:
+        `I shared ${items.length === 1 ? 'a Business Showcase' : 'several Mesh items'} with you. ` +
+        `Open TIFFY Mesh and choose "ADD BUSINESS SHOWCASE" to add them to your AR environment.`,
+      files: [file]
+    };
+
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] })
+    ) {
+      await navigator.share(shareData);
+      return;
+    }
+
+    // Browser doesn't support file sharing.
+    // Download the small Mesh package instead.
+    const blob = new Blob(
+      [json],
+      { type: 'application/json' }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tiffy-mesh-share-${Date.now()}.json`;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    alert(
+      'The Mesh share package was downloaded. ' +
+      'You can now attach that small JSON file to WhatsApp, Matrix or another sharing service.'
+    );
+
+  } catch (error) {
+    console.error('[MESH SHARE] Failed:', error);
+
+    alert(
+      `Mesh sharing failed.\n\n${error.message || error}`
+    );
+  }
+}
   // Build a small package containing this one AR post
   const postPayload = {
     type: 'AR_SOCIAL_POST',
