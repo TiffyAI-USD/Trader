@@ -1776,34 +1776,102 @@ async function shareCurrentARPost() {
   }
 
   async function deployStore() {
-    if (!peer.id) return alert("Connection not ready. Wait...");
-    const name = document.getElementById('name-input').value.trim() || "My Store";
-    const hFile = document.getElementById('html-input').files[0];
-    const tFile = document.getElementById('thumb-input').files[0];
-    if (!hFile || !tFile) return alert("Both files required");
-    
-    try {
-      const html = await hFile.text();
-      const thumb = await new Promise(r => {
-        const fr = new FileReader();
-        fr.onload = () => r(fr.result);
-        fr.readAsDataURL(tFile);
-      });
-      
-      const newStore = { id: peer.id, name, html, thumb, reviews: [], timestamp: Date.now() };
-      meshDir[peer.id] = newStore;
-      await saveMeshRoomData();
-      
-      broadcastFullSync();
-      renderPortals();
-      updateNodeDropdown();
-      const blob = new Blob([html], {type: 'text/html'});
-      window.open(URL.createObjectURL(blob), '_blank');
-      document.getElementById('upload-modal').classList.add('hidden');
-      alert(`✅ ${name} deployed successfully to room ${activeRoomKey}!`);
-    } catch (e) {}
+  // Hosting/publishing is KYC-gated.
+  // ARI's separate ari_kyc_verified flag is intentionally NOT used here.
+  const hasKYCVerifiedHash =
+    !!localStorage.getItem("KYC_Verified_Hash");
+
+  if (!hasKYCVerifiedHash) {
+    document.getElementById('upload-modal')?.classList.add('hidden');
+    showKycRequiredModal();
+    return;
   }
 
+  if (!peer.id) {
+    alert("Connection not ready. Please wait a moment and try again.");
+    return;
+  }
+
+  const name =
+    document.getElementById('name-input').value.trim() || "My Store";
+
+  const hFile =
+    document.getElementById('html-input').files[0];
+
+  const tFile =
+    document.getElementById('thumb-input').files[0];
+
+  if (!hFile || !tFile) {
+    alert("Both the HTML storefront and thumbnail are required.");
+    return;
+  }
+
+  try {
+    const html = await hFile.text();
+
+    const thumb = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+
+      fr.onload = () => resolve(fr.result);
+
+      fr.onerror = () =>
+        reject(new Error("Unable to read the thumbnail."));
+
+      fr.readAsDataURL(tFile);
+    });
+
+    const newStore = {
+      id: peer.id,
+      name,
+      html,
+      thumb,
+      reviews: [],
+      timestamp: Date.now(),
+      source: "LOCAL_HOSTED_STORE",
+      hosted: true
+    };
+
+    // Replace this user's own store entry rather than
+    // creating another duplicate entry.
+    meshDir[peer.id] = newStore;
+
+    await saveMeshRoomData();
+
+    broadcastFullSync();
+    renderPortals();
+    renderAllARBillboards();
+    updateNodeDropdown();
+
+    const blob = new Blob([html], {
+      type: 'text/html'
+    });
+
+    const previewUrl = URL.createObjectURL(blob);
+
+    window.open(previewUrl, '_blank');
+
+    setTimeout(() => {
+      URL.revokeObjectURL(previewUrl);
+    }, 60000);
+
+    document
+      .getElementById('upload-modal')
+      ?.classList.add('hidden');
+
+    alert(
+      `✅ ${name} is now available in your local Mesh.\n\n` +
+      `KYC_Verified_Hash detected — hosting is unlocked.`
+    );
+
+  } catch (error) {
+    console.error('[STORE DEPLOY] Failed:', error);
+
+    alert(
+      `❌ Store deployment failed.\n\n` +
+      `${error.message || error}`
+    );
+  }
+}
   function renderPortals() {
     const container = document.getElementById('ar-portal');
     if (!container) return;
