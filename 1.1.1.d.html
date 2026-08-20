@@ -2785,33 +2785,29 @@ async function streamPublicStarterMesh() {
     }, 2000);
   });
 
-  // 5. Always load local mesh first (no network)
-  await loadMeshDirForRoom('MESH_DIR');
+  // 5. Always load the user's persistent local Mesh first.
+await loadMeshDirForRoom('MESH_DIR');
 
-  // 6. Only fetch remote starter package if local mesh is empty AND user is not KYC
-  if (!checkKYC() && Object.keys(meshDir).length === 0) {
-    console.log('[SYSTEM] Local mesh empty – attempting one-time starter download...');
-    try {
-      const response = await fetch(ARI_CONFIG.MESH_DIR_URL + '?t=' + Date.now());
-      if (response.ok) {
-        const data = await response.json();
-        let stores = [];
-        if (Array.isArray(data)) stores = data;
-        else if (data.stores) stores = data.stores;
-        else if (data.meshDir) stores = Object.values(data.meshDir);
-        else stores = Object.values(data).filter(item => item && (item.html || item.name));
+const localMeshCount = Object.keys(meshDir).length;
 
-        await installAndMergeMeshDir(stores);
-        document.getElementById('ari-banner-msg').textContent = 
-          'STARTER MESH LOADED • COMPLETE KYC + $10 TOP-UP TO UNLOCK FULL SYSTEM';
-      }
-    } catch (err) {
-      console.log('[SYSTEM] Offline or fetch failed – continuing with local data only');
-      document.getElementById('ari-banner-msg').textContent = 'OFFLINE MODE • LOCAL MESH ACTIVE';
-    }
-  } else if (Object.keys(meshDir).length > 0) {
-    document.getElementById('ari-banner-msg').textContent = 'LOCAL MESH READY • OFFLINE CAPABLE';
-  }
+// 6. Public starter Mesh is STREAMED, never automatically installed.
+//    It does not require KYC and does not require a GitHub token.
+const streamedCount = await streamPublicStarterMesh();
+
+if (streamedCount > 0) {
+  document.getElementById('ari-banner-msg').textContent =
+    checkKYC()
+      ? 'MESH ONLINE • LOCAL + PUBLIC SHOWCASES READY'
+      : 'WELCOME • PUBLIC SHOWCASES READY • KYC + TOP-UP UNLOCK HOSTING';
+} else if (localMeshCount > 0) {
+  document.getElementById('ari-banner-msg').textContent =
+    checkKYC()
+      ? 'LOCAL MESH READY • OFFLINE CAPABLE'
+      : 'LOCAL MESH READY • PUBLIC STREAM UNAVAILABLE';
+} else {
+  document.getElementById('ari-banner-msg').textContent =
+    'OFFLINE MODE • NO LOCAL SHOWCASES AVAILABLE';
+}
 
   if (currentTargetStore) {
     renderReviews(currentTargetStore);
