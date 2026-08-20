@@ -1336,6 +1336,46 @@ async function shareCurrentARPost() {
     return;
   }
 
+async function createMeshSharePackage(items = []) {
+  const stores = {};
+  const posts = [];
+
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue;
+
+    if (item.html || item.name || item.bizName) {
+      const id = String(
+        item.id || `shared_store_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      );
+
+      stores[id] = {
+        ...item,
+        id,
+        source: 'TIFFY_MESH_SHARE',
+        sharedAt: Date.now()
+      };
+
+    } else {
+      posts.push({
+        ...item,
+        id: item.id ||
+          `shared_post_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        source: 'TIFFY_MESH_SHARE',
+        sharedAt: Date.now()
+      });
+    }
+  }
+
+  return {
+    format: 'TIFFY_MESH_SHARE',
+    version: 1,
+    createdAt: Date.now(),
+    source: 'TIFFY_MESH_SHARE',
+    meshDir: stores,
+    meshPosts: posts
+  };
+}
+  
   // Build a small package containing this one AR post
   const postPayload = {
     type: 'AR_SOCIAL_POST',
