@@ -2679,6 +2679,87 @@ const getRes = await fetch(`${apiUrl}?ref=${REGISTRY_BRANCH}`, {
     broadcastFullSync();
   }
 
+async function streamPublicStarterMesh() {
+  try {
+    console.log('[MESH] Streaming public starter Mesh...');
+
+    const response = await fetch(ARI_CONFIG.MESH_DIR_URL, {
+      method: 'GET',
+      cache: 'no-cache',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Public Mesh HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    let stores = [];
+
+    if (Array.isArray(data)) {
+      stores = data;
+    } else if (Array.isArray(data.stores)) {
+      stores = data.stores;
+    } else if (data.meshDir && typeof data.meshDir === 'object') {
+      stores = Object.values(data.meshDir);
+    } else if (typeof data === 'object') {
+      stores = Object.values(data).filter(
+        item => item && (item.html || item.name || item.id)
+      );
+    }
+
+    if (!stores.length) {
+      console.warn('[MESH] Public starter Mesh contained no stores.');
+      return 0;
+    }
+
+    let streamedCount = 0;
+
+    stores.forEach(store => {
+      if (!store) return;
+
+      const id =
+        store.id ||
+        store.peerId ||
+        ('public_' + Math.random().toString(36).slice(2, 10));
+
+      // Local/accepted content wins over public starter content.
+      if (meshDir[id]) return;
+
+      meshDir[id] = {
+        id,
+        name: store.name || store.bizName || 'Starter Showcase',
+        html: store.html || store.content || '',
+        thumb: store.thumb || store.thumbnail || store.image || '',
+        reviews: Array.isArray(store.reviews) ? store.reviews : [],
+        timestamp: store.timestamp || Date.now(),
+        whatsappNumber: store.whatsappNumber || store.whatsapp || '',
+        source: 'PUBLIC_MESH_STREAM',
+        persistent: false
+      };
+
+      streamedCount++;
+    });
+
+    renderPortals();
+    renderAllARBillboards();
+    updateNodeDropdown();
+
+    console.log(
+      `[MESH] Streamed ${streamedCount} public starter showcase(s).`
+    );
+
+    return streamedCount;
+
+  } catch (error) {
+    console.warn('[MESH] Public starter stream unavailable:', error);
+    return 0;
+  }
+}
+  
   window.onload = async () => {
   // 1. Show balances immediately from localStorage (zero network)
   document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('Tiffy_Harvest_Pending') || '0.00'}`;
