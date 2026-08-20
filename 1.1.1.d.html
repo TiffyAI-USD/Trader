@@ -1273,7 +1273,10 @@ async function shareCurrentStore() {
   const fileName = `tiffy_store_${(store.name || "node").replace(/\s+/g, "_").substring(0, 20)}.json`;
 
   const title = `TIFFY Store: ${store.name}`;
-  const text = `I shared a store with you. Import the attached .json file using "SELECT & MERGE FILE" in the WhatsApp Mesh Bridge to add it to your Mesh.`;
+  const text =
+  `I shared a Business Showcase with you. ` +
+  `Open TIFFY Decentralive and choose "ADD BUSINESS SHOWCASE" ` +
+  `to add this store to your local AR environment.`;
 
   await multiShareContent(title, text, null, blob, fileName);
 }
