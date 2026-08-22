@@ -2902,6 +2902,24 @@ function buildMeshSharePackage(meshIds = []) {
     meshDir: selected
   };
 }
+
+  async function createMeshShareFile(meshIds = []) {
+  const packageData = buildMeshSharePackage(meshIds);
+
+  if (!Object.keys(packageData.meshDir).length) {
+    throw new Error('No Mesh items were found to share.');
+  }
+
+  const json = JSON.stringify(packageData, null, 2);
+
+  return new File(
+    [json],
+    `TIFFY-Mesh-Share-${Date.now()}.json`,
+    {
+      type: 'application/json'
+    }
+  );
+}
   
 async function streamPublicStarterMesh() {
   try {
