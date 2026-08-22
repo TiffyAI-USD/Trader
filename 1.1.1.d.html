@@ -2865,6 +2865,44 @@ const getRes = await fetch(`${apiUrl}?ref=${REGISTRY_BRANCH}`, {
     broadcastFullSync();
   }
 
+function buildMeshSharePackage(meshIds = []) {
+  const selected = {};
+
+  if (!Array.isArray(meshIds)) {
+    meshIds = [meshIds];
+  }
+
+  meshIds.forEach(id => {
+    if (!id) return;
+
+    const item = meshDir[id];
+
+    if (!item) {
+      console.warn('[MESH SHARE] Item not found:', id);
+      return;
+    }
+
+    selected[id] = {
+      ...item,
+
+      // Mark this as an explicitly shared Mesh item.
+      source: 'USER_MESH_SHARE',
+
+      // Receiving this package may persist it.
+      persistent: true,
+
+      sharedAt: Date.now()
+    };
+  });
+
+  return {
+    format: 'TIFFY_MESH_SHARE',
+    version: 1,
+    createdAt: Date.now(),
+    meshDir: selected
+  };
+}
+  
 async function streamPublicStarterMesh() {
   try {
     console.log('[MESH] Streaming public starter Mesh...');
