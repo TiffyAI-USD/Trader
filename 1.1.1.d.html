@@ -2920,6 +2920,48 @@ function buildMeshSharePackage(meshIds = []) {
     }
   );
 }
+
+async function shareMeshItem(meshId) {
+  try {
+    const file = await createMeshShareFile([meshId]);
+
+    const shareData = {
+      title: 'TIFFY Mesh Share',
+      text:
+        'I shared a TIFFY Business Showcase with you. ' +
+        'Open TIFFY Mesh and use ADD BUSINESS SHOWCASE to import it.',
+      files: [file]
+    };
+
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] })
+    ) {
+      await navigator.share(shareData);
+      return true;
+    }
+
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = file.name;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    return true;
+
+  } catch (error) {
+    console.error('[MESH SHARE]', error);
+    alert(`Mesh share failed: ${error.message}`);
+    return false;
+  }
+}
   
 async function streamPublicStarterMesh() {
   try {
