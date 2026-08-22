@@ -453,8 +453,21 @@
   <button onclick="loadHome()">HOME</button>
   <button onclick="clearViewer()" style="background:rgba(200,0,0,0.4);">CLEAR</button>
 </div>
-<button onclick="shareCurrentStore()" style="background:rgba(37, 211, 102, 0.25); border-color:#25d366;">📤 SHARE CURRENT STORE</button>
+<button onclick="shareCurrentStore()" style="background:rgba(37, 211, 102, 0.25); border-color:#25d366;">
+  📤 SHARE CURRENT STORE
+</button>
 
+<button
+  onclick="shareCurrentStoreMeshFile()"
+  style="background:rgba(0,240,255,0.20); border-color:var(--electric-blue);">
+  📦 SHARE STORE + MESH FILE
+</button>
+
+<button
+  onclick="shareSelectedMeshFiles()"
+  style="background:rgba(255,0,170,0.20); border-color:var(--neon-pink);">
+  📦 MULTI-SHARE MESH ITEMS
+</button>
     <button onclick="handleUploadStoreClick()">UPLOAD STORE</button>
     <button onclick="openKycModal()">⚡ KY-AI SOVEREIGN GATEWAY</button>
     <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/v6.html', '_blank')">EDIT STORE</button>
@@ -3008,6 +3021,44 @@ async function shareMultipleMeshItems(meshIds = []) {
     alert(`Mesh multi-share failed: ${error.message}`);
     return false;
   }
+}
+
+async function shareCurrentStoreMeshFile() {
+  if (!currentTargetStore) {
+    alert("Select a store first.");
+    return;
+  }
+
+  const store = Object.values(meshDir).find(
+    s => s && s.name === currentTargetStore
+  );
+
+  if (!store || !store.id) {
+    alert("Store not found in your local Mesh.");
+    return;
+  }
+
+  return await shareMeshItem(store.id);
+}
+
+async function shareSelectedMeshFiles() {
+  const ids = Object.keys(meshDir).filter(id => {
+    const item = meshDir[id];
+    return item && item.id;
+  });
+
+  if (!ids.length) {
+    alert("There are no Mesh items available to share.");
+    return;
+  }
+
+  /*
+   * For now we use the current Mesh selection.
+   * The next step can replace this with checkboxes so
+   * the user chooses exactly which stores/videos/posts
+   * go into the package.
+   */
+  return await shareMultipleMeshItems(ids);
 }
   
 async function streamPublicStarterMesh() {
