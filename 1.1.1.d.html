@@ -2962,6 +2962,53 @@ async function shareMeshItem(meshId) {
     return false;
   }
 }
+
+async function shareMultipleMeshItems(meshIds = []) {
+  if (!Array.isArray(meshIds) || !meshIds.length) {
+    alert('Select at least one Mesh item to share.');
+    return false;
+  }
+
+  try {
+    const file = await createMeshShareFile(meshIds);
+
+    const shareData = {
+      title: 'TIFFY Mesh Multi-Share',
+      text:
+        `I shared ${meshIds.length} TIFFY Mesh item(s) with you. ` +
+        'Use ADD BUSINESS SHOWCASE to import them.',
+      files: [file]
+    };
+
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] })
+    ) {
+      await navigator.share(shareData);
+      return true;
+    }
+
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = `TIFFY-Mesh-Multi-Share-${Date.now()}.json`;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    return true;
+
+  } catch (error) {
+    console.error('[MESH MULTI-SHARE]', error);
+    alert(`Mesh multi-share failed: ${error.message}`);
+    return false;
+  }
+}
   
 async function streamPublicStarterMesh() {
   try {
