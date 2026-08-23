@@ -3060,6 +3060,1383 @@ async function shareSelectedMeshFiles() {
    */
   return await shareMultipleMeshItems(ids);
 }
+
+/* =========================================================
+   TIFFY MESH SHARE ENGINE
+   ONE SHARE SYSTEM
+   Stores + AR Posts + Media
+   ========================================================= */
+
+const TIFFY_SHARE_PAGE =
+  'https://tiffyai-usd.github.io/Trade/Verse6.html';
+
+
+/* ---------------------------------------------------------
+   BASIC UTILITIES
+   --------------------------------------------------------- */
+
+function tiffyMeshBytesToMB(bytes) {
+  return bytes / (1024 * 1024);
+}
+
+function tiffyMeshFormatMB(bytes) {
+  return tiffyMeshBytesToMB(bytes).toFixed(2);
+}
+
+function tiffyMeshEscapeText(value) {
+  return String(value || '')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+
+/* ---------------------------------------------------------
+   PACKAGE BUILDER
+   --------------------------------------------------------- */
+
+function tiffyBuildMeshPackage(storeIds = [], postIndexes = []) {
+
+  const stores = {};
+  const posts = [];
+
+  if (!Array.isArray(storeIds)) {
+    storeIds = [storeIds];
+  }
+
+  if (!Array.isArray(postIndexes)) {
+    postIndexes = [postIndexes];
+  }
+
+
+  /* ---------------- STORES ---------------- */
+
+  storeIds.forEach(id => {
+
+    if (!id) return;
+
+    const store = meshDir && meshDir[id];
+
+    if (!store) {
+      console.warn(
+        '[TIFFY SHARE] Store not found:',
+        id
+      );
+      return;
+    }
+
+    stores[id] = {
+      ...store,
+
+      id,
+
+      source: 'TIFFY_MESH_SHARE',
+
+      persistent: true,
+
+      sharedAt: Date.now()
+    };
+  });
+
+
+  /* ---------------- POSTS ---------------- */
+
+  postIndexes.forEach(index => {
+
+    const numericIndex = Number(index);
+
+    if (!Number.isInteger(numericIndex)) {
+      return;
+    }
+
+    if (
+      !Array.isArray(meshPosts) ||
+      !meshPosts[numericIndex]
+    ) {
+      return;
+    }
+
+    const post = meshPosts[numericIndex];
+
+    posts.push({
+      ...post,
+
+      source: 'TIFFY_MESH_SHARE',
+
+      sharedAt: Date.now()
+    });
+  });
+
+
+  return {
+    format: 'TIFFY_MESH_SHARE',
+
+    version: 1,
+
+    createdAt: Date.now(),
+
+    source: 'TIFFY_MESH_SHARE',
+
+    meshDir: stores,
+
+    meshPosts: posts
+  };
+}
+
+
+/* ---------------------------------------------------------
+   CURRENT STORE
+   --------------------------------------------------------- */
+
+function tiffyGetCurrentStoreId() {
+
+  if (!currentTargetStore) {
+    return null;
+  }
+
+  const entry = Object.entries(meshDir || {})
+    .find(([id, store]) => {
+
+      if (!store) return false;
+
+      return (
+        id === currentTargetStore ||
+        store.id === currentTargetStore ||
+        store.name === currentTargetStore ||
+        store.bizName === currentTargetStore
+      );
+    });
+
+  return entry ? entry[0] : null;
+}
+
+
+/* ---------------------------------------------------------
+   PACKAGE DESCRIPTION
+   --------------------------------------------------------- */
+
+function tiffyDescribeMeshPackage(pkg) {
+
+  const storeCount =
+    pkg &&
+    pkg.meshDir &&
+    typeof pkg.meshDir === 'object'
+      ? Object.keys(pkg.meshDir).length
+      : 0;
+
+  const postCount =
+    pkg &&
+    Array.isArray(pkg.meshPosts)
+      ? pkg.meshPosts.length
+      : 0;
+
+  const parts = [];
+
+  if (storeCount > 0) {
+
+    parts.push(
+      `${storeCount} store${storeCount === 1 ? '' : 's'}`
+    );
+  }
+
+  if (postCount > 0) {
+
+    parts.push(
+      `${postCount} post${postCount === 1 ? '' : 's'}`
+    );
+  }
+
+  return parts.length
+    ? parts.join(' + ')
+    : 'empty Mesh package';
+}
+
+
+/* ---------------------------------------------------------
+   BUILD SHARE FILE
+   --------------------------------------------------------- */
+
+function tiffyCreateMeshFile(pkg) {
+
+  if (!pkg) {
+    throw new Error(
+      'No Mesh package was supplied.'
+    );
+  }
+
+  const storeCount =
+    pkg.meshDir
+      ? Object.keys(pkg.meshDir).length
+      : 0;
+
+  const postCount =
+    Array.isArray(pkg.meshPosts)
+      ? pkg.meshPosts.length
+      : 0;
+
+  if (!storeCount && !postCount) {
+
+    throw new Error(
+      'Nothing selected for Mesh sharing.'
+    );
+  }
+
+
+  const json =
+    JSON.stringify(
+      pkg,
+      null,
+      2
+    );
+
+
+  const blob =
+    new Blob(
+      [json],
+      {
+        type: 'application/json'
+      }
+    );
+
+
+  const fileName =
+    `TIFFY-Mesh-Share-${Date.now()}.json`;
+
+
+  const file =
+    new File(
+      [blob],
+      fileName,
+      {
+        type: 'application/json'
+      }
+    );
+
+
+  return {
+    pkg,
+
+    json,
+
+    blob,
+
+    file,
+
+    fileName,
+
+    bytes: blob.size,
+
+    mb: tiffyMeshFormatMB(blob.size)
+  };
+}
+
+
+/* ---------------------------------------------------------
+   STATUS
+   --------------------------------------------------------- */
+
+function tiffyMeshShareStatus(
+  message,
+  error = false
+) {
+
+  const candidates = [
+    'mesh-share-status',
+    'whatsapp-write-status',
+    'voicenote-status',
+    'reputationMessageBox'
+  ];
+
+
+  let element = null;
+
+
+  for (const id of candidates) {
+
+    const found =
+      document.getElementById(id);
+
+    if (found) {
+
+      element = found;
+
+      break;
+    }
+  }
+
+
+  if (!element) {
+
+    console.log(
+      '[TIFFY SHARE]',
+      message
+    );
+
+    return;
+  }
+
+
+  element.textContent =
+    message;
+
+
+  element.style.color =
+    error
+      ? '#ff6b6b'
+      : '#00ff66';
+}
+
+
+/* ---------------------------------------------------------
+   DOWNLOAD FALLBACK
+   --------------------------------------------------------- */
+
+function tiffyDownloadMeshFile(
+  blob,
+  fileName
+) {
+
+  const url =
+    URL.createObjectURL(blob);
+
+
+  const link =
+    document.createElement('a');
+
+
+  link.href = url;
+
+  link.download = fileName;
+
+  link.style.display = 'none';
+
+
+  document.body.appendChild(link);
+
+  link.click();
+
+  link.remove();
+
+
+  setTimeout(
+    () => URL.revokeObjectURL(url),
+    30000
+  );
+
+
+  return true;
+}
+
+
+/* ---------------------------------------------------------
+   CLIPBOARD
+   --------------------------------------------------------- */
+
+async function tiffyCopyShareCard(
+  title,
+  text,
+  fileName,
+  mb
+) {
+
+  const payload =
+`${title}
+
+${text}
+
+${TIFFY_SHARE_PAGE}
+
+Mesh file: ${fileName}
+Size: ${mb} MB`;
+
+
+  if (
+    !navigator.clipboard ||
+    !navigator.clipboard.writeText
+  ) {
+
+    return false;
+  }
+
+
+  try {
+
+    await navigator.clipboard.writeText(
+      payload
+    );
+
+    return true;
+
+  } catch (error) {
+
+    console.warn(
+      '[TIFFY SHARE] Clipboard unavailable:',
+      error
+    );
+
+    return false;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   NATIVE FILE SHARE TEST
+   --------------------------------------------------------- */
+
+function tiffyCanShareFile(file) {
+
+  if (
+    !navigator.share ||
+    !navigator.canShare
+  ) {
+
+    return false;
+  }
+
+
+  try {
+
+    return navigator.canShare({
+      files: [file]
+    });
+
+  } catch (error) {
+
+    console.warn(
+      '[TIFFY SHARE] canShare failed:',
+      error
+    );
+
+    return false;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   MAIN SHARE ENGINE
+   --------------------------------------------------------- */
+
+async function tiffyShareMeshPackage(
+  pkg,
+  options = {}
+) {
+
+  if (!pkg) {
+
+    alert(
+      'Nothing is selected to share.'
+    );
+
+    return false;
+  }
+
+
+  let packageInfo;
+
+
+  try {
+
+    packageInfo =
+      tiffyCreateMeshFile(pkg);
+
+  } catch (error) {
+
+    console.error(
+      '[TIFFY SHARE] Package creation failed:',
+      error
+    );
+
+    alert(
+      error.message ||
+      'Could not create Mesh package.'
+    );
+
+    return false;
+  }
+
+
+  const {
+    file,
+    blob,
+    fileName,
+    mb
+  } = packageInfo;
+
+
+  const description =
+    tiffyDescribeMeshPackage(pkg);
+
+
+  const title =
+    options.title ||
+    `TIFFY Mesh • ${description}`;
+
+
+  const text =
+    options.text ||
+    `I shared ${description} with you from TIFFY Mesh. ` +
+    `Use ADD BUSINESS SHOWCASE to import the Mesh file into your AR environment.`;
+
+
+  tiffyMeshShareStatus(
+    `📦 ${description} • ${mb} MB`
+  );
+
+
+  /* -------------------------------------------------------
+     COPY CARD — OPTIONAL, NEVER REQUIRED
+     ------------------------------------------------------- */
+
+  await tiffyCopyShareCard(
+    title,
+    text,
+    fileName,
+    mb
+  );
+
+
+  /* -------------------------------------------------------
+     NATIVE SHARE WITH ACTUAL FILE
+     ------------------------------------------------------- */
+
+  if (
+    tiffyCanShareFile(file)
+  ) {
+
+    try {
+
+      await navigator.share({
+
+        title,
+
+        text,
+
+        files: [file]
+      });
+
+
+      tiffyMeshShareStatus(
+        `✅ Shared ${description} • ${mb} MB • Mesh file attached`
+      );
+
+
+      return true;
+
+    } catch (error) {
+
+      /*
+       * AbortError means the user deliberately
+       * closed the share sheet.
+       */
+
+      if (
+        error &&
+        error.name === 'AbortError'
+      ) {
+
+        tiffyMeshShareStatus(
+          'Share cancelled.',
+          true
+        );
+
+        return false;
+      }
+
+
+      /*
+       * Permission/security/browser failures
+       * MUST NOT kill the share operation.
+       */
+
+      console.warn(
+        '[TIFFY SHARE] Native file share unavailable:',
+        error
+      );
+    }
+  }
+
+
+  /* -------------------------------------------------------
+     TEXT SHARE FALLBACK
+     ------------------------------------------------------- */
+
+  if (
+    navigator.share
+  ) {
+
+    try {
+
+      await navigator.share({
+
+        title,
+
+        text:
+          `${text}\n\n` +
+          `Mesh package: ${fileName} • ${mb} MB`,
+
+        url: TIFFY_SHARE_PAGE
+      });
+
+
+      /*
+       * The actual Mesh file is still produced.
+       * Download it immediately after the text share.
+       */
+
+      tiffyDownloadMeshFile(
+        blob,
+        fileName
+      );
+
+
+      tiffyMeshShareStatus(
+        `✅ Message shared. Mesh file downloaded: ${fileName} • ${mb} MB`
+      );
+
+
+      return true;
+
+    } catch (error) {
+
+      if (
+        error &&
+        error.name === 'AbortError'
+      ) {
+
+        tiffyMeshShareStatus(
+          'Share cancelled.',
+          true
+        );
+
+        return false;
+      }
+
+
+      console.warn(
+        '[TIFFY SHARE] Text share unavailable:',
+        error
+      );
+    }
+  }
+
+
+  /* -------------------------------------------------------
+     UNIVERSAL DOWNLOAD FALLBACK
+     ------------------------------------------------------- */
+
+  tiffyDownloadMeshFile(
+    blob,
+    fileName
+  );
+
+
+  tiffyMeshShareStatus(
+    `📥 Mesh file downloaded • ${fileName} • ${mb} MB`
+  );
+
+
+  alert(
+    `Your Mesh package is ready.\n\n` +
+    `${description}\n` +
+    `Size: ${mb} MB\n\n` +
+    `The JSON Mesh file has been downloaded.\n` +
+    `Attach it to WhatsApp, Telegram, email or another sharing service.`
+  );
+
+
+  return true;
+}
+
+
+/* =========================================================
+   SHARE PICKER
+   ========================================================= */
+
+function tiffyOpenMeshSharePicker() {
+
+  let modal =
+    document.getElementById(
+      'tiffy-mesh-share-modal'
+    );
+
+
+  if (!modal) {
+
+    modal =
+      document.createElement('div');
+
+    modal.id =
+      'tiffy-mesh-share-modal';
+
+
+    modal.style.cssText =
+`
+position:fixed;
+inset:0;
+z-index:99999;
+background:rgba(0,0,0,0.86);
+display:flex;
+align-items:center;
+justify-content:center;
+padding:18px;
+`;
+
+
+    modal.innerHTML =
+`
+<div style="
+width:100%;
+max-width:520px;
+max-height:90vh;
+overflow:auto;
+background:#06101c;
+border:2px solid #00f0ff;
+border-radius:18px;
+padding:18px;
+color:#fff;
+box-shadow:0 0 35px rgba(0,240,255,.25);
+">
+
+<h2 style="
+margin:0 0 6px;
+color:#00f0ff;
+font-family:Orbitron,sans-serif;
+">
+📦 TIFFY MESH SHARE
+</h2>
+
+<div style="
+font-size:11px;
+color:#aaa;
+margin-bottom:12px;
+">
+Choose exactly what you want to share.
+The Mesh file contains only your selected items.
+</div>
+
+<div id="tiffy-mesh-share-list"></div>
+
+<div id="tiffy-mesh-share-summary" style="
+margin-top:12px;
+padding:10px;
+border:1px solid rgba(0,240,255,.25);
+border-radius:10px;
+background:rgba(0,0,0,.35);
+font-size:12px;
+color:#00ff66;
+">
+0 items selected • 0.00 MB
+</div>
+
+<div id="mesh-share-status" style="
+margin-top:8px;
+font-size:11px;
+min-height:18px;
+">
+</div>
+
+<div style="
+display:flex;
+gap:8px;
+margin-top:14px;
+">
+
+<button
+id="tiffy-mesh-share-send"
+style="
+flex:1;
+background:rgba(0,240,255,.18);
+border-color:#00f0ff;
+"
+>
+📤 SHARE SELECTED
+</button>
+
+<button
+id="tiffy-mesh-share-close"
+style="
+flex:1;
+background:rgba(180,0,0,.25);
+"
+>
+CLOSE
+</button>
+
+</div>
+
+</div>
+`;
+
+
+    document.body.appendChild(
+      modal
+    );
+
+
+    document
+      .getElementById(
+        'tiffy-mesh-share-close'
+      )
+      .onclick =
+        () => {
+
+          modal.remove();
+
+        };
+
+
+    document
+      .getElementById(
+        'tiffy-mesh-share-send'
+      )
+      .onclick =
+        async () => {
+
+          await tiffySendSelectedMeshItems(
+            modal
+          );
+        };
+  }
+
+
+  tiffyPopulateMeshSharePicker(
+    modal
+  );
+}
+
+
+/* ---------------------------------------------------------
+   PICKER CONTENT
+   --------------------------------------------------------- */
+
+function tiffyPopulateMeshSharePicker(
+  modal
+) {
+
+  const list =
+    modal.querySelector(
+      '#tiffy-mesh-share-list'
+    );
+
+
+  if (!list) return;
+
+
+  list.innerHTML =
+    '';
+
+
+  const stores =
+    Object.entries(
+      meshDir || {}
+    );
+
+
+  const posts =
+    Array.isArray(meshPosts)
+      ? meshPosts
+      : [];
+
+
+  if (
+    !stores.length &&
+    !posts.length
+  ) {
+
+    list.innerHTML =
+`
+<div style="
+padding:15px;
+text-align:center;
+color:#888;
+">
+No Mesh items are available.
+</div>
+`;
+
+    return;
+  }
+
+
+  /* -------------------------------------------------------
+     STORES
+     ------------------------------------------------------- */
+
+  if (stores.length) {
+
+    const heading =
+      document.createElement(
+        'div'
+      );
+
+
+    heading.textContent =
+      '🏪 BUSINESS SHOWCASES';
+
+
+    heading.style.cssText =
+`
+font-size:11px;
+font-weight:bold;
+color:#00f0ff;
+margin:6px 0;
+`;
+
+
+    list.appendChild(
+      heading
+    );
+
+
+    stores.forEach(
+      ([id, store]) => {
+
+        if (!store) return;
+
+
+        const row =
+          document.createElement(
+            'label'
+          );
+
+
+        row.style.cssText =
+`
+display:flex;
+align-items:center;
+gap:9px;
+padding:8px;
+margin:4px 0;
+border:1px solid rgba(0,240,255,.15);
+border-radius:8px;
+background:rgba(0,0,0,.25);
+cursor:pointer;
+`;
+
+
+        const checkbox =
+          document.createElement(
+            'input'
+          );
+
+
+        checkbox.type =
+          'checkbox';
+
+
+        checkbox.className =
+          'tiffy-share-store';
+
+
+        checkbox.value =
+          id;
+
+
+        checkbox.addEventListener(
+          'change',
+          () =>
+            tiffyUpdateMeshShareSummary(
+              modal
+            )
+        );
+
+
+        const label =
+          document.createElement(
+            'span'
+          );
+
+
+        label.textContent =
+          store.name ||
+          store.bizName ||
+          'Untitled Store';
+
+
+        label.style.flex =
+          '1';
+
+
+        row.appendChild(
+          checkbox
+        );
+
+
+        row.appendChild(
+          label
+        );
+
+
+        list.appendChild(
+          row
+        );
+      }
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     POSTS
+     ------------------------------------------------------- */
+
+  if (posts.length) {
+
+    const heading =
+      document.createElement(
+        'div'
+      );
+
+
+    heading.textContent =
+      '📡 AR ENVIRONMENT ITEMS';
+
+
+    heading.style.cssText =
+`
+font-size:11px;
+font-weight:bold;
+color:#ff00aa;
+margin:12px 0 6px;
+`;
+
+
+    list.appendChild(
+      heading
+    );
+
+
+    posts.forEach(
+      (post, index) => {
+
+        if (!post) return;
+
+
+        const row =
+          document.createElement(
+            'label'
+          );
+
+
+        row.style.cssText =
+`
+display:flex;
+align-items:center;
+gap:9px;
+padding:8px;
+margin:4px 0;
+border:1px solid rgba(255,0,170,.15);
+border-radius:8px;
+background:rgba(0,0,0,.25);
+cursor:pointer;
+`;
+
+
+        const checkbox =
+          document.createElement(
+            'input'
+          );
+
+
+        checkbox.type =
+          'checkbox';
+
+
+        checkbox.className =
+          'tiffy-share-post';
+
+
+        checkbox.value =
+          index;
+
+
+        checkbox.addEventListener(
+          'change',
+          () =>
+            tiffyUpdateMeshShareSummary(
+              modal
+            )
+        );
+
+
+        const label =
+          document.createElement(
+            'span'
+          );
+
+
+        const preview =
+          post.text ||
+          post.mediaName ||
+          post.type ||
+          'AR item';
+
+
+        label.textContent =
+          preview.length > 70
+            ? preview.slice(0, 70) + '…'
+            : preview;
+
+
+        label.style.flex =
+          '1';
+
+
+        row.appendChild(
+          checkbox
+        );
+
+
+        row.appendChild(
+          label
+        );
+
+
+        list.appendChild(
+          row
+        );
+      }
+    );
+  }
+
+
+  tiffyUpdateMeshShareSummary(
+    modal
+  );
+}
+
+
+/* ---------------------------------------------------------
+   SUMMARY / SIZE PREVIEW
+   --------------------------------------------------------- */
+
+function tiffyGetSelectedMeshIds(
+  modal
+) {
+
+  return [
+    ...modal.querySelectorAll(
+      '.tiffy-share-store:checked'
+    )
+  ].map(
+    el => el.value
+  );
+}
+
+
+function tiffyGetSelectedPostIndexes(
+  modal
+) {
+
+  return [
+    ...modal.querySelectorAll(
+      '.tiffy-share-post:checked'
+    )
+  ].map(
+    el => Number(el.value)
+  );
+}
+
+
+function tiffyUpdateMeshShareSummary(
+  modal
+) {
+
+  const storeIds =
+    tiffyGetSelectedMeshIds(
+      modal
+    );
+
+
+  const postIndexes =
+    tiffyGetSelectedPostIndexes(
+      modal
+    );
+
+
+  const pkg =
+    tiffyBuildMeshPackage(
+      storeIds,
+      postIndexes
+    );
+
+
+  let sizeText =
+    '0.00 MB';
+
+
+  let description =
+    '0 items';
+
+
+  try {
+
+    const info =
+      tiffyCreateMeshFile(
+        pkg
+      );
+
+
+    sizeText =
+      `${info.mb} MB`;
+
+    description =
+      tiffyDescribeMeshPackage(
+        pkg
+      );
+
+  } catch (_) {
+
+    const count =
+      storeIds.length +
+      postIndexes.length;
+
+
+    description =
+      `${count} item${count === 1 ? '' : 's'}`;
+  }
+
+
+  const summary =
+    modal.querySelector(
+      '#tiffy-mesh-share-summary'
+    );
+
+
+  if (summary) {
+
+    summary.textContent =
+      `${description} selected • ${sizeText}`;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   SEND SELECTED ITEMS
+   --------------------------------------------------------- */
+
+async function tiffySendSelectedMeshItems(
+  modal
+) {
+
+  const storeIds =
+    tiffyGetSelectedMeshIds(
+      modal
+    );
+
+
+  const postIndexes =
+    tiffyGetSelectedPostIndexes(
+      modal
+    );
+
+
+  if (
+    !storeIds.length &&
+    !postIndexes.length
+  ) {
+
+    alert(
+      'Select at least one Mesh item first.'
+    );
+
+    return;
+  }
+
+
+  const pkg =
+    tiffyBuildMeshPackage(
+      storeIds,
+      postIndexes
+    );
+
+
+  const success =
+    await tiffyShareMeshPackage(
+      pkg
+    );
+
+
+  if (success) {
+
+    /*
+     * Leave the picker open briefly so
+     * the user can see the result.
+     */
+
+    setTimeout(
+      () => {
+
+        if (
+          document.body.contains(
+            modal
+          )
+        ) {
+
+          modal.remove();
+        }
+
+      },
+      1200
+    );
+  }
+}
+
+
+/* =========================================================
+   PUBLIC BUTTON API
+   ========================================================= */
+
+/*
+ * This becomes the ONE main Mesh share button.
+ */
+
+async function shareCurrentStore() {
+
+  tiffyOpenMeshSharePicker();
+}
+
+
+/*
+ * Existing button name remains compatible.
+ */
+
+async function shareCurrentStoreMeshFile() {
+
+  tiffyOpenMeshSharePicker();
+}
+
+
+/*
+ * Existing multi-share button remains compatible.
+ */
+
+async function shareSelectedMeshFiles() {
+
+  tiffyOpenMeshSharePicker();
+}
+
+
+/*
+ * Existing picker alias remains compatible.
+ */
+
+async function sharePickedMeshItems() {
+
+  tiffyOpenMeshSharePicker();
+}
+
+
+/*
+ * Existing AR post share name remains compatible.
+ *
+ * It opens the same picker rather than creating
+ * another independent sharing system.
+ */
+
+async function shareCurrentARPost() {
+
+  tiffyOpenMeshSharePicker();
+}
   
 async function streamPublicStarterMesh() {
   try {
