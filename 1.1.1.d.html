@@ -1029,6 +1029,127 @@ const TIFFY_REAR_PROJECTORS = [
     </a-scene>
   </div>
 
+<script>
+/* =========================================================
+   TIFFY REAR PROJECTOR ↔ AR SCREEN CONNECTION
+   ========================================================= */
+
+(function connectRearProjectorToARScreen() {
+
+  function connect() {
+
+    const screen =
+      document.getElementById('rear-projector-screen');
+
+    const overlay =
+      document.getElementById('rear-projector-overlay');
+
+    const scene =
+      document.querySelector('a-scene');
+
+    if (!screen || !overlay || !scene) {
+      console.warn(
+        '[TIFFY PROJECTOR] AR screen connection waiting...'
+      );
+      return;
+    }
+
+    function updateProjectorPosition() {
+
+      const camera =
+        scene.camera;
+
+      if (!camera) return;
+
+      /*
+       * The rear screen is physically behind the
+       * user/camera. Project its world position
+       * into browser coordinates.
+       */
+      const THREE = window.THREE;
+
+      if (!THREE) return;
+
+      const object =
+        screen.object3D;
+
+      if (!object) return;
+
+      const worldPosition =
+        new THREE.Vector3();
+
+      object.getWorldPosition(worldPosition);
+
+      const projected =
+        worldPosition.clone();
+
+      projected.project(camera);
+
+      const x =
+        (projected.x + 1) * 0.5 *
+        window.innerWidth;
+
+      const y =
+        (1 - projected.y) * 0.5 *
+        window.innerHeight;
+
+      /*
+       * Only show the browser projector when
+       * the AR rear screen is actually visible.
+       */
+      if (projected.z < -1 || projected.z > 1) {
+        overlay.style.display = 'none';
+        return;
+      }
+
+      overlay.style.display = 'block';
+
+      overlay.style.left =
+        `${x}px`;
+
+      overlay.style.top =
+        `${y}px`;
+
+    }
+
+    /*
+     * Keep it attached to the AR screen while
+     * the user moves the camera.
+     */
+    function animate() {
+
+      updateProjectorPosition();
+
+      requestAnimationFrame(animate);
+
+    }
+
+    animate();
+
+    console.log(
+      '[TIFFY PROJECTOR] Connected to rear AR screen.'
+    );
+  }
+
+  if (
+    document.readyState === 'loading'
+  ) {
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      connect,
+      { once: true }
+    );
+
+  } else {
+
+    connect();
+
+  }
+
+})();
+</script>
+  
   <div id="ui-panel">
     <div class="gold-banner" id="ari-banner-msg">ARI NETWORK ACTIVE: REPUTATION & MESH SYNC READY</div>
     <div style="font-family:'Orbitron'; text-align:center; margin-bottom:12px; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
