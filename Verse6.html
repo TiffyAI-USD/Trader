@@ -483,6 +483,51 @@
   </a-plane>
 
 </a-entity>
+
+
+    <style>
+/* =========================================================
+   REAR PROJECTOR SELECT • PULSE / RADIANCE
+   ========================================================= */
+
+#rear-projector-overlay select {
+  animation: tiffyProjectorPulse 1.8s ease-in-out infinite;
+  box-shadow:
+    0 0 8px rgba(0,240,255,.45),
+    0 0 18px rgba(0,240,255,.25);
+  border-color: rgba(0,240,255,.85) !important;
+  transition:
+    box-shadow .25s ease,
+    border-color .25s ease,
+    transform .25s ease;
+}
+
+#rear-projector-overlay select:hover,
+#rear-projector-overlay select:focus {
+  animation: none;
+  box-shadow:
+    0 0 12px rgba(0,240,255,.9),
+    0 0 30px rgba(0,240,255,.65),
+    0 0 50px rgba(255,0,170,.35);
+  border-color: rgba(255,0,170,.95) !important;
+  transform: scale(1.02);
+}
+
+@keyframes tiffyProjectorPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 6px rgba(0,240,255,.35),
+      0 0 12px rgba(0,240,255,.15);
+  }
+
+  50% {
+    box-shadow:
+      0 0 12px rgba(0,240,255,.8),
+      0 0 28px rgba(0,240,255,.55),
+      0 0 45px rgba(255,0,170,.3);
+  }
+}
+</style>  
       <!-- =========================================================
      REAR PROJECTOR HTML OVERLAY
      ========================================================= -->
