@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title id="pageMetaTitle">TIFFY Trader • Sovereign Mesh Terminal</title>
+  <title id="pageMetaTitle">TIFFY Trader • Decentralive Sovereign Terminal</title>
   
   <!-- Open Graph Social Share Meta Tags -->
   <meta property="og:title" id="ogTitleTag" content="TIFFY Trader Sent You 1 Ultra Secure Message">
@@ -1239,7 +1239,7 @@ const TIFFY_REAR_PROJECTORS = [
 </script>
   
   <div id="ui-panel">
-    <div class="gold-banner" id="ari-banner-msg">ARI NETWORK ACTIVE: REPUTATION & MESH SYNC READY</div>
+    <div class="gold-banner" id="ari-banner-msg">DECENTRALIVE NETWORK ACTIVE: REPUTATION & BUSINESS SYNC READY</div>
     <div style="font-family:'Orbitron'; text-align:center; margin-bottom:12px; font-size:1.35rem; color:var(--electric-blue);">TIFFY MESH TERMINAL</div>
     
     <div id="online-members-container">
@@ -1252,10 +1252,17 @@ const TIFFY_REAR_PROJECTORS = [
 
     <iframe id="projector-lens" allowfullscreen="true"></iframe>
 
+<label class="file-btn" style="background:rgba(37,211,102,0.2); border-color:#25d366; display:block; text-align:center; padding:10px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; margin-top:6px;">
+        SELECT & MERGE FILE 
+        <input type="file" id="whatsapp-import-file" accept=".json" onchange="stableMergeImportWhatsApp(event)" class="hidden">
+      </label>
+      <div id="whatsapp-write-status" style="margin-top:8px; font-size:11.5px; color:#00ff66; text-align:center;"></div>
+    </div>
+    
 <button
   onclick="showWhatsAppBridgeModal()"
   style="background:var(--gold-gradient); color:#000; border-color:#ffd700; font-family:'Orbitron'; font-weight:900;">
-  ➕ ADD BUSINESS SHOWCASE
+  ➕ SEND VOICENOTES ANYWHERE.
 </button>
 
 <div style="display:flex; gap:8px;">
@@ -1267,15 +1274,15 @@ const TIFFY_REAR_PROJECTORS = [
 <button
   onclick="shareSelectedMeshFiles()"
   style="background:rgba(255,0,170,0.20); border-color:var(--neon-pink);">
-  📦 MULTI-SHARE MESH ITEMS
+  📦 MULTI-SHARE SHOWCASE ITEMS
 </button>
     <button onclick="triggerMultiShare()" style="background:rgba(37,211,102,0.3); border-color:#25d366; font-size:12px;">🚀 SHARE TO ANY PLATFORM</button>
     <button onclick="handleUploadStoreClick()">UPLOAD STORE</button>
-    <button onclick="openKycModal()">⚡ KY-AI SOVEREIGN GATEWAY</button>
+    <button onclick="openKycModal()">⚡ KYC-AI-MATCHMAKER</button>
     <button onclick="window.open('https://tiffyai-usd.github.io/Web-Store-App/v6.html', '_blank')">EDIT STORE</button>
     <button onclick="window.open('https://tiffyai-usd.github.io/Transact/Transfer-Cash.html', '_blank')">BANKING</button>
     
-    <button onclick="showWhatsAppBridgeModal()" style="background: rgba(37, 211, 102, 0.25); border-color: rgba(37, 211, 102, 0.5);">💬 SOCIAL SHARE & VOICE</button>
+    <button onclick="showWhatsAppBridgeModal()" style="background: rgba(37, 211, 102, 0.25); border-color: rgba(37, 211, 102, 0.5);">💬</button>
 
     <!-- ARI & MATRIX SEARCH ENGINE -->
     <div style="margin-top:15px; font-size:11px; color:#aaa;">ARI & MATRIX SEARCH ENGINE</div>
@@ -1288,7 +1295,7 @@ const TIFFY_REAR_PROJECTORS = [
     </div>
     <div class="reputation-message-box" id="reputationMessageBox" style="font-size: 11px; color: var(--electric-blue); text-align: center; margin-bottom: 8px;"></div>
 
-    <div style="font-size:11px; color:#aaa;">LIVE CHAT + REPUTATION</div>
+    <div style="font-size:11px; color:#aaa;">LIVE CHAT REPORT - REPUTATION - RATING</div>
     <div id="chat-container"></div>
     <div id="star-rating-area" style="text-align:center; margin:5px 0;"></div>
     <input type="text" id="chat-input" placeholder="Review/Message...">
@@ -1533,7 +1540,7 @@ const TIFFY_REAR_PROJECTORS = [
       
       <button onclick="triggerMultiShare()" style="background:rgba(37,211,102,0.3); border-color:#25d366; font-size:12px;">🚀 SHARE TO ANY PLATFORM</button>
       
-      <button onclick="triggerVoiceNoteMultiShare()" style="background:rgba(37,211,102,0.3); border-color:#25d366; font-size:12px; margin-top:2px;">🚀 MULTI-SHARE VOICE NOTE & CARD</button>
+      <button onclick="triggerVoiceNoteMultiShare()" style="background:rgba(37,211,102,0.3); border-color:#25d366; font-size:12px; margin-top:2px;">🚀 DOWNLOAD VOICE NOTE & COPY CARD</button>
       <div id="voicenote-status" style="margin-top:6px; font-size:11px; color:var(--electric-blue); text-align:center;"></div>
     </div>
 
