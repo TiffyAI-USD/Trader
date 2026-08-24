@@ -1149,6 +1149,91 @@ const TIFFY_REAR_PROJECTORS = [
 
 })();
 </script>
+
+<script>
+/* =========================================================
+   REAR PROJECTOR TAP ACTIVATION
+   ========================================================= */
+
+(function enableRearProjectorTap() {
+
+  function setupRearProjectorTap() {
+
+    const screen =
+      document.getElementById('zone-behind');
+
+    const overlay =
+      document.getElementById('rear-projector-overlay');
+
+    if (!screen || !overlay) {
+      console.warn(
+        '[TIFFY PROJECTOR] Tap target not found.'
+      );
+      return;
+    }
+
+    function openProjector() {
+
+      overlay.style.display = 'block';
+
+      const select =
+        document.getElementById('rear-projector-select');
+
+      if (select) {
+        select.focus();
+      }
+
+      const message =
+        document.getElementById('rear-projector-message');
+
+      if (message) {
+        message.textContent =
+          'PROJECTOR ACTIVE • SELECT DESTINATION';
+      }
+
+      console.log(
+        '[TIFFY PROJECTOR] Rear projector opened.'
+      );
+    }
+
+    /*
+     * A-Frame click/touch events
+     */
+    screen.addEventListener(
+      'click',
+      openProjector
+    );
+
+    screen.addEventListener(
+      'touchstart',
+      openProjector,
+      { passive: true }
+    );
+
+    /*
+     * Also expose a manual function so the
+     * projector can be activated from elsewhere.
+     */
+    window.openRearProjector = openProjector;
+
+  }
+
+  if (document.readyState === 'loading') {
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      setupRearProjectorTap,
+      { once: true }
+    );
+
+  } else {
+
+    setupRearProjectorTap();
+
+  }
+
+})();
+</script>
   
   <div id="ui-panel">
     <div class="gold-banner" id="ari-banner-msg">ARI NETWORK ACTIVE: REPUTATION & MESH SYNC READY</div>
