@@ -2010,6 +2010,26 @@ const TIFFY_REAR_PROJECTORS = [
     }
   }
 
+function triggerMultiShare() {
+    const descVal = document.getElementById('metaDescInput').value;
+    const titleVal = document.getElementById('metaTitleInput').value;
+    const shareUrl = "https://tiffyai-usd.github.io/Trade/Verse6.html";
+    
+    const shareText = descVal;
+
+    if (navigator.share) {
+      navigator.share({
+        title: titleVal,
+        text: shareText,
+        url: shareUrl
+      }).catch((err) => {});
+    } else {
+      const clipboardPayload = `${descVal}\n${shareUrl}`;
+      navigator.clipboard.writeText(clipboardPayload);
+      alert("Share text & link copied to clipboard!");
+    }
+  }
+  
   async function triggerVoiceNoteMultiShare() {
     const descVal = document.getElementById('metaDescInput').value;
     const titleVal = document.getElementById('metaTitleInput').value;
