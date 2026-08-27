@@ -1590,12 +1590,12 @@ const TIFFY_REAR_PROJECTORS = [
     <div style="margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 12px;">
       <span style="font-size:10px; color:#ff00aa; font-weight:bold; display:block; margin-bottom:6px;">3. BUSINESS SHOWCASE</span>
 <p style="font-size:11.5px; color:#ccc; margin-bottom:8px;">
-  Add a shared store, website or Mesh showcase to your local AR environment.
+  Add a shared store, website or TIFFY Drive Mesh showcase to your local AR environment.
 </p>
-      <button onclick="exportMeshFileForWhatsApp()" style="background:rgba(0,240,255,0.2); border-color:var(--electric-blue); font-size:12px;">📥 DOWNLOAD MESH JSON</button>
+      <button onclick="exportMeshFileForWhatsApp()" style="background:rgba(0,240,255,0.2); border-color:var(--electric-blue); font-size:12px;">📥 DOWNLOAD YOUR TIFFY DRIVE MESH FILE</button>
       
       <label class="file-btn" style="background:rgba(37,211,102,0.2); border-color:#25d366; display:block; text-align:center; padding:10px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; margin-top:6px;">
-        SELECT & MERGE FILE
+        SELECT & INSTALL - MERGE TIFFY DRIVE FILE
         <input type="file" id="whatsapp-import-file" accept=".json" onchange="stableMergeImportWhatsApp(event)" class="hidden">
       </label>
       <div id="whatsapp-write-status" style="margin-top:8px; font-size:11.5px; color:#00ff66; text-align:center;"></div>
@@ -2162,7 +2162,7 @@ async function shareCurrentStore() {
   const title = `TIFFY Store: ${store.name}`;
   const text =
   `I shared a Business Showcase with you. ` +
-  `Open TIFFY Decentralive and choose "ADD BUSINESS SHOWCASE" ` +
+  `Open TIFFY Decentralive and choose "Install & Merge TIFFY Drive Mesh File" ` +
   `to add this store to your local AR environment.`;
 
   await multiShareContent(title, text, null, blob, fileName);
@@ -2286,7 +2286,7 @@ async function createMeshSharePackage(items = []) {
       title: shareTitle,
       text:
         `I shared ${items.length === 1 ? 'a Business Showcase' : 'several Mesh items'} with you. ` +
-        `Open TIFFY Mesh and choose "ADD BUSINESS SHOWCASE" to add them to your AR environment.`,
+        `Open TIFFY Mesh and choose "Install & Merge TIFFY Drive Mesh file" to add them to your AR environment.`,
       files: [file]
     };
 
@@ -2319,7 +2319,7 @@ async function createMeshSharePackage(items = []) {
     setTimeout(() => URL.revokeObjectURL(url), 10000);
 
     alert(
-      'The Mesh share package was downloaded. ' +
+      'Your TIFFY Drive Mesh share package was downloaded. ' +
       'You can now attach that small JSON file to WhatsApp, Matrix or another sharing service.'
     );
 
@@ -2358,7 +2358,7 @@ async function createMeshSharePackage(items = []) {
   const fileName = `tiffy_ar_post_${Date.now()}.json`;
 
   const title = "TIFFY AR Post";
-  const desc = text || "Check out this AR post on TIFFY Mesh";
+  const desc = text || "Check out this AR post on TIFFY Mesh Drive";
 
   // If there is also a media file, we still share the JSON (media is inside the JSON as data URL)
   await multiShareContent(title, desc, null, blob, fileName);
@@ -2786,7 +2786,7 @@ async function createMeshSharePackage(items = []) {
   }
 
   if (!peer.id) {
-    alert("Connection not ready. Please wait a moment and try again.");
+    alert("Connection not ready. Please wait a moment or refresh the page and try again.");
     return;
   }
 
@@ -3167,7 +3167,7 @@ async function createMeshSharePackage(items = []) {
   function saveGitHubConfig() {
     const token = document.getElementById('ghToken').value.trim();
     if (!token) {
-        alert("Please provide your Access Token.");
+        alert("Please provide your Access Token or contact support on your Store Owner Terminal, that's on the web builder or top up your banking terminal with a minimum of 10 dollars to receive your access token. Your access token enables business match-making and more. Bare in mind, you won't be able to complete KYC without it.");
         return;
     }
     localStorage.setItem("Tiffy_GH_Repo", REGISTRY_REPO);
