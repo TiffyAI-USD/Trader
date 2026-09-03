@@ -1296,13 +1296,13 @@ const TIFFY_REAR_PROJECTORS = [
 <div class="stat-row" id="tusd-counter">TUSD Nitro: 0.00</div>
 
 <script>
-  // Load live balances instantly from your banking terminal's local storage keys
+  // Load live ledger-deducted balances using your HTML counter IDs
   document.addEventListener("DOMContentLoaded", () => {
-      const terminalTokens = parseFloat(localStorage.getItem('Tiffy_Harvest_Pending') || localStorage.getItem('Tiffy_Terminal_Tokens') || '0.00');
-      const nitroStorage = parseFloat(localStorage.getItem('TUSD_Nitro_Storage') || (localStorage.getItem('KYC_Verified_Hash') ? '10.00' : '0.00'));
+      const terminalTokens = calculateAccountBalanceFromLedger('terminal_tokens');
+      const nitroBal = calculateAccountBalanceFromLedger('nitro');
 
       document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${terminalTokens.toFixed(2)}`;
-      document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${nitroStorage.toFixed(2)}`;
+      document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${nitroBal.toFixed(2)}`;
   });
 </script>
 
