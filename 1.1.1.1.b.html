@@ -5409,6 +5409,14 @@ async function streamPublicStarterMesh() {
 }
   
   window.onload = async () => {
+    window.onload = () => {
+    let terminalTokens = calculateAccountBalanceFromLedger('terminal_tokens');
+    let nitroBal = calculateAccountBalanceFromLedger('nitro');
+
+    document.getElementById('terminalTokenDisplay').innerText = terminalTokens.toFixed(2);
+    document.getElementById('nitroDisplay').innerText = nitroBal.toFixed(2);
+};
+
 // 1. The exact ledger balance calculation engine from your banking terminal
 function calculateAccountBalanceFromLedger(assetKey) {
     let baseline = 0.0;
