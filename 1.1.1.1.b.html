@@ -5409,16 +5409,7 @@ async function streamPublicStarterMesh() {
 }
   
   window.onload = async () => {
-    window.onload = () => {
-    let terminalTokens = calculateAccountBalanceFromLedger('terminal_tokens');
-    let nitroBal = calculateAccountBalanceFromLedger('nitro');
-
-    document.getElementById('terminalTokenDisplay').innerText = terminalTokens.toFixed(2);
-    document.getElementById('nitroDisplay').innerText = nitroBal.toFixed(2);
-};
-
-// 1. The exact ledger balance calculation engine from your banking terminal
-function calculateAccountBalanceFromLedger(assetKey) {
+    function calculateAccountBalanceFromLedger(assetKey) {
     let baseline = 0.0;
     if (assetKey === 'terminal_tokens') {
         baseline = parseFloat(localStorage.getItem("Tiffy_Harvest_Pending") || localStorage.getItem("Tiffy_Terminal_Tokens") || "0.00");
@@ -5455,19 +5446,6 @@ function calculateAccountBalanceFromLedger(assetKey) {
     return Math.max(0, netBalance);
 }
 
-// 2. The initialization function matching your banking terminal's loadBalances logic
-function loadBalances() {
-    let terminalTokens = calculateAccountBalanceFromLedger('terminal_tokens');
-    let nitroBal = calculateAccountBalanceFromLedger('nitro');
-    
-    document.getElementById('tiffy-counter').innerText = `TIFFYAI: ${terminalTokens.toFixed(2)}`;
-    document.getElementById('tusd-counter').innerText = `TUSD Nitro: ${nitroBal.toFixed(2)}`;
-}
-
-// 3. Trigger it on window load
-window.onload = () => {
-    loadBalances();
-};
 
   // 2. Try to play background video (fails gracefully offline)
   document.getElementById('bg-video').play().catch(() => {});
