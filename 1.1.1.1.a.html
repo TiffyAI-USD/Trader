@@ -5409,24 +5409,53 @@ async function streamPublicStarterMesh() {
 }
   
   window.onload = async () => {
-  window.onload = async () => {
-  // 1. Calculate and show balances instantly using your ledger engine rules
-  const terminalTokens = calculateAccountBalanceFromLedger('terminal_tokens');
-  const nitroBalance = calculateAccountBalanceFromLedger('nitro');
+  // 1. Paste the banking terminal's exact ledger engine into your trader file
+function calculateAccountBalanceFromLedger(assetKey) {
+    let baseline = 0.0;
+    if (assetKey === 'terminal_tokens') {
+        baseline = parseFloat(localStorage.getItem("Tiffy_Harvest_Pending") || localStorage.getItem("Tiffy_Terminal_Tokens") || "0.00");
+    } else if (assetKey === 'nitro') {
+        let kycNitro = localStorage.getItem("KYC_Verified_Hash") ? 10.00 : 0.00;
+        baseline = parseFloat(localStorage.getItem("TUSD_Nitro_Storage") || kycNitro);
+    } else if (assetKey === 'wallet_tokens') {
+        baseline = parseFloat(localStorage.getItem("Tiffy_OnChain_Wallet_Balance") || "0.00");
+    } else if (assetKey === 'wallet_tusd') {
+        baseline = parseFloat(localStorage.getItem("TUSD_OnChain_Wallet_Balance") || "0.00");
+    }
 
-  document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${terminalTokens.toFixed(2)}`;
-  document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${nitroBalance.toFixed(2)}`;
+    let ledger = JSON.parse(localStorage.getItem("Tiffy_Transaction_Ledger") || "[]");
+    let netBalance = baseline;
 
-  // 2. Run your async on-chain checks or other startup functions here
-  if (typeof fetchAndCompareOnChainBalances === 'function') {
-      await fetchAndCompareOnChainBalances();
-      
-      // Refresh after on-chain sync completes
-      const updatedTokens = calculateAccountBalanceFromLedger('terminal_tokens');
-      const updatedNitro = calculateAccountBalanceFromLedger('nitro');
-      document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${updatedTokens.toFixed(2)}`;
-      document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${updatedNitro.toFixed(2)}`;
-  }
+    ledger.forEach(tx => {
+        if (tx.asset === assetKey) {
+            if (tx.type === 'internal_send' || tx.type === 'external_send') {
+                netBalance -= tx.amount;
+            } else if (tx.type === 'internal_receive' || tx.type === 'external_receive' || tx.type === 'refund') {
+                netBalance += tx.amount;
+            } else if (tx.type === 'conversion' && assetKey === 'terminal_tokens') {
+                netBalance -= tx.amount;
+            } else if (tx.type === 'conversion' && assetKey === 'nitro') {
+                netBalance += (tx.amount * 20.0);
+            } else if (tx.type === 'reverse_conversion' && assetKey === 'terminal_tokens') {
+                netBalance += (tx.amount / 20.0);
+            } else if (tx.type === 'reverse_conversion' && assetKey === 'nitro') {
+                netBalance -= tx.amount;
+            }
+        }
+    });
+
+    return Math.max(0, netBalance);
+}
+
+// 2. Load the real totals on startup
+window.onload = () => {
+    const terminalTokens = calculateAccountBalanceFromLedger('terminal_tokens');
+    const nitroBalance = calculateAccountBalanceFromLedger('nitro');
+
+    document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${terminalTokens.toFixed(2)}`;
+    document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${nitroBalance.toFixed(2)}`;
+};
+
 };
   // 2. Try to play background video (fails gracefully offline)
   document.getElementById('bg-video').play().catch(() => {});
