@@ -5409,10 +5409,25 @@ async function streamPublicStarterMesh() {
 }
   
   window.onload = async () => {
-  // 1. Show balances immediately from localStorage (zero network)
-  document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('terminal_tokens') || '0.00'}`;
-  document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${localStorage.getItem('nitro') || '0.00'}`;
+  window.onload = async () => {
+  // 1. Calculate and show balances instantly using your ledger engine rules
+  const terminalTokens = calculateAccountBalanceFromLedger('terminal_tokens');
+  const nitroBalance = calculateAccountBalanceFromLedger('nitro');
 
+  document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${terminalTokens.toFixed(2)}`;
+  document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${nitroBalance.toFixed(2)}`;
+
+  // 2. Run your async on-chain checks or other startup functions here
+  if (typeof fetchAndCompareOnChainBalances === 'function') {
+      await fetchAndCompareOnChainBalances();
+      
+      // Refresh after on-chain sync completes
+      const updatedTokens = calculateAccountBalanceFromLedger('terminal_tokens');
+      const updatedNitro = calculateAccountBalanceFromLedger('nitro');
+      document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${updatedTokens.toFixed(2)}`;
+      document.getElementById('tusd-counter').textContent = `TUSD Nitro: ${updatedNitro.toFixed(2)}`;
+  }
+};
   // 2. Try to play background video (fails gracefully offline)
   document.getElementById('bg-video').play().catch(() => {});
 
