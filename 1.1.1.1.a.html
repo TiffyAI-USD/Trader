@@ -5399,8 +5399,8 @@ async function streamPublicStarterMesh() {
   
   window.onload = async () => {
   // 1. Show balances immediately from localStorage (zero network)
-  document.getElementById('tiffy-counter').textContent = `TIFFYAI: ${localStorage.getItem('terminal_tokens') || '0.00'}`;
-  document.getElementById('box-terminal-tokens').textContent = `TUSD Nitro: ${localStorage.getItem('nitro') || '0.00'}`;
+  document.getElementById('box-terminal-tokens').textContent = `TIFFYAI: ${localStorage.getItem('terminal_tokens') || '0.00'}`;
+  document.getElementById('box-nitro').textContent = `TUSD Nitro: ${localStorage.getItem('nitro') || '0.00'}`;
 
   // 2. Try to play background video (fails gracefully offline)
   document.getElementById('bg-video').play().catch(() => {});
