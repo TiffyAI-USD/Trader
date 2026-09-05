@@ -425,16 +425,64 @@
     </a-plane>
   </a-entity>
 
-  <!-- Item 3 (spiraling left and deeper, stepping further down) -->
-  <a-entity class="spiral-node" position="-0.6 -1.3 -0.6" rotation="0 15 0">
-    <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
-      <a-text value="ADD / UPLOAD NODE" align="center" position="0 0.05 0.01" width="2.2" color="#ff00aa" font="mozillavr"></a-text>
-      <a-text value="Custom Storage" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
-      <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive"></a-image>
-      <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive"></a-image>
-    </a-plane>
-  </a-entity>
+  <!-- Item 3: The Upload Node -->
+<a-entity id="upload-trigger-node" class="spiral-node interactive" position="-0.6 -1.3 -0.6" rotation="0 15 0">
+  <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
+    <a-text value="ADD / UPLOAD NODE" align="center" position="0 0.05 0.01" width="2.2" color="#ff00aa" font="mozillavr"></a-text>
+    <a-text value="Custom Storage" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
+    <a-image id="btn-like-node" src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive"></a-image>
+    <a-image id="btn-delete-node" src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive"></a-image>
+  </a-plane>
+</a-entity>
 
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const uploadNode = document.getElementById('upload-trigger-node');
+    const fileInput = document.getElementById('spatial-file-input');
+    const likeBtn = document.getElementById('btn-like-node');
+    const deleteBtn = document.getElementById('btn-delete-node');
+
+    // 1. Trigger phone file picker when clicking the 3D Upload Node
+    if (uploadNode && fileInput) {
+      uploadNode.addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          console.log("File selected for upload:", file.name);
+          // Hook your existing host/upload function here if you have one, 
+          // or alert to confirm it caught the file:
+          alert("Selected asset: " + file.name);
+        }
+      });
+    }
+
+    // 2. Make the Like button responsive
+    if (likeBtn) {
+      likeBtn.addEventListener('click', (evt) => {
+        evt.stopPropagation(); // Prevent triggering parent node
+        likeBtn.setAttribute('scale', '0.22 0.22 0.22'); // Quick feedback pulse
+        setTimeout(() => likeBtn.setAttribute('scale', '0.18 0.18 0.18'), 150);
+        console.log("Item liked!");
+      });
+    }
+
+    // 3. Make the Delete button responsive
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        const parentNode = deleteBtn.closest('.spiral-node');
+        if (parentNode) {
+          parentNode.setAttribute('visible', 'false'); // Hides the node from view
+          console.log("Node removed from view.");
+        }
+      });
+    }
+  });
+</script>
+  
 </a-entity>
       
       <a-entity id="zone-front" position="0 1.2 -3.0">
