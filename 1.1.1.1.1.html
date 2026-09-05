@@ -395,45 +395,6 @@
         <a-camera id="main-camera" position="0 1.6 0"></a-camera>
       </a-entity>
 
-<script>
-  // Automatically transforms any items added to #scene-container into a descending spiral carousel
-  function applySpiralCarousel() {
-    const container = document.getElementById('scene-container');
-    if (!container) return;
-    
-    const items = container.children;
-    const radius = 2.0;
-    const heightStep = 0.9;
-
-    Array.from(items).forEach((item, i) => {
-      // Skip if it's not a dynamic post element or already processed
-      if (item.classList && item.classList.contains('spiral-applied')) return;
-      
-      const angle = i * 0.8;
-      const spiralX = Math.cos(angle) * radius;
-      const spiralZ = Math.sin(angle) * radius;
-      const spiralY = 1.2 - (i * heightStep);
-      const rotationY = -(angle * (180 / Math.PI)) + 90;
-
-      // Apply the spiral transformation directly
-      item.style.position = 'absolute';
-      item.style.transform = `translate3d(${spiralX * 100}px, ${spiralY * -100}px, ${spiralZ * 100}px)`;
-      item.classList.add('spiral-applied');
-    });
-  }
-
-  // Run on load and watch for new video/store posts dynamically
-  const observer = new MutationObserver(applySpiralCarousel);
-  window.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('scene-container');
-    if (container) {
-      observer.observe(container, { childList: true });
-      applySpiralCarousel();
-    }
-  });
-</script>
-
-      
 <!-- Descending Spiral Carousel Rig in 3D Space -->
 <a-entity id="world-spiral-carousel" position="0 4.2 -7.5">
   
