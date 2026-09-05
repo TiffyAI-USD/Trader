@@ -394,6 +394,45 @@
       <a-entity id="camera-rig" position="0 0 0">
         <a-camera id="main-camera" position="0 1.6 0"></a-camera>
       </a-entity>
+
+<!-- Descending Spiral Carousel Rig in 3D Space -->
+<a-entity id="world-spiral-carousel" position="0 1.2 -2.5">
+  
+  <!-- Spiral Title / Header Node -->
+  <a-text value="MESH MEDIA SPIRAL FEED" align="center" position="0 0.8 0" width="3.5" color="#00f0ff" font="mozillavr"></a-text>
+
+  <!-- Item 1 (Top of Spiral) -->
+  <a-entity class="spiral-node" position="0 0.3 0" rotation="0 0 0">
+    <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
+      <a-video src="#bg-video" width="1.1" height="0.65" position="0 0.05 0.01"></a-video>
+      <a-text value="Matrix Stream 11" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
+      <!-- Action Buttons (Like / Delete) -->
+      <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive"></a-image>
+      <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive"></a-image>
+    </a-plane>
+  </a-entity>
+
+  <!-- Item 2 (spiraling slightly right and forward, stepping down) -->
+  <a-entity class="spiral-node" position="0.6 -0.5 -0.3" rotation="0 -15 0">
+    <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
+      <a-image src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/like.png" width="1.1" height="0.65" position="0 0.05 0.01"></a-image>
+      <a-text value="Compile Host Node" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
+      <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive"></a-image>
+      <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive"></a-image>
+    </a-plane>
+  </a-entity>
+
+  <!-- Item 3 (spiraling left and deeper, stepping further down) -->
+  <a-entity class="spiral-node" position="-0.6 -1.3 -0.6" rotation="0 15 0">
+    <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
+      <a-text value="ADD / UPLOAD NODE" align="center" position="0 0.05 0.01" width="2.2" color="#ff00aa" font="mozillavr"></a-text>
+      <a-text value="Custom Storage" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
+      <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive"></a-image>
+      <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive"></a-image>
+    </a-plane>
+  </a-entity>
+
+</a-entity>
       
       <a-entity id="zone-front" position="0 1.2 -3.0">
         <a-entity id="ar-portal" position="0 0 0"></a-entity>
