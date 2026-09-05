@@ -362,6 +362,69 @@
       line-height: 1.4;
       white-space: pre-wrap;
     }
+
+.terminal-carousel-section {
+  margin: 14px 0;
+  width: 100%;
+}
+.terminal-carousel-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  color: var(--electric-blue);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.terminal-carousel-track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--electric-blue) rgba(0,0,0,0.5);
+}
+.terminal-carousel-track::-webkit-scrollbar {
+  height: 4px;
+}
+.terminal-carousel-track::-webkit-scrollbar-thumb {
+  background: var(--electric-blue);
+  border-radius: 4px;
+}
+.terminal-carousel-card {
+  flex: 0 0 110px;
+  height: 95px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  scroll-snap-align: start;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.terminal-carousel-card:hover {
+  transform: scale(1.03);
+  border-color: var(--electric-blue);
+}
+.terminal-carousel-card img, 
+.terminal-carousel-card video {
+  width: 100%;
+  height: 65px;
+  object-fit: cover;
+}
+.terminal-carousel-card .card-label {
+  font-size: 9.5px;
+  padding: 4px 6px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+}
+
+    
   </style>
 </head>
 <body>
@@ -377,6 +440,30 @@
     <div id="btn-up" class="d-btn" ontouchstart="startMove('up')" onmousedown="startMove('up')" ontouchend="stopMove()" onmouseup="stopMove()" style="grid-column: 1; grid-row: 1;">➕</div>
     <div id="btn-down" class="d-btn" ontouchstart="startMove('down')" onmousedown="startMove('down')" ontouchend="stopMove()" onmouseup="stopMove()" style="grid-column: 3; grid-row: 1;">➖</div>
   </div>
+
+<!-- Section 1: Videos & Photos Carousel -->
+<div class="terminal-carousel-section">
+  <div class="terminal-carousel-title">📹 Media Feed (Videos & Photos)</div>
+  <div id="mediaCarouselTrack" class="terminal-carousel-track">
+    <!-- Populated dynamically or via static items matching your asset nodes -->
+    <div class="terminal-carousel-card" onclick="loadVideoAsset('bg-video')">
+      <video src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/11.mp4" muted></video>
+      <div class="card-label">Matrix Stream 11</div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2: Websites & Stores Carousel -->
+<div class="terminal-carousel-section">
+  <div class="terminal-carousel-title">🌐 Active Web Stores & Nodes</div>
+  <div id="storeCarouselTrack" class="terminal-carousel-track">
+    <div class="terminal-carousel-card" onclick="window.open('https://tiffyai-usd.github.io/Compile.html/', '_blank')">
+      <img src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/like.png" alt="Store">
+      <div class="card-label">Compile Host</div>
+    </div>
+  </div>
+</div>
+
 
   <div id="scene-container">
     <a-scene embedded vr-mode-ui="enabled: false" cursor="rayOrigin: mouse" background="color: #000000">
