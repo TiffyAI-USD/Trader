@@ -367,6 +367,9 @@
 <body>
 
   <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">☰</button>
+
+<!-- Hidden file picker triggered by the 3D upload node -->
+<input type="file" id="spatial-file-input" style="display: none;" accept="image/*,video/*">
   
   <button id="dpad-toggle-btn" onclick="toggleDpadDrawer()" title="Toggle AR Walking Controls">🎮</button>
   <div id="ar-dpad-drawer">
