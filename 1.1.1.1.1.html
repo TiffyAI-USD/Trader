@@ -368,8 +368,8 @@
 
   <button id="toggle-ui" onclick="document.getElementById('ui-panel').classList.toggle('hidden')">☰</button>
 
-<!-- Hidden file picker triggered by the 3D upload node -->
-<input type="file" id="spatial-file-input" style="display: none;" accept="image/*,video/*">
+  <!-- Hidden file picker triggered by the 3D upload node -->
+  <input type="file" id="spatial-file-input" style="display: none;" accept="image/*,video/*">
   
   <button id="dpad-toggle-btn" onclick="toggleDpadDrawer()" title="Toggle AR Walking Controls">🎮</button>
   <div id="ar-dpad-drawer">
@@ -398,88 +398,191 @@
         <a-camera id="main-camera" position="0 1.6 0"></a-camera>
       </a-entity>
 
-<!-- Descending Spiral Carousel Rig in 3D Space -->
-<a-entity id="world-spiral-carousel" position="0 4.2 -7.5">
-  
-  <!-- Spiral Title / Header Node -->
-  <a-text value="MESH MEDIA SPIRAL FEED" align="center" position="0 0.8 0" width="3.5" color="#00f0ff" font="mozillavr"></a-text>
+      <!-- Descending Spiral Carousel Rig in 3D Space -->
+      <a-entity id="world-spiral-carousel" position="0 4.2 -7.5">
+        
+        <!-- Spiral Title / Header Node -->
+        <a-text value="MESH MEDIA SPIRAL FEED" align="center" position="0 0.8 0" width="3.5" color="#00f0ff" font="mozillavr"></a-text>
 
-  <!-- Item 1 (Top of Spiral) -->
-  <a-entity class="spiral-node" position="0 0.3 0" rotation="0 0 0">
-    <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
-      <a-video src="#bg-video" width="1.1" height="0.65" position="0 0.05 0.01"></a-video>
-      <a-text value="Matrix Stream 11" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
-      <!-- Action Buttons (Like / Delete) -->
-      <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive"></a-image>
-      <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive"></a-image>
-    </a-plane>
-  </a-entity>
+        <!-- Item 1 (Top of Spiral - Hardcoded 11.mp4) -->
+        <a-entity class="spiral-node" position="0 0.3 0" rotation="0 0 0">
+          <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
+            <a-video src="#bg-video" width="1.1" height="0.65" position="0 0.05 0.01" crossorigin="anonymous"></a-video>
+            <a-text value="Matrix Stream 11" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
+            <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive like-action" crossorigin="anonymous"></a-image>
+            <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive delete-action" crossorigin="anonymous"></a-image>
+          </a-plane>
+        </a-entity>
 
-  <!-- Item 2 (spiraling slightly right and forward, stepping down) -->
-  <a-entity class="spiral-node" position="0.6 -0.5 -0.3" rotation="0 -15 0">
-    <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
-      <a-image src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/like.png" width="1.1" height="0.65" position="0 0.05 0.01"></a-image>
-      <a-text value="Compile Host Node" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
-      <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive"></a-image>
-      <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive"></a-image>
-    </a-plane>
-  </a-entity>
+        <!-- Item 2 (Default Host Node) -->
+        <a-entity class="spiral-node" position="0.6 -0.5 -0.3" rotation="0 -15 0">
+          <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
+            <a-image src="https://raw.githubusercontent.com/TiffyAI-USD/Trader/refs/heads/main/like.png" width="1.1" height="0.65" position="0 0.05 0.01" crossorigin="anonymous"></a-image>
+            <a-text value="Compile Host Node" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
+            <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive like-action" crossorigin="anonymous"></a-image>
+            <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive delete-action" crossorigin="anonymous"></a-image>
+          </a-plane>
+        </a-entity>
 
-  <!-- Item 3: The Upload Node -->
-<a-entity id="upload-trigger-node" class="spiral-node interactive" position="-0.6 -1.3 -0.6" rotation="0 15 0">
-  <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
-    <a-text value="ADD / UPLOAD NODE" align="center" position="0 0.05 0.01" width="2.2" color="#ff00aa" font="mozillavr"></a-text>
-    <a-text value="Custom Storage" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
-    <a-image id="btn-like-node" src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive"></a-image>
-    <a-image id="btn-delete-node" src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive"></a-image>
-  </a-plane>
-</a-entity>
+        <!-- Item 3: The Upload Node -->
+        <a-entity id="upload-trigger-node" class="spiral-node" position="-0.6 -1.3 -0.6" rotation="0 15 0">
+          <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
+            <a-text value="ADD / UPLOAD NODE" align="center" position="0 0.05 0.01" width="2.2" color="#ff00aa" font="mozillavr"></a-text>
+            <a-text value="Custom Storage" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
+            <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive like-action" crossorigin="anonymous"></a-image>
+            <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive delete-action" crossorigin="anonymous"></a-image>
+          </a-plane>
+        </a-entity>
+
+      </a-entity>
+    </a-scene>
+  </div>
 
 <script>
   window.addEventListener('DOMContentLoaded', () => {
     const uploadNode = document.getElementById('upload-trigger-node');
     const fileInput = document.getElementById('spatial-file-input');
-    const likeBtn = document.getElementById('btn-like-node');
-    const deleteBtn = document.getElementById('btn-delete-node');
+    const carousel = document.getElementById('world-spiral-carousel');
 
-    // 1. Trigger phone file picker when clicking the 3D Upload Node
+    const DB_NAME = 'TiffySpatialDB';
+    const STORE_NAME = 'media_store';
+    const DB_VERSION = 1;
+    let db = null;
+
+    // 1. Initialize IndexedDB for robust multi-GB storage
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db = request.result;
+          resolve(db);
+        };
+        request.onupgradeneeded = (event) => {
+          const database = event.target.result;
+          if (!database.objectStoreNames.contains(STORE_NAME)) {
+            database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+          }
+        };
+      });
+    }
+
+    // 2. Render Node into the 3D Spiral automatically with correct helical offset
+    function createSpiralNode(fileData, index, recordId = null) {
+      const angle = index * 0.8;
+      const radius = 2.0;
+      const heightStep = 0.9;
+      const spiralX = Math.cos(angle) * radius;
+      const spiralZ = Math.sin(angle) * radius;
+      const spiralY = 1.2 - (index * heightStep);
+      const rotationY = -(angle * (180 / Math.PI)) + 90;
+
+      const newNode = document.createElement('a-entity');
+      newNode.setAttribute('class', 'spiral-node');
+      newNode.setAttribute('position', `${spiralX} ${spiralY} ${spiralZ}`);
+      newNode.setAttribute('rotation', `0 ${rotationY} 0`);
+      
+      if (recordId !== null) {
+        newNode.setAttribute('data-record-id', recordId);
+      }
+
+      const isVideo = fileData.type && fileData.type.startsWith('video');
+      const mediaTag = isVideo 
+        ? `<a-video src="${fileData.url}" width="1.1" height="0.65" position="0 0.05 0.01" crossorigin="anonymous" autoplay loop muted></a-video>`
+        : `<a-image src="${fileData.url}" width="1.1" height="0.65" position="0 0.05 0.01" crossorigin="anonymous"></a-image>`;
+
+      newNode.innerHTML = `
+        <a-plane width="1.2" height="0.8" color="#060a35" material="opacity: 0.8; transparent: true; shader: flat;">
+          ${mediaTag}
+          <a-text value="${fileData.name.substring(0, 16)}" align="center" position="0 -0.32 0.02" width="2.2" color="#fff" font="mozillavr"></a-text>
+          <a-image src="#btn-like" width="0.18" height="0.18" position="-0.4 -0.32 0.03" class="interactive like-action" crossorigin="anonymous"></a-image>
+          <a-image src="#btn-deleting" width="0.18" height="0.18" position="0.4 -0.32 0.03" class="interactive delete-action" crossorigin="anonymous"></a-image>
+        </a-plane>
+      `;
+
+      carousel.appendChild(newNode);
+    }
+
+    // 3. Load persisted database records on startup
+    function loadPersistedNodes() {
+      if (!db) return;
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const records = request.result;
+        records.forEach((record, idx) => {
+          // Offset index by 3 to follow the 3 preset hardcoded nodes cleanly
+          createSpiralNode(record, idx + 3, record.id);
+        });
+      };
+    }
+
+    openDB().then(() => {
+      loadPersistedNodes();
+    }).catch(err => console.error("IndexedDB connection error:", err));
+
+    // 4. File selection and DB save pipeline
     if (uploadNode && fileInput) {
-      uploadNode.addEventListener('click', () => {
+      uploadNode.addEventListener('click', (e) => {
+        e.stopPropagation();
         fileInput.click();
       });
 
       fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (file) {
-          console.log("File selected for upload:", file.name);
-          // Hook your existing host/upload function here if you have one, 
-          // or alert to confirm it caught the file:
-          alert("Selected asset: " + file.name);
-        }
+        if (!file || !carousel || !db) return;
+
+        const reader = new FileReader();
+        reader.onload = function(uploadEvent) {
+          const fileRecord = {
+            name: file.name,
+            type: file.type,
+            url: uploadEvent.target.result,
+            createdAt: Date.now()
+          };
+
+          const transaction = db.transaction(STORE_NAME, 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+          const addRequest = store.add(fileRecord);
+
+          addRequest.onsuccess = (event) => {
+            const newId = event.target.result;
+            fileRecord.id = newId;
+            const nodes = carousel.querySelectorAll('.spiral-node');
+            createSpiralNode(fileRecord, nodes.length, newId);
+            fileInput.value = ""; 
+          };
+
+          addRequest.onerror = (err) => {
+            console.error("IndexedDB write failed:", err);
+            alert("Failed to save media asset to browser database.");
+          };
+        };
+        reader.readAsDataURL(file);
       });
     }
 
-    // 2. Make the Like button responsive
-    if (likeBtn) {
-      likeBtn.addEventListener('click', (evt) => {
-        evt.stopPropagation(); // Prevent triggering parent node
-        likeBtn.setAttribute('scale', '0.22 0.22 0.22'); // Quick feedback pulse
-        setTimeout(() => likeBtn.setAttribute('scale', '0.18 0.18 0.18'), 150);
-        console.log("Item liked!");
-      });
-    }
-
-    // 3. Make the Delete button responsive
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', (evt) => {
-        evt.stopPropagation();
-        const parentNode = deleteBtn.closest('.spiral-node');
+    // 5. Global Action Handlers (Like feedback + IndexedDB deletion sync)
+    document.addEventListener('click', (evt) => {
+      if (evt.target.classList && evt.target.classList.contains('delete-action')) {
+        const parentNode = evt.target.closest('.spiral-node');
         if (parentNode) {
-          parentNode.setAttribute('visible', 'false'); // Hides the node from view
-          console.log("Node removed from view.");
+          const recordId = parentNode.getAttribute('data-record-id');
+          if (recordId !== null && db) {
+            const transaction = db.transaction(STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            store.delete(Number(recordId));
+          }
+          parentNode.parentNode.removeChild(parentNode);
         }
-      });
-    }
+      }
+      if (evt.target.classList && evt.target.classList.contains('like-action')) {
+        evt.target.setAttribute('scale', '0.22 0.22 0.22');
+        setTimeout(() => evt.target.setAttribute('scale', '0.18 0.18 0.18'), 150);
+      }
+    });
   });
 </script>
   
